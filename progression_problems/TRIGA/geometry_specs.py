@@ -1,3 +1,5 @@
+from progression_problems.constants import CM_PER_INCH
+
 # References
 # ----------
 #
@@ -5,5 +7,4 @@
 #     August 2023, https://www.nrc.gov/docs/ML2327/ML23279A146.pdf
 #
 
-CM_PER_INCH = 2.54
-
+print(CM_PER_INCH)

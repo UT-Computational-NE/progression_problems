@@ -1,0 +1,31 @@
+# Standard ignores
+*~
+*.pyc
+\#*#
+.#*
+.*.swp
+*.so
+*.egg-info/
+
+# Bash Script Ignore
+*.sh
+
+# Output ignores
+*.png
+*.xml
+*.log
+*.out
+*.inp
+*.h5
+*.sum
+*.csv
+*.vti
+*.vtu
+*.vtk
+*.o*
+*.e*
+
+# Repostiory list file for egdist
+.egdist
+*.sublime-*
+

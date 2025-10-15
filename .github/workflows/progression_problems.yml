@@ -46,5 +46,6 @@ jobs:
     - name: Install and Test Progression Problems
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh && conda activate openmc-env
+        python -m pip install .
         pytest test/unit/
         python -m pylint ./progression_problems

@@ -30,6 +30,7 @@ jobs:
     - name: Install MPACTPy from Repo
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh && conda activate openmc-env
+        cd /tmp
         git clone https://github.com/UT-Computational-NE/MPACTPy.git
         cd MPACTPy
         python -m pip install .
@@ -37,6 +38,7 @@ jobs:
     - name: Install CoreForge from Repo
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh && conda activate openmc-env
+        cd /tmp
         git clone https://github.com/UT-Computational-NE/CoreForge.git
         cd CoreForge
         python -m pip install .
@@ -44,6 +46,5 @@ jobs:
     - name: Install and Test Progression Problems
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh && conda activate openmc-env
-        python -m pip install .
         pytest test/unit/
         python -m pylint ./progression_problems

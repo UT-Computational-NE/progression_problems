@@ -1,5 +1,4 @@
 from __future__ import annotations
-from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from math import cos, radians
@@ -50,26 +49,22 @@ class TRIGA:
         Default: TRIGA.Shroud()
     beam_port_1_5 : TRIGA.BeamPort
         The TRIGA beam port 1/5 specifications.
-        Default: TRIGA.DEFAULT_BEAM_PORT["beamport_1_5"]
+        Default: TRIGA.default_beamport_1_5()
     beam_port_2 : TRIGA.BeamPort
         The TRIGA beam port 2 specifications.
-        Default: TRIGA.DEFAULT_BEAM_PORT["beamport_2"]
+        Default: TRIGA.default_beamport_2()
     beam_port_3 : TRIGA.BeamPort
         The TRIGA beam port 3 specifications.
-        Default: TRIGA.DEFAULT_BEAM_PORT["beamport_3"]
+        Default: TRIGA.default_beamport_3()
     beam_port_4 : TRIGA.BeamPort
         The TRIGA beam port 4 specifications.
-        Default: TRIGA.DEFAULT_BEAM_PORT["beamport_4"]
+        Default: TRIGA.default_beamport_4()
     rotary_specimen_rack_cavity : TRIGA.RotarySpecimenRackCavity
         The TRIGA rotary specimen rack specifications.
         Default: TRIGA.RotarySpecimenRackCavity()
     core : TRIGA.Core
         The TRIGA core specifications.
         Default: TRIGA.Core()
-
-    DEFAULT_BEAM_PORT : ClassVar[Dict[BeamPortID, BeamPort]]
-        Dictionary containing default beam port specifications for beam ports 1/5, 2, 3, and 4.
-        Specifications derived from the MCNP input in Ref. [2]_ pages 48, 56, 59
     """
 
     @dataclass
@@ -129,7 +124,7 @@ class TRIGA:
                 Default: DefaultMaterials.zirc_filler() (Ref. [2]_ pg. 51)
             """
             radius: float = 0.25 * 0.5 * CM_PER_INCH
-            material: openmc.Material = field(default_factory=lambda: DefaultMaterials.zirc_filler())
+            material: openmc.Material = field(default_factory=DefaultMaterials.zirc_filler)
 
             def __post_init__(self):
                 assert self.radius > 0, "Zr Fill Rod radius must be positive."
@@ -156,7 +151,7 @@ class TRIGA:
             inner_radius: float = 0.25  * 0.5 * CM_PER_INCH
             outer_radius: float = 1.435 * 0.5 * CM_PER_INCH
             length:       float = 15.0 * CM_PER_INCH
-            material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.fresh_fuel())
+            material:     openmc.Material = field(default_factory=DefaultMaterials.fresh_fuel)
 
             def __post_init__(self):
                 assert self.inner_radius > 0, "Fuel Meat inner radius must be positive."
@@ -181,7 +176,7 @@ class TRIGA:
             """
             thickness:    float = 0.020 * CM_PER_INCH
             outer_radius: float = 1.475 * 0.5 * CM_PER_INCH
-            material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.stainless_steel())
+            material:     openmc.Material = field(default_factory=DefaultMaterials.stainless_steel)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Cladding thickness must be positive."
@@ -205,7 +200,7 @@ class TRIGA:
             """
             radius:    float = 1.430 * 0.5 * CM_PER_INCH
             thickness: float = 3.420 * CM_PER_INCH
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.graphite())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.graphite)
 
             def __post_init__(self):
                 assert self.radius > 0, "Graphite Reflector radius must be positive."
@@ -229,7 +224,7 @@ class TRIGA:
             """
             radius:    float = 1.431 * 0.5 * CM_PER_INCH
             thickness: float = 0.031 * CM_PER_INCH
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.molybdenum())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.molybdenum)
 
             def __post_init__(self):
                 assert self.radius > 0, "Moly Disc radius must be positive."
@@ -249,7 +244,7 @@ class TRIGA:
                 Default: DefaultMaterials.air() (Ref. [2]_ pg. 50)
             """
             thickness: float = 0.5 * CM_PER_INCH
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.air())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.air)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Air Gap thickness must be positive."
@@ -273,25 +268,32 @@ class TRIGA:
             """
             length:    float
             direction: Literal['up', 'down']
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.stainless_steel())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.stainless_steel)
 
             def __post_init__(self):
                 assert self.length > 0, "End Fitting length must be positive."
                 assert self.direction in ('up', 'down'), "End Fitting direction must be either 'up' or 'down'."
 
         cladding:                 Cladding          = field(default_factory=Cladding)
-        upper_end_fitting:        EndFitting        = field(default_factory=partial(EndFitting, length=7.3552, direction='up'))
+        upper_end_fitting:        EndFitting        = field(default_factory=
+                                                            partial(EndFitting, length=7.3552, direction='up'))
         upper_air_gap:            AirGap            = field(default_factory=AirGap)
-        upper_graphite_reflector: GraphiteReflector = field(default_factory=partial(GraphiteReflector, thickness=2.56 * CM_PER_INCH))
+        upper_graphite_reflector: GraphiteReflector = field(default_factory=
+                                                            partial(GraphiteReflector, thickness=2.56 * CM_PER_INCH))
         zr_fill_rod:              ZrFillRod         = field(default_factory=ZrFillRod)
         fuel_meat:                FuelMeat          = field(default_factory=FuelMeat)
         moly_disc:                MolyDisc          = field(default_factory=MolyDisc)
-        lower_graphite_reflector: GraphiteReflector = field(default_factory=partial(GraphiteReflector, thickness=3.72 * CM_PER_INCH))
-        lower_end_fitting:        EndFitting        = field(default_factory=partial(EndFitting, length=7.6209, direction='down'))
+        lower_graphite_reflector: GraphiteReflector = field(default_factory=
+                                                            partial(GraphiteReflector, thickness=3.72 * CM_PER_INCH))
+        lower_end_fitting:        EndFitting        = field(default_factory=
+                                                            partial(EndFitting, length=7.6209, direction='down'))
 
         def __post_init__(self):
-            self.interior_length = self.lower_graphite_reflector.thickness + self.moly_disc.thickness + self.fuel_meat.length + \
-                                   self.upper_graphite_reflector.thickness + self.upper_air_gap.thickness
+            self.interior_length = self.lower_graphite_reflector.thickness + \
+                                   self.moly_disc.thickness                + \
+                                   self.fuel_meat.length                   + \
+                                   self.upper_graphite_reflector.thickness + \
+                                   self.upper_air_gap.thickness
 
 
     @dataclass
@@ -305,13 +307,15 @@ class TRIGA:
             Default: Cladding()
         upper_end_fitting : GraphiteElement.EndFitting
             Upper End Fitting specifications.
-            Default: EndFitting(length=TRIGA.FuelElement().upper_end_fitting.length, direction='up') (Ref. [1]_ Section 4.2.3.b)
+            Default: EndFitting(length=TRIGA.FuelElement().upper_end_fitting.length, direction='up')
+            (Ref. [1]_ Section 4.2.3.b)
         graphite_meat : GraphiteElement.GraphiteMeat
             Graphite Meat specifications.
             Default: GraphiteMeat()
         lower_end_fitting : GraphiteElement.EndFitting
             Lower End Fitting specifications.
-            Default: EndFitting(length=TRIGA.FuelElement().lower_end_fitting.length, direction='down') (Ref. [1]_ Section 4.2.3.b)
+            Default: EndFitting(length=TRIGA.FuelElement().lower_end_fitting.length, direction='down')
+            (Ref. [1]_ Section 4.2.3.b)
         """
 
         @dataclass
@@ -332,7 +336,7 @@ class TRIGA:
             """
             outer_radius: float = field(default_factory=lambda: TRIGA.FuelElement.FuelMeat().outer_radius)
             length:       float = field(default_factory=lambda: TRIGA.FuelElement().interior_length)
-            material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.graphite())
+            material:     openmc.Material = field(default_factory=DefaultMaterials.graphite)
 
             def __post_init__(self):
                 assert self.outer_radius > 0, "Graphite Meat outer radius must be positive."
@@ -356,7 +360,7 @@ class TRIGA:
             """
             thickness:    float = field(default_factory=lambda: TRIGA.FuelElement.Cladding().thickness)
             outer_radius: float = field(default_factory=lambda: TRIGA.FuelElement.Cladding().outer_radius)
-            material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+            material:     openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Cladding thickness must be positive."
@@ -381,7 +385,7 @@ class TRIGA:
             """
             length:    float
             direction: Literal['up', 'down']
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
             def __post_init__(self):
                 assert self.length > 0, "End Fitting length must be positive."
@@ -448,7 +452,7 @@ class TRIGA:
 
             outer_radius: float = 1.25 * 0.5 * CM_PER_INCH
             thickness:    float = 0.028 * CM_PER_INCH
-            material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+            material:     openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
             def __post_init__(self):
                 assert self.outer_radius > 0, "Transient Rod Cladding outer radius must be positive."
@@ -469,7 +473,7 @@ class TRIGA:
             """
 
             thickness: float = 0.5 * CM_PER_INCH
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Element Plug thickness must be positive."
@@ -490,7 +494,7 @@ class TRIGA:
             """
 
             thickness: float = 1.0 * CM_PER_INCH
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Magneform Fitting thickness must be positive."
@@ -514,7 +518,7 @@ class TRIGA:
 
             radius:   float = 1.187 * 0.5 * CM_PER_INCH
             length:   float = 15.0 * CM_PER_INCH
-            material: openmc.Material = field(default_factory=lambda: DefaultMaterials.control_rod_absorber())
+            material: openmc.Material = field(default_factory=DefaultMaterials.control_rod_absorber)
 
             def __post_init__(self):
                 assert self.radius > 0, "Absorber radius must be positive."
@@ -535,7 +539,7 @@ class TRIGA:
             """
 
             thickness: float = 19.75 * CM_PER_INCH
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.air())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.air)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Air Gap thickness must be positive."
@@ -618,7 +622,7 @@ class TRIGA:
 
             outer_radius: float = 1.31 * 0.5 * CM_PER_INCH
             thickness:    float = 0.02 * CM_PER_INCH
-            material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.stainless_steel())
+            material:     openmc.Material = field(default_factory=DefaultMaterials.stainless_steel)
 
 
             def __post_init__(self):
@@ -639,7 +643,7 @@ class TRIGA:
             """
 
             thickness: float
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.stainless_steel())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.stainless_steel)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Element Plug thickness must be positive."
@@ -658,7 +662,7 @@ class TRIGA:
             """
 
             thickness: float
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.stainless_steel())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.stainless_steel)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Magneform Fitting thickness must be positive."
@@ -682,7 +686,7 @@ class TRIGA:
 
             radius:   float = 1.187 * 0.5 * CM_PER_INCH
             length:   float = 15.0 * CM_PER_INCH
-            material: openmc.Material = field(default_factory=lambda: DefaultMaterials.control_rod_absorber())
+            material: openmc.Material = field(default_factory=DefaultMaterials.control_rod_absorber)
 
             def __post_init__(self):
                 assert self.radius > 0, "Absorber radius must be positive."
@@ -733,7 +737,7 @@ class TRIGA:
                 Default: DefaultMaterials.zirc_filler() (Ref. [2]_ pg. 52)
             """
             radius:   float = 0.25 * 0.5 * CM_PER_INCH
-            material: openmc.Material = field(default_factory=lambda: DefaultMaterials.zirc_filler())
+            material: openmc.Material = field(default_factory=DefaultMaterials.zirc_filler)
 
             def __post_init__(self):
                 assert self.radius > 0, "Zr Fill Rod radius must be positive."
@@ -752,24 +756,29 @@ class TRIGA:
             """
 
             thickness: float
-            material:  openmc.Material = field(default_factory=lambda: DefaultMaterials.air())
+            material:  openmc.Material = field(default_factory=DefaultMaterials.air)
 
             def __post_init__(self):
                 assert self.thickness > 0, "Air Gap thickness must be positive."
 
         cladding:                    Cladding         = field(default_factory=Cladding)
-        upper_element_plug:          ElementPlug      = field(default_factory=partial(ElementPlug, thickness=1.5 * CM_PER_INCH))
+        upper_element_plug:          ElementPlug      = field(default_factory=
+                                                              partial(ElementPlug, thickness=1.5 * CM_PER_INCH))
         upper_air_gap:               AirGap           = field(default_factory=partial(AirGap, thickness=3.5 * CM_PER_INCH))
-        upper_magneform_fitting:     MagneformFitting = field(default_factory=partial(MagneformFitting, thickness=0.5 * CM_PER_INCH))
+        upper_magneform_fitting:     MagneformFitting = field(default_factory=
+                                                              partial(MagneformFitting, thickness=0.5 * CM_PER_INCH))
         above_absorber_air_gap:      AirGap           = field(default_factory=partial(AirGap, thickness=0.125 * CM_PER_INCH))
         absorber:                    Absorber         = field(default_factory=Absorber)
-        middle_magneform_fitting:    MagneformFitting = field(default_factory=partial(MagneformFitting, thickness=0.5 * CM_PER_INCH))
+        middle_magneform_fitting:    MagneformFitting = field(default_factory=
+                                                              partial(MagneformFitting, thickness=0.5 * CM_PER_INCH))
         above_fuel_follower_air_gap: AirGap           = field(default_factory=partial(AirGap, thickness=0.25 * CM_PER_INCH))
         zr_fill_rod:                 ZrFillRod        = field(default_factory=ZrFillRod)
         fuel_follower:               FuelFollower     = field(default_factory=FuelFollower)
-        lower_magneform_fitting:     MagneformFitting = field(default_factory=partial(MagneformFitting, thickness=1.0 * CM_PER_INCH))
+        lower_magneform_fitting:     MagneformFitting = field(default_factory=
+                                                              partial(MagneformFitting, thickness=1.0 * CM_PER_INCH))
         lower_air_gap:               AirGap           = field(default_factory=partial(AirGap, thickness=5.375 * CM_PER_INCH))
-        lower_element_plug:          ElementPlug      = field(default_factory=partial(ElementPlug, thickness=0.5 * CM_PER_INCH))
+        lower_element_plug:          ElementPlug      = field(default_factory=
+                                                              partial(ElementPlug, thickness=0.5 * CM_PER_INCH))
         position:                    int              = 0
 
 
@@ -818,7 +827,7 @@ class TRIGA:
             radius:                 float = 0.981 * 0.5 * CM_PER_INCH
             length:                 float = 3.0 * CM_PER_INCH
             core_centerline_offset: float = 0.0 * CM_PER_INCH
-            material:               openmc.Material = field(default_factory=lambda: DefaultMaterials.air())
+            material:               openmc.Material = field(default_factory=DefaultMaterials.air)
 
             def __post_init__(self):
                 assert self.radius > 0, "Source Holder Cavity radius must be positive."
@@ -839,7 +848,7 @@ class TRIGA:
             """
 
             outer_radius: float = 1.435 * 0.5 * CM_PER_INCH
-            material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+            material:     openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
             def __post_init__(self):
                 assert self.outer_radius > 0, "Source Holder Cladding outer radius must be positive."
@@ -872,7 +881,7 @@ class TRIGA:
 
         inner_radius: float = 1.33 * 0.5 * CM_PER_INCH
         outer_radius: float = 1.5  * 0.5 * CM_PER_INCH
-        material: openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+        material: openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
         def __post_init__(self):
             assert self.inner_radius > 0, "Central Thimble inner radius must be positive."
@@ -901,7 +910,7 @@ class TRIGA:
         fuel_penetration_radius: float
         control_rod_penetration_radius: float
         distance_from_core_centerline: float
-        material: openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+        material: openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
         def __post_init__(self):
             assert self.thickness > 0, "Grid Plate thickness must be positive."
@@ -910,8 +919,8 @@ class TRIGA:
 
 
     @dataclass
-    class RotarySpecimenRackCavity:
-        """Dataclass for TRIGA Rotary Specimen Rack.
+    class RSRCavity:
+        """Dataclass for TRIGA Rotary Specimen Rack Cavity.
 
         Instrument tubes are equally spaced around the circumference
         of the rotary specimen rack. (Ref. [1]_ pg. 10-27)
@@ -930,7 +939,7 @@ class TRIGA:
         tube_to_center_distance : float
             Distance from center of rotary specimen rack to center of the specimen tubes [cm].
             Default: 26.312 * 0.5 inches (Ref. [1]_ pg. 10-27)
-        tube_specs : RotarySpecimenRackCavity.SpecimenTube
+        tube_specs : RSRCavity.SpecimenTube
             Specimen tube specifications.
             Default: SpecimenTube()
         material : openmc.Material
@@ -958,7 +967,7 @@ class TRIGA:
 
             outer_radius: float = 1.0 * 0.5 * CM_PER_INCH
             thickness:    float = 0.058 * CM_PER_INCH
-            material: openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+            material: openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
             def __post_init__(self):
                 assert self.outer_radius > 0, "Specimen Tube outer radius must be positive."
@@ -969,7 +978,7 @@ class TRIGA:
         number_of_tubes:         int          = 40
         tube_to_center_distance: float        = 26.312 * 0.5 * CM_PER_INCH
         tube_specs:              SpecimenTube = field(default_factory=SpecimenTube)
-        material:                openmc.Material = field(default_factory=lambda: DefaultMaterials.air())
+        material:                openmc.Material = field(default_factory=DefaultMaterials.air)
 
         def __post_init__(self):
             assert self.outer_radius > 0, "Rotary Specimen Rack outer radius must be positive."
@@ -1009,11 +1018,13 @@ class TRIGA:
 
         inner_radius:      float = 6.065 * 0.5 * CM_PER_INCH
         outer_radius:      float = 6.625 * CM_PER_INCH
-        rotation:          List[List[float]] = field(default_factory=lambda: [[0.0, 90.0, 90.0], [90.0, 0.0, 90.0], [90.0, 90.0, 0.0]])
+        rotation:          List[List[float]] = field(default_factory=lambda: [[0.0, 90.0, 90.0],
+                                                                              [90.0, 0.0, 90.0],
+                                                                              [90.0, 90.0, 0.0]])
         translation:       Tuple[float, float, float] = (0.0, 0.0, 0.0)
         termination_plane: Optional[openmc.Plane] = None
-        tube_material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
-        fill_material:     openmc.Material = field(default_factory=lambda: DefaultMaterials.air())
+        tube_material:     openmc.Material = field(default_factory=DefaultMaterials.aluminum)
+        fill_material:     openmc.Material = field(default_factory=DefaultMaterials.air)
 
         def __post_init__(self):
             assert self.inner_radius > 0, "Beam Port inner radius must be positive."
@@ -1044,14 +1055,15 @@ class TRIGA:
         height:             float = 23.13 * CM_PER_INCH
         large_hex_inradius: float = 10.75 * CM_PER_INCH
         small_hex_inradius: float = 10.21875 * CM_PER_INCH
-        material:           openmc.Material = field(default_factory=lambda: DefaultMaterials.aluminum())
+        material:           openmc.Material = field(default_factory=DefaultMaterials.aluminum)
 
         def __post_init__(self):
             assert self.thickness > 0, "Shroud thickness must be positive."
             assert self.height > 0, "Shroud height must be positive."
             assert self.large_hex_inradius > 0, "Shroud large hex inradius must be positive."
             assert self.small_hex_inradius > 0, "Shroud small hex inradius must be positive."
-            assert self.large_hex_inradius > self.small_hex_inradius, "Shroud large hex inradius must be larger than small hex inradius."
+            assert self.large_hex_inradius > self.small_hex_inradius, \
+                "Shroud large hex inradius must be larger than small hex inradius."
 
 
     @dataclass
@@ -1079,7 +1091,7 @@ class TRIGA:
         radius:                 float = 42.0 * 0.5 * CM_PER_INCH
         height:                 float = 23.13 * CM_PER_INCH
         core_centerline_offset: float = 0.565 * CM_PER_INCH
-        material:               openmc.Material = field(default_factory=lambda: DefaultMaterials.graphite())
+        material:               openmc.Material = field(default_factory=DefaultMaterials.graphite)
 
         def __post_init__(self):
             assert self.radius > 0, "Reflector radius must be positive."
@@ -1104,7 +1116,7 @@ class TRIGA:
         """
         radius: float = 90.0
         height: float = 160.0
-        material: openmc.Material = field(default_factory=lambda: DefaultMaterials.water())
+        material: openmc.Material = field(default_factory=DefaultMaterials.water)
 
         def __post_init__(self):
             assert self.radius > 0, "Pool radius must be positive."
@@ -1185,19 +1197,25 @@ class TRIGA:
 
         Loadable: TypeAlias = "TRIGA.FuelElement | TRIGA.GraphiteElement | TRIGA.SourceHolder"
         Fixture:  TypeAlias = "TRIGA.CentralThimble | TRIGA.TransientRod | TRIGA.FuelFollowerControlRod"
-        Element:  TypeAlias = "TRIGA.FuelElement | TRIGA.GraphiteElement | TRIGA.SourceHolder | TRIGA.CentralThimble | TRIGA.TransientRod | TRIGA.FuelFollowerControlRod"
+        Element:  TypeAlias = "TRIGA.FuelElement | TRIGA.GraphiteElement | TRIGA.SourceHolder | +" \
+                              "TRIGA.CentralThimble | TRIGA.TransientRod | TRIGA.FuelFollowerControlRod"
 
-        pitch:                float                            = 1.714 * CM_PER_INCH
-        central_thimble:      TRIGA.CentralThimble             = field(default_factory=lambda: TRIGA.CentralThimble())
-        transient_rod:        TRIGA.TransientRod               = field(default_factory=lambda: TRIGA.TransientRod(position=524))
-        regulating_rod:       TRIGA.FuelFollowerControlRod     = field(default_factory=lambda: TRIGA.FuelFollowerControlRod(position=524))
-        shim_1_rod:           TRIGA.FuelFollowerControlRod     = field(default_factory=lambda: TRIGA.FuelFollowerControlRod(position=524))
-        shim_2_rod:           TRIGA.FuelFollowerControlRod     = field(default_factory=lambda: TRIGA.FuelFollowerControlRod(position=524))
-        core_loading:         Dict[str, Optional[Loadable]]    = field(default_factory=lambda: TRIGA.Core.default_loading())
+        pitch:           float                         = 1.714 * CM_PER_INCH
+        central_thimble: TRIGA.CentralThimble          = field(default_factory=lambda: TRIGA.CentralThimble)
+        core_loading:    Dict[str, Optional[Loadable]] = field(default_factory=lambda: TRIGA.Core.default_loading())  # pylint: disable=unnecessary-lambda
+        transient_rod:   TRIGA.TransientRod            = field(default_factory=lambda:
+                                                               TRIGA.TransientRod(position=524))
+        regulating_rod:  TRIGA.FuelFollowerControlRod  = field(default_factory=lambda:
+                                                               TRIGA.FuelFollowerControlRod(position=524))
+        shim_1_rod:      TRIGA.FuelFollowerControlRod  = field(default_factory=lambda:
+                                                               TRIGA.FuelFollowerControlRod(position=524))
+        shim_2_rod:      TRIGA.FuelFollowerControlRod  = field(default_factory=lambda:
+                                                               TRIGA.FuelFollowerControlRod(position=524))
 
         def __post_init__(self):
-            for location in self.core_loading.keys():
-                assert any(location in ring for ring in TRIGA.Core.RING_MAP), f"Invalid core location '{location}' in core_loading."
+            for location in self.core_loading:
+                assert any(location in ring for ring in TRIGA.Core.RING_MAP), \
+                    f"Invalid core location '{location}' in core_loading."
                 assert location not in ["A-01", "C-01", "C-07", "D-06", "D-14"], \
                     f"Core location '{location}' is reserved for control rods or central thimble."
 
@@ -1269,48 +1287,82 @@ class TRIGA:
                 "G-31": None,                "G-32": TRIGA.SourceHolder(),"G-33": TRIGA.FuelElement(),
                 "G-34": None,                "G-35": TRIGA.FuelElement(), "G-36": TRIGA.FuelElement()}
 
-    BeamPortID  = Literal["beam_port_1_5", "beam_port_2", "beam_port_3", "beam_port_4"]
-    DEFAULT_BEAM_PORT : ClassVar[Dict[BeamPortID, BeamPort]] = {
-                            "beamport_1_5": BeamPort(translation       = (0.0, -35.2425, -6.985),
-                                                     rotation          = [[90.0, 180.0, 90.0],
-                                                                          [ 0.0,  90.0, 90.0],
-                                                                          [ 90.0, 90.0,  0.0]]),
-
-                            "beamport_2":   BeamPort(translation       = (35.255, 6.222, -6.985),
-                                                     rotation          = [[150.0,  60.0, 90.0],
-                                                                          [120.0, 150.0, 90.0],
-                                                                          [ 90.0,  90.0,  0.0]],
-                                                     termination_plane = openmc.YPlane(y0=-12.621).rotate(
-                                                                             rotation=[[cos(radians( 20.0)), cos(radians(125.0)), cos(radians(90.0))],
-                                                                                       [cos(radians(100.0)), cos(radians( 20.0)), cos(radians(90.0))],
-                                                                                       [cos(radians( 90.0)), cos(radians( 90.0)), cos(radians( 0.0))]])),
-
-                            "beamport_3":   BeamPort(translation       = (0.0, 0.0, -6.985),
-                                                      termination_plane = openmc.YPlane(y0 = 26.43188)),
-
-                            "beamport_4":   BeamPort(translation       = (0.0, 0.0, -6.985),
-                                                     rotation          = [[90.0, 180.0, 90.0],
-                                                                          [ 0.0,  90.0, 90.0],
-                                                                          [ 90.0, 90.0,  0.0]],
-                                                     termination_plane = openmc.Plane(0.866025403784, 0.5, 0, -26.43188))}
+    pool :                        TRIGA.Pool              = field(default_factory=Pool)
+    reflector_canister :          TRIGA.ReflectorCanister = field(default_factory=ReflectorCanister)
+    shroud :                      TRIGA.Shroud            = field(default_factory=Shroud)
+    beam_port_1_5 :               TRIGA.BeamPort          = field(default_factory=lambda: TRIGA.default_beamport_1_5()) # pylint: disable=unnecessary-lambda
+    beam_port_2 :                 TRIGA.BeamPort          = field(default_factory=lambda: TRIGA.default_beamport_2())   # pylint: disable=unnecessary-lambda
+    beam_port_3 :                 TRIGA.BeamPort          = field(default_factory=lambda: TRIGA.default_beamport_3())   # pylint: disable=unnecessary-lambda
+    beam_port_4 :                 TRIGA.BeamPort          = field(default_factory=lambda: TRIGA.default_beamport_4())   # pylint: disable=unnecessary-lambda
+    rotary_specimen_rack_cavity : TRIGA.RSRCavity         = field(default_factory=RSRCavity)
+    core:                         TRIGA.Core              = field(default_factory=Core)
+    upper_grid_plate :            TRIGA.GridPlate         = field(default_factory=partial(GridPlate,
+                                                                thickness                      = 0.62 * CM_PER_INCH,
+                                                                fuel_penetration_radius        = 1.505 * 0.5 * CM_PER_INCH,
+                                                                control_rod_penetration_radius = 1.505 * CM_PER_INCH,
+                                                                distance_from_core_centerline  = 12.75 * CM_PER_INCH))
+    lower_grid_plate :            TRIGA.GridPlate         = field(default_factory=partial(GridPlate,
+                                                                thickness                      = 1.25 * CM_PER_INCH,
+                                                                fuel_penetration_radius        = 1.25 * 0.5 * CM_PER_INCH,
+                                                                control_rod_penetration_radius = 1.505 * CM_PER_INCH,
+                                                                distance_from_core_centerline  = 13.06 * CM_PER_INCH))
 
 
-    pool :                        TRIGA.Pool                          = field(default_factory=Pool)
-    reflector_canister :          TRIGA.ReflectorCanister             = field(default_factory=ReflectorCanister)
-    shroud :                      TRIGA.Shroud                        = field(default_factory=Shroud)
-    beam_port_1_5 :               TRIGA.BeamPort                      = field(default_factory=lambda: deepcopy(TRIGA.DEFAULT_BEAM_PORT["beamport_1_5"]))
-    beam_port_2 :                 TRIGA.BeamPort                      = field(default_factory=lambda: deepcopy(TRIGA.DEFAULT_BEAM_PORT["beamport_2"]))
-    beam_port_3 :                 TRIGA.BeamPort                      = field(default_factory=lambda: deepcopy(TRIGA.DEFAULT_BEAM_PORT["beamport_3"]))
-    beam_port_4 :                 TRIGA.BeamPort                      = field(default_factory=lambda: deepcopy(TRIGA.DEFAULT_BEAM_PORT["beamport_4"]))
-    rotary_specimen_rack_cavity : TRIGA.RotarySpecimenRackCavity      = field(default_factory=RotarySpecimenRackCavity)
-    core:                         TRIGA.Core                          = field(default_factory=Core)
-    upper_grid_plate :            TRIGA.GridPlate                     = field(default_factory=partial(GridPlate,
-                                                                           thickness                      = 0.62 * CM_PER_INCH,
-                                                                           fuel_penetration_radius        = 1.505 * 0.5 * CM_PER_INCH,
-                                                                           control_rod_penetration_radius = 1.505 * CM_PER_INCH,
-                                                                           distance_from_core_centerline  = 12.75 * CM_PER_INCH))
-    lower_grid_plate :            TRIGA.GridPlate                     = field(default_factory=partial(GridPlate,
-                                                                           thickness                      = 1.25 * CM_PER_INCH,
-                                                                           fuel_penetration_radius        = 1.25 * 0.5 * CM_PER_INCH,
-                                                                           control_rod_penetration_radius = 1.505 * CM_PER_INCH,
-                                                                           distance_from_core_centerline  = 13.06 * CM_PER_INCH))
+    @classmethod
+    def default_beamport_1_5(cls) -> BeamPort:
+        """Default beam port 1/5 specifications.
+
+        Returns
+        -------
+        BeamPort
+            Beam port 1/5 specifications from Ref. [2]_ pages 48, 56, 59
+        """
+        return cls.BeamPort(translation = (0.0, -35.2425, -6.985),
+                            rotation    = [[90.0, 180.0, 90.0],
+                                           [ 0.0,  90.0, 90.0],
+                                           [ 90.0, 90.0,  0.0]])
+
+    @classmethod
+    def default_beamport_2(cls) -> BeamPort:
+        """Default beam port 2 specifications.
+
+        Returns
+        -------
+        BeamPort
+            Beam port 2 specifications from Ref. [2]_ pages 48, 56, 59
+        """
+        return cls.BeamPort(translation       = (35.255, 6.222, -6.985),
+                            rotation          = [[150.0,  60.0, 90.0],
+                                                 [120.0, 150.0, 90.0],
+                                                 [ 90.0,  90.0,  0.0]],
+                            termination_plane = openmc.YPlane(y0=-12.621).rotate(
+                            rotation          =[[cos(radians( 20.0)), cos(radians(125.0)), cos(radians(90.0))],
+                                                [cos(radians(100.0)), cos(radians( 20.0)), cos(radians(90.0))],
+                                                [cos(radians( 90.0)), cos(radians( 90.0)), cos(radians( 0.0))]]))
+
+    @classmethod
+    def default_beamport_3(cls) -> BeamPort:
+        """Default beam port 3 specifications.
+
+        Returns
+        -------
+        BeamPort
+            Beam port 3 specifications from Ref. [2]_ pages 48, 56, 59
+        """
+        return cls.BeamPort(translation       = (0.0, 0.0, -6.985),
+                            termination_plane = openmc.YPlane(y0 = 26.43188))
+
+    @classmethod
+    def default_beamport_4(cls) -> BeamPort:
+        """Default beam port 4 specifications.
+
+        Returns
+        -------
+        BeamPort
+            Beam port 4 specifications from Ref. [2]_ pages 48, 56, 59
+        """
+        return cls.BeamPort(translation       = (0.0, 0.0, -6.985),
+                            rotation          = [[90.0, 180.0, 90.0],
+                                                 [ 0.0,  90.0, 90.0],
+                                                 [ 90.0, 90.0,  0.0]],
+                            termination_plane = openmc.Plane(0.866025403784, 0.5, 0, -26.43188))

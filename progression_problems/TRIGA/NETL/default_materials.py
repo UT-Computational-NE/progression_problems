@@ -47,7 +47,7 @@ class DefaultMaterials:
         material.temperature = temperature
         material.set_density(density_units, density)
         material.add_nuclide('H1',   0.014355 , percent_type='wo')
-        material.add_nuclide('Fe55', 0.0014287, percent_type='wo')
+        material.add_nuclide('Mn55', 0.0014287, percent_type='wo')
         material.add_nuclide('U235', 0.0152,    percent_type='wo')
         material.add_nuclide('U238', 0.061568,  percent_type='wo')
         material.add_nuclide('Zr90', 0.43706,   percent_type='wo')
@@ -56,7 +56,7 @@ class DefaultMaterials:
         material.add_nuclide('Zr94', 0.14136,   percent_type='wo')
         material.add_nuclide('Zr96', 0.02228,   percent_type='wo')
         material.add_element('Cr',   0.013573,  percent_type='wo')
-        material.add_element('Mn',   0.049647,  percent_type='wo')
+        material.add_element('Fe',   0.049647,  percent_type='wo')
         material.add_element('Ni',   0.0067863, percent_type='wo')
         material.add_s_alpha_beta('c_H_in_ZrH')
         material.add_s_alpha_beta('c_Zr_in_ZrH')

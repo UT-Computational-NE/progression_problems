@@ -1,0 +1,134 @@
+/* Custom CSS for Read the Docs theme */
+
+/* Change sidebar top section (logo area) background color */
+.wy-side-nav-search {
+    background-color: #333F48;
+}
+
+/* Base sidebar background - burnt orange */
+.wy-nav-side {
+    background-color: #BF5700;
+}
+
+/* All menu items - burnt orange with white text */
+.wy-menu-vertical a {
+    background-color: #BF5700;
+    color: #ffffff;
+    white-space: normal !important;       /* Allow text wrapping - !important to override theme */
+    word-wrap: break-word;                /* Break long words if needed */
+    overflow-wrap: break-word;            /* Modern alternative to word-wrap */
+    line-height: 1.2;                     /* Tighter line spacing for wrapped text */
+    display: block !important;            /* Make sure it's a block element */
+    overflow: visible !important;         /* Make overflow visible */
+    text-overflow: clip !important;       /* Don't use ellipsis */
+    height: auto !important;              /* Allow height to expand */
+    padding: 0.5em 1.2em;                 /* Adjust padding for better spacing */
+}
+
+/* Section captions */
+.wy-menu-vertical p.caption {
+    background-color: #BF5700;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0.5em 1.2em;                 /* Adjust padding for consistency */
+    white-space: normal !important;       /* Allow text wrapping - !important to override theme */
+    word-wrap: break-word;                /* Break long words if needed */
+    overflow-wrap: break-word;            /* Modern alternative to word-wrap */
+    display: block !important;            /* Make sure it's a block element */
+    overflow: visible !important;         /* Make overflow visible */
+    text-overflow: clip !important;       /* Don't use ellipsis */
+    height: auto !important;              /* Allow height to expand */
+    line-height: 1.3;                     /* Slightly more spacing for all-caps text */
+}
+
+/* Also target the list items to allow height expansion */
+.wy-menu-vertical li {
+    height: auto !important;
+}
+
+/* Reduce padding/margin between nested items */
+.wy-menu-vertical li.toctree-l2 {
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.wy-menu-vertical li.toctree-l2 > a {
+    padding: 0.5em 1.2em 0.5em 1.8em;  /* Reduced left indent from 2.427em to 1.8em */
+}
+
+.wy-menu-vertical li.toctree-l3 > a {
+    padding: 0.5em 1.2em 0.5em 2.4em;  /* Reduced left indent from 3.236em to 2.4em */
+}
+
+.wy-menu-vertical li.toctree-l4 > a {
+    padding: 0.5em 1.2em 0.5em 3.0em;  /* Reduced left indent from 4.045em to 3.0em */
+}
+
+/* ===== MAIN CONTENT AREA - TOCTREE BULLET LISTS ===== */
+
+.document .section ul li {
+    margin-bottom: 0.3em !important;
+}
+
+.document .section ul ul {
+    margin-left: 1.5em !important;
+    margin-top: 0.3em !important;
+    margin-bottom: 0.3em !important;
+}
+
+/* Also try targeting by the actual content wrapper */
+.wy-nav-content ul li {
+    margin-bottom: 0.3em !important;
+}
+
+.wy-nav-content ul ul {
+    margin-left: 1.5em !important;
+    margin-top: 0.3em !important;
+}
+
+/* ===== EQUATION NUMBERING - JOURNAL STYLE ===== */
+
+/* Make equation container flex to position number on right */
+.math-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Style for numbered equations */
+div.math {
+    position: relative;
+    text-align: center;
+    margin: 1em 0;
+}
+
+/* Position equation number on the right side */
+.math .eqno {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Alternative styling if above doesn't work */
+.headerlink + .math .eqno,
+a.headerlink + .math .eqno {
+    float: right;
+    margin-left: 1em;
+}
+
+/* Ensure MathJax equations work with side numbering */
+.MathJax_Display {
+    position: relative;
+}
+
+/* For tables/equations that have labels */
+span.eqno {
+    float: right;
+    margin-left: 1em;
+}

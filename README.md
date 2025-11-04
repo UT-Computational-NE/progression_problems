@@ -1,3 +1,27 @@
-# UT Digital Twin Progression Problems
+# UT-Austin Nuclear Progression Problems documentation
 
-This project holds the collection of progression problems being developed as part of the UT Digital Molten Salt Reactor Initiative (DMSRI).  Progression problems are grouped under their respective subfolders which hold the scripts for generating, executing, and parsing the various models associated with said problems.
+This repository defines a series of progression problems designed to evaluate the
+capability and maturity of reactor physics modeling and simulation tools for various
+nuclear reactor systems.  This effort was started under the University of Texas
+at Austin (UTA) Digital Molten Salt Reactor Initiative (DMSRI).
+
+Complete documentation on the usage of the progression problems is...
+
+## Installation
+
+TBD
+
+## Citing
+
+If you use these progression problems or their associate tools or data structures
+in your research, please consider giving proper attribution by citing
+the references from relevant progression problem set sepecifications from the...
+
+## Reporting Bugs
+
+TBD
+
+## License
+
+These progression problems are distributed under the BSD 3-Clause
+[license](https://github.com/UT-Computational-NE/progression_problems?tab=BSD-3-Clause-1-ov-file#BSD-3-Clause-1-ov-file).

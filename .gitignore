@@ -29,3 +29,6 @@
 .egdist
 *.sublime-*
 
+# Sphinx documentation build directory
+docs/build/
+

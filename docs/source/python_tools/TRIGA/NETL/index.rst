@@ -1,4 +1,4 @@
-.. _python_tools_netl:
+.. _python_tools_triga_netl:
 
 ====
 NETL

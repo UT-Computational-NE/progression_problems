@@ -42,6 +42,11 @@ math_eqref_format = "Eq. {number}"
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
+# Theme options
+html_theme_options = {
+    'navigation_depth': -1,  # -1 means unlimited depth, or set to specific number like 5, 6, etc.
+}
+
 # Logo/Banner configuration
 html_logo = '_static/banner.png'
 

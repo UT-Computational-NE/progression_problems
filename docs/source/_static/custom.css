@@ -69,6 +69,74 @@
     padding: 0.5em 1.2em 0.5em 3.0em;  /* Reduced left indent from 4.045em to 3.0em */
 }
 
+.wy-menu-vertical li.toctree-l5 > a {
+    padding: 0.5em 1.2em 0.5em 3.6em;  /* Continue indent pattern for level 5 */
+}
+
+.wy-menu-vertical li.toctree-l6 > a {
+    padding: 0.5em 1.2em 0.5em 4.2em;  /* Continue indent pattern for level 6 */
+}
+
+.wy-menu-vertical li.toctree-l7 > a {
+    padding: 0.5em 1.2em 0.5em 4.8em;  /* Continue indent pattern for level 7 */
+}
+
+.wy-menu-vertical li.toctree-l8 > a {
+    padding: 0.5em 1.2em 0.5em 5.4em;  /* Continue indent pattern for level 8 */
+}
+
+/* Extend the grey gradient for active/current items starting from level 4 */
+/* The RTD theme uses progressively darker greys for nested current items */
+.wy-menu-vertical li.toctree-l4.current > a {
+    background: #e3e3e3;
+}
+
+.wy-menu-vertical li.toctree-l4.current li.toctree-l5 > a {
+    background: #d6d6d6;
+}
+
+.wy-menu-vertical li.toctree-l4.current li.toctree-l5.current > a {
+    background: #d6d6d6;
+    border: none;
+}
+
+.wy-menu-vertical li.toctree-l4.current li.toctree-l5.current li.toctree-l6 > a {
+    background: #c9c9c9;
+}
+
+.wy-menu-vertical li.toctree-l5.current li.toctree-l6 > a {
+    background: #c9c9c9;
+}
+
+.wy-menu-vertical li.toctree-l5.current li.toctree-l6.current > a {
+    background: #c9c9c9;
+    border: none;
+}
+
+.wy-menu-vertical li.toctree-l5.current li.toctree-l6.current li.toctree-l7 > a {
+    background: #bdbdbd;
+}
+
+.wy-menu-vertical li.toctree-l6.current li.toctree-l7 > a {
+    background: #bdbdbd;
+}
+
+.wy-menu-vertical li.toctree-l6.current li.toctree-l7.current > a {
+    background: #bdbdbd;
+}
+
+.wy-menu-vertical li.toctree-l6.current li.toctree-l7.current li.toctree-l8 > a {
+    background: #b0b0b0;
+}
+
+.wy-menu-vertical li.toctree-l7.current li.toctree-l8 > a {
+    background: #b0b0b0;
+}
+
+.wy-menu-vertical li.toctree-l7.current li.toctree-l8.current > a {
+    background: #b0b0b0;
+}
+
 /* ===== MAIN CONTENT AREA - TOCTREE BULLET LISTS ===== */
 
 .document .section ul li {

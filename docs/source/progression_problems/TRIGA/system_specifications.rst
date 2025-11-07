@@ -8,6 +8,8 @@ This section contains system specifications for those elements which are general
 all TRIGA reactors.  Those specifications which are specific to certain TRIGA designs are located
 in their respective sub-sections.
 
+.. _progression_problems_triga_fuel_element:
+
 Fuel Element
 ============
 
@@ -35,7 +37,7 @@ Three distinct end fixture designs have been fabricated—referred to as origina
    :align: center
    :width: 60%
 
-   Variations of TRIGA Fuel Elements [1]_.
+   Variations of TRIGA Fuel Elements (Ref. 1_).
 
 
 .. table:: Mark III Fuel Element Geometry Specifications
@@ -74,7 +76,7 @@ Three distinct end fixture designs have been fabricated—referred to as origina
    | Disc          +--------------------------------+------------------+--------------------+
    |               | Thickness (in.)                | 0.031            | Ref. 1_, pg. 4-3   |
    |               +--------------------------------+------------------+--------------------+
-   |               | Material                       | Graphite         | Ref. 1_, pg. 4-3   |
+   |               | Material                       | Molybdenum       | Ref. 2_, pg. 51    |
    +---------------+--------------------------------+------------------+--------------------+
    | Upper Gap     | Thickness (in.)                | 0.5              | Ref. 1_, pg. 4-3   |
    +---------------+--------------------------------+------------------+--------------------+
@@ -91,6 +93,8 @@ Three distinct end fixture designs have been fabricated—referred to as origina
 
    Diagram of Fuel Element Axial Profile.
 
+.. _progression_problems_triga_graphite_element:
+
 Graphite Element
 ================
 
@@ -99,7 +103,7 @@ They have the same general dimensions as the fuel elements, but are filled with 
 in aluminum.
 
 General geometric specifications relevant to the TRIGA progression problems are summarized in
-:numref:`table-graphite-element`, and the axial configuration of the fuel element is depicted in
+:numref:`table-graphite-element`, and the axial configuration of the graphite element is depicted in
 :numref:`figure-graphite-element-axial_profile`.
 
 .. table:: Graphite Rod Geometry Specifications
@@ -131,6 +135,7 @@ General geometric specifications relevant to the TRIGA progression problems are 
 
    Diagram of Graphite Element Axial Profile.
 
+.. _progression_problems_triga_material_compositions:
 
 Material Compositions
 =====================
@@ -138,6 +143,187 @@ Material Compositions
 This section specifies the base compositions of the materials used
 in the TRIGA progression problems.  Unless specified otherwise, these compositions
 should be used for the corresponding materials in all TRIGA progression problems.
+
+.. table:: U-ZrH1.6 Specifications
+   :name: table-UZrH-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 5.85                  | Ref. 2_, pg. 51      |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | H-1     | 0.014355,   | Ref. 2_, pg. 59-60   |
+   + (Iso ID, wt%)     +---------+-------------+                      +
+   |                   | Mn-55   | 0.0014287   |                      |
+   +                   +---------+-------------+                      +
+   |                   | U-235   | 0.0152      |                      |
+   +                   +---------+-------------+                      +
+   |                   | U-238   | 0.061568    |                      |
+   +                   +---------+-------------+                      +
+   |                   | Zr-90   | 0.43706     |                      |
+   +                   +---------+-------------+                      +
+   |                   | Zr-91   | 0.0942      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Zr-92   | 0.14253     |                      |
+   +                   +---------+-------------+                      +
+   |                   | Zr-94   | 0.14136     |                      |
+   +                   +---------+-------------+                      +
+   |                   | Zr-96   | 0.02228     |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cr-Nat  | 0.013573    |                      |
+   +                   +---------+-------------+                      +
+   |                   | Fe-Nat  | 0.049647    |                      |
+   +                   +---------+-------------+                      +
+   |                   | Ni-Nat  | 0.0067863   |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
+.. table:: Zirconium Specifications
+   :name: table-zirconium-specs
+
+   +--------------------+-----------------------+----------------------+
+   | Property           | Value                 | Reference            |
+   +====================+=======================+======================+
+   | Density (atom/b-cm)| 0.0408                | Ref. 2_, pg. 51      |
+   +--------------------+---------+-------------+----------------------+
+   | Composition        | Zr-90   | 0.5145      | Ref. 2_, pg. 60      |
+   + (Iso ID, at%)      +---------+-------------+                      +
+   |                    | Zr-91   | 0.1122      |                      |
+   +                    +---------+-------------+                      +
+   |                    | Zr-92   | 0.1715      |                      |
+   +                    +---------+-------------+                      +
+   |                    | Zr-94   | 0.1738      |                      |
+   +                    +---------+-------------+                      +
+   |                    | Zr-96   | 0.0280      |                      |
+   +--------------------+---------+-------------+----------------------+
+
+
+.. table:: Stainless-Steel Specifications
+   :name: table-stainless-steel-specs
+
+   +--------------------+-----------------------+----------------------+
+   | Property           | Value                 | Reference            |
+   +====================+=======================+======================+
+   | Density (atom/b-cm)| 0.0858                | Ref. 2_, pg. 50      |
+   +--------------------+---------+-------------+----------------------+
+   | Composition        | C-Nat   | 0.00031519  | Ref. 2_, pg. 60      |
+   + (Iso ID, at%)      +---------+-------------+                      +
+   |                    | Cr-50   | 0.000782    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Cr-52   | 0.014501    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Cr-53   | 0.001613    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Cr-54   | 0.000394    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Fe-54   | 0.003554    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Fe-56   | 0.05511     |                      |
+   +                    +---------+-------------+                      +
+   |                    | Fe-57   | 0.001257    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Fe-58   | 0.000166    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Ni-58   | 0.005558    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Ni-60   | 0.00207     |                      |
+   +                    +---------+-------------+                      +
+   |                    | Ni-61   | 8.85e-05    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Ni-62   | 0.000278    |                      |
+   +                    +---------+-------------+                      +
+   |                    | Ni-64   | 6.85e-05    |                      |
+   +--------------------+---------+-------------+----------------------+
+
+
+.. table:: Graphite Specifications
+   :name: table-graphite-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 1.6                   | Ref. 2_, pg. 48      |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | C-Nat   | 1.0         | Ref. 2_, pg. 60      |
+   | (Iso ID, at%)     |         |             |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
+.. table:: Molybdenum Specifications
+   :name: table-molybdenum-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 10.3                  | Ref. 2_, pg. 51      |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | Mo-92   | 0.1477      | Ref. 2_, pg. 60      |
+   + (Iso ID, at%)     +---------+-------------+                      +
+   |                   | Mo-94   | 0.0923      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Mo-95   | 0.159       |                      |
+   +                   +---------+-------------+                      +
+   |                   | Mo-96   | 0.1668      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Mo-97   | 0.0956      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Mo-98   | 0.2419      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Mo-100  | 0.0967      |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
+.. table:: Air Specifications
+   :name: table-air-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 0.001225              | Ref. 2_, pg. 48      |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | N-14    | 0.79        | Ref. 2_, pg. 60      |
+   + (Iso ID, at%)     +---------+-------------+                      +
+   |                   | O-16    | 0.21        |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
+.. table:: Aluminum Specifications
+   :name: table-aluminum-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 2.7                   | Ref. 2_, pg. 48      |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | B-10    | 2.3945e-07  | Ref. 2_, pg. 60      |
+   + (Iso ID, at%)     +---------+-------------+                      +
+   |                   | Mg-24   | 0.00053511  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Mg-25   | 6.503e-05   |                      |
+   +                   +---------+-------------+                      +
+   |                   | Mg-26   | 6.8851e-05  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Al-27   | 0.059015    |                      |
+   +                   +---------+-------------+                      +
+   |                   | Si-28   | 0.00032153  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Si-29   | 1.5771e-05  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Si-30   | 1.0062e-05  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cr-50   | 2.6872e-06  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cr-52   | 4.983e-05   |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cr-53   | 5.5435e-06  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cr-54   | 1.3544e-06  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cu-63   | 5.0017e-05  |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cu-65   | 2.1628e-05  |                      |
+   +-------------------+---------+-------------+----------------------+
+
 
 References
 ==========

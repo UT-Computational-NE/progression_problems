@@ -23,8 +23,9 @@ dependencies = [
     "numpy>=1.24.0",
     "openmc>=0.14.0",
     "MPACTPy>=0.0.1",
-    "coreforge>=0.0.1"
+    "coreforge>=0.0.1",
 ]
+
 
 [project.optional-dependencies]
 dev = [
@@ -35,6 +36,13 @@ dev = [
 test = [
     "pytest",
     "pylint",
+]
+docs = [
+    "sphinx",
+    "sphinxcontrib-katex",
+    "sphinx-numfig",
+    "sphinxcontrib-svg2pdfconverter",
+    "sphinx-rtd-theme"
 ]
 
 [project.urls]

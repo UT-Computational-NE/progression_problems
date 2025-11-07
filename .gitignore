@@ -11,7 +11,6 @@
 *.sh
 
 # Output ignores
-*.png
 *.xml
 *.log
 *.out
@@ -28,4 +27,7 @@
 # Repostiory list file for egdist
 .egdist
 *.sublime-*
+
+# Sphinx documentation build directory
+docs/build/
 

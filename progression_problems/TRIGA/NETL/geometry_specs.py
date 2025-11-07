@@ -59,9 +59,9 @@ class TRIGA:
     beam_port_4 : TRIGA.BeamPort
         The TRIGA beam port 4 specifications.
         Default: TRIGA.default_beamport_4()
-    rotary_specimen_rack_cavity : TRIGA.RotarySpecimenRackCavity
+    rotary_specimen_rack_cavity : TRIGA.RSRCavity
         The TRIGA rotary specimen rack specifications.
-        Default: TRIGA.RotarySpecimenRackCavity()
+        Default: TRIGA.RSRCavity()
     core : TRIGA.Core
         The TRIGA core specifications.
         Default: TRIGA.Core()
@@ -684,7 +684,7 @@ class TRIGA:
                 Default: DefaultMaterials.control_rod_absorber() (Ref. [2]_ pg. 52)
             """
 
-            radius:   float = 1.187 * 0.5 * CM_PER_INCH
+            radius:   float = 1.3 * 0.5 * CM_PER_INCH
             length:   float = 15.0 * CM_PER_INCH
             material: openmc.Material = field(default_factory=DefaultMaterials.control_rod_absorber)
 
@@ -1040,6 +1040,9 @@ class TRIGA:
         thickness : float
             Thickness of the shroud [cm].
             Default: 3/16 inches (Ref. [2]_ pg. 54 & 55)
+        height : float
+            Height of the shroud [cm].
+            Default: 23.13 inches (Ref. [2]_ pg. 55)
         large_hex_inradius : float
             Inradius of the the shroud large hexagon [cm].
             Default: 10.75 inches (Ref. [2]_ pg. 54)
@@ -1167,8 +1170,6 @@ class TRIGA:
         RING_MAP : ClassVar[List[List[str]]]
             List of lists representing the TRIGA core ring map. Each inner list represents a ring in the core.  Rings are
             ordered from outermost ring (first list) to innermost ring (last list). Ref. [1]_ Figure 1.2
-        DEFAULT_LOADING : ClassVar[Dict[str, Optional[TRIGA.Core.Loadable]]]
-            Default core loading map.
         """
 
         RING_MAP: ClassVar[List[List[str]]] = [
@@ -1317,10 +1318,10 @@ class TRIGA:
         BeamPort
             Beam port 1/5 specifications from Ref. [2]_ pages 48, 56, 59
         """
-        return cls.BeamPort(translation = (0.0, -35.2425, -6.985),
-                            rotation    = [[90.0, 180.0, 90.0],
-                                           [ 0.0,  90.0, 90.0],
-                                           [ 90.0, 90.0,  0.0]])
+        return cls.BeamPort(translation = (35.2425, 0.0, -6.985),
+                            rotation    = [[ 90.0, 180.0, 90.0],
+                                           [  0.0,  90.0, 90.0],
+                                           [ 90.0,  90.0,  0.0]])
 
     @classmethod
     def default_beamport_2(cls) -> BeamPort:
@@ -1331,7 +1332,7 @@ class TRIGA:
         BeamPort
             Beam port 2 specifications from Ref. [2]_ pages 48, 56, 59
         """
-        return cls.BeamPort(translation       = (35.255, 6.222, -6.985),
+        return cls.BeamPort(translation       = (6.222, 35.255, -6.985),
                             rotation          = [[150.0,  60.0, 90.0],
                                                  [120.0, 150.0, 90.0],
                                                  [ 90.0,  90.0,  0.0]],
@@ -1361,8 +1362,8 @@ class TRIGA:
         BeamPort
             Beam port 4 specifications from Ref. [2]_ pages 48, 56, 59
         """
-        return cls.BeamPort(translation       = (0.0, 0.0, -6.985),
-                            rotation          = [[90.0, 180.0, 90.0],
-                                                 [ 0.0,  90.0, 90.0],
+        return cls.BeamPort(translation       = (-13.216, 22.871, -6.985),
+                            rotation          = [[ 75.0, 60.0, 90.0],
+                                                 [120.0, 75.0, 90.0],
                                                  [ 90.0, 90.0,  0.0]],
                             termination_plane = openmc.Plane(0.866025403784, 0.5, 0, -26.43188))

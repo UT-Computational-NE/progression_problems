@@ -335,7 +335,7 @@ class DefaultMaterials:
         """
         assert temperature >= 0.0, "Temperature must be positive in Kelvin."
 
-        material = openmc.Material(name='ffcr_rod_absorber')
+        material = openmc.Material(name='control_rod_absorber')
         material.temperature = temperature
         material.set_density(density_units, density)
         material.add_nuclide('B10', 0.1592, percent_type='ao')

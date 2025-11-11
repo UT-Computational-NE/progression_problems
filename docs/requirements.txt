@@ -1,0 +1,5 @@
+sphinx
+sphinxcontrib-katex
+sphinx-numfig
+sphinxcontrib-svg2pdfconverter
+sphinx-rtd-theme

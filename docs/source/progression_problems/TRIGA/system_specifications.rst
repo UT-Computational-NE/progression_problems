@@ -28,8 +28,10 @@ tools. In Instrumented Fuel Elements (IFEs), which contain thermocouples embedde
 also provides a conduit for thermocouple lead wires.
 
 Three distinct end fixture designs have been fabricated—referred to as original, integral, and streamlined—as illustrated in
-:numref:`figure-fuel-elements`. General geometric specifications relevant to the TRIGA progression problems are summarized in
-:numref:`table-fuel-element`, and the axial configuration of the fuel element is depicted in :numref:`figure-fuel-element-axial_profile`.
+:numref:`figure-fuel-elements`. For the sake of simplicity, these end fittings are typically approximated using a conical geometry.
+As such, an conical equivalent estimate is provided for this specification assuming a cone with a base-radius equal to the cladding
+outer-radius. General geometric specifications relevant to the TRIGA progression problems are summarized in :numref:`table-fuel-element`,
+and the axial configuration of the fuel element is depicted in :numref:`figure-fuel-element-axial_profile`.
 
 .. _figure-fuel-elements:
 
@@ -82,7 +84,13 @@ Three distinct end fixture designs have been fabricated—referred to as origina
    +---------------+--------------------------------+------------------+--------------------+
    | Fill Gas      | Material                       | Air              | Ref. 2_, pg. 50,51 |
    +---------------+--------------------------------+------------------+--------------------+
-   | End Fixtures  | Material                       | Stainless-Steel  | Ref. 1_, Table 4.1 |
+   | End Fixtures  | Upper Fitting Equivalent Cone  | 7.3552           | Ref. 2_, pg 55     |
+   |               | Approximation Length (cm)      |                  |                    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Lower Fitting Equivalent Cone  | 7.6209           | Ref. 2_, pg 55-56  |
+   |               | Approximation Length (cm)      |                  |                    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Material                       | Stainless-Steel  | Ref. 1_, Table 4.1 |
    +---------------+--------------------------------+------------------+--------------------+
 
 .. _figure-fuel-element-axial_profile:
@@ -109,23 +117,29 @@ General geometric specifications relevant to the TRIGA progression problems are 
 .. table:: Graphite Rod Geometry Specifications
    :name: table-graphite-element
 
-   +---------------+----------------+-----------------------------------------+----------------------------+
-   | Component     | Property       | Value                                   | Reference                  |
-   +===============+================+=========================================+============================+
-   | Graphite Meat | Diameter       | Fuel Element Fuel Meat OD               | Ref. 1_, Section 4.2.3.b   |
-   |               +----------------+-----------------------------------------+----------------------------+
-   |               | Length         | Fuel Element Interior Length  (~22 in.) | Ref. 1_, Section 4.2.3.b   |
-   |               +----------------+-----------------------------------------+----------------------------+
-   |               | Material       | Graphite                                | Ref. 1_, Section 4.2.3.b   |
-   +---------------+----------------+-----------------------------------------+----------------------------+
-   | Cladding      | Thickness      | Fuel Element Cladding Thickness         | Ref. 1_, Section 4.2.3.b   |
-   |               +----------------+-----------------------------------------+----------------------------+
-   |               | Outer Diameter | Fuel Element Cladding OD                | Ref. 1_, Section 4.2.3.b   |
-   |               +----------------+-----------------------------------------+----------------------------+
-   |               | Material       | Aluminum                                | Ref. 1_, Section 4.2.3.b   |
-   +---------------+----------------+-----------------------------------------+----------------------------+
-   | End Fixtures  | Material       | Aluminum                                | Ref. 2_, pg. 50            |
-   +---------------+----------------+-----------------------------------------+----------------------------+
+   +---------------+--------------------------------+-----------------------------------------+----------------------------+
+   | Component     | Property                       | Value                                   | Reference                  |
+   +===============+================================+=========================================+============================+
+   | Graphite Meat | Diameter                       | Fuel Element Fuel Meat OD               | Ref. 1_, Section 4.2.3.b   |
+   |               +--------------------------------+-----------------------------------------+----------------------------+
+   |               | Length                         | Fuel Element Interior Length  (~22 in.) | Ref. 1_, Section 4.2.3.b   |
+   |               +--------------------------------+-----------------------------------------+----------------------------+
+   |               | Material                       | Graphite                                | Ref. 1_, Section 4.2.3.b   |
+   +---------------+--------------------------------+-----------------------------------------+----------------------------+
+   | Cladding      | Thickness                      | Fuel Element Cladding Thickness         | Ref. 1_, Section 4.2.3.b   |
+   |               +--------------------------------+-----------------------------------------+----------------------------+
+   |               | Outer Diameter                 | Fuel Element Cladding OD                | Ref. 1_, Section 4.2.3.b   |
+   |               +--------------------------------+-----------------------------------------+----------------------------+
+   |               | Material                       | Aluminum                                | Ref. 1_, Section 4.2.3.b   |
+   +---------------+--------------------------------+-----------------------------------------+----------------------------+
+   | End Fixtures  | Upper Fitting Equivalent Cone  | Fuel Element Upper End Fitting          | Ref. 1_ Section 4.2.3.b    |
+   |               | Approximation Length           | Cone Approximation Length               |                            |
+   |               +--------------------------------+-----------------------------------------+----------------------------+
+   |               | Lower Fitting Equivalent Cone  | Fuel Element Lower End Fitting          | Ref. 1_ Section 4.2.3.b    |
+   |               | Approximation Length           | Cone Approximation Length               |                            |
+   |               +--------------------------------+-----------------------------------------+----------------------------+
+   |               | Material                       | Aluminum                                | Ref. 2_, pg. 50            |
+   +---------------+--------------------------------+-----------------------------------------+----------------------------+
 
 .. _figure-graphite-element-axial_profile:
 
@@ -339,6 +353,6 @@ References
 See Also
 ========
 
-* :ref:`progression_problems_triga` - TRIGA progression problems overview
-* :ref:`python_tools_triga` - Python tools for TRIGA analysis
-* :ref:`progression_problems_triga_netl` - NETL-specific specifications
+* :ref:`TRIGA-Generic Progression Problems <progression_problems_triga>`
+* :ref:`Python Tools for TRIGA <python_tools_triga>`
+* :ref:`NETL TRIGA System Specifications <progression_problems_triga_netl>`

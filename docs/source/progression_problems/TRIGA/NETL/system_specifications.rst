@@ -63,6 +63,7 @@ here may be present in the actual reactor core such as experimental inserts (7L 
 and Pneumatic Sample Transit tubes, but these are not included in the current progression
 problem definitions.
 
+!!!!!!!!NEED TO USE BETTER CORE DIAGRAM WITH NUMBERING CONSISTENT WITH MCNP MODEL!!!!!
 
 .. table:: Reserved Core Locations
    :name: reserved-core-locations
@@ -75,10 +76,22 @@ problem definitions.
    | Transient Control Rod                          | C-01      | Ref. 2_, Fig. 4.4  |
    +---------------+------------+-------------------+-----------+                    |
    | Fuel Follower Control Rod  | Regulating Rod    | C-07      |                    |
-   +                            +-------------------+-----------+                    |
+   |                            +-------------------+-----------+                    |
    |                            | Shim 1 Rod        | D-06      |                    |
-   +                            +-------------------+-----------+                    |
+   |                            +-------------------+-----------+                    |
    |                            | Shim 2 Rod        | D-14      |                    |
+   +---------------+------------+-------------------+-----------+                    |
+   | Reserved Empty Locations                       | G-01      |                    |
+   |                                                +-----------+                    |
+   |                                                | G-07      |                    |
+   |                                                +-----------+                    |
+   |                                                | G-13      |                    |
+   |                                                +-----------+                    |
+   |                                                | G-19      |                    |
+   |                                                +-----------+                    |
+   |                                                | G-24      |                    |
+   |                                                +-----------+                    |
+   |                                                | G-31      |                    |
    +---------------+------------+-------------------+-----------+--------------------+
 
 
@@ -111,7 +124,9 @@ In the event of a scram, the air is released, allowing gravity to insert the rod
 
 General geometric specifications relevant to the NETL TRIGA progression problems are summarized in
 :numref:`table-transient-control-rod`, and the axial configuration of the transient rod is depicted in
-:numref:`figure-transient-control-rod-axial_profile`.
+:numref:`figure-transient-control-rod-axial_profile`.  The axial positioning of the TCR within the core is
+assumed such that the center of the absorber material aligns with the axial center of the fuel element
+when the rod is fully inserted.  The maximum travel distance of the TCR is 15.0 inches (Ref. 2_, pg. 4-10).
 
 .. table:: Transient Control Rod Geometry Specifications
    :name: table-transient-control-rod
@@ -166,7 +181,9 @@ rods as well as the Regulating control rod are all FFCRs.
 
 General geometric specifications relevant to the NETL TRIGA progression problems are summarized in
 :numref:`table-fuel-follower-control-rod`, and the axial configuration of the transient rod is depicted in
-:numref:`figure-fuel-follower-control-rod-axial_profile`.
+:numref:`figure-fuel-follower-control-rod-axial_profile`.  The axial positioning of the FFCRs within the core are
+assumed such that the center of the absorber material aligns with the axial center of the fuel element when the
+rods are fully inserted.  The maximum travel distance for FFCRs is 15.0 inches (Ref. 2_, pg. 4-10).
 
 .. table:: Fuel Follower Control Rod Geometry Specifications
    :name: table-fuel-follower-control-rod
@@ -586,6 +603,6 @@ References
 See Also
 ========
 
-* :ref:`progression_problems_triga_netl` - NETL TRIGA progression problems overview
-* :ref:`python_tools_triga_netl` - Python tools for NETL TRIGA analysis
-* :ref:`progression_problems_triga` - TRIGA-generic specifications
+* :ref:`NETL TRIGA Progression Problems <progression_problems_triga_netl>`
+* :ref:`Python Tools for NETL TRIGA <python_tools_triga_netl>`
+* :ref:`TRIGA-generic Specifications <progression_problems_triga>`

@@ -428,9 +428,16 @@ class TRIGA:
         lower_element_plug : TransientRod.ElementPlug
             Lower element plug specifications.
             Default: 0.5 inches (Ref. [2]_ pg. 58)
-        position : int
-            Rod positions (in steps) from 0 (fully inserted) to 960 (fully withdrawn)
-            Default 0.
+        maximum_withdrawal_distance : float
+            Maximum withdrawal distance [cm].
+            Default: 15 inches (Ref. [1]_ pg. 4-10)
+        fraction_withdrawn : float
+            Fraction of the maximum withdrawal distance the rod is withdrawn.
+            Default: 0.0 (Fully Inserted).
+        core_centerline_offset : float
+            Offset of the absorber centerline from the core centerline
+            when the control rod is fully inserted [cm].
+            Default: 0.0 (assumed).
         """
 
         @dataclass
@@ -544,14 +551,21 @@ class TRIGA:
             def __post_init__(self):
                 assert self.thickness > 0, "Air Gap thickness must be positive."
 
-        cladding:                Cladding         = field(default_factory=Cladding)
-        upper_element_plug:      ElementPlug      = field(default_factory=ElementPlug)
-        upper_magneform_fitting: MagneformFitting = field(default_factory=MagneformFitting)
-        absorber:                Absorber         = field(default_factory=Absorber)
-        lower_magneform_fitting: MagneformFitting = field(default_factory=MagneformFitting)
-        air_follower:            AirGap           = field(default_factory=AirGap)
-        lower_element_plug:      ElementPlug      = field(default_factory=ElementPlug)
-        position:                int              = 0
+        cladding:                    Cladding         = field(default_factory=Cladding)
+        upper_element_plug:          ElementPlug      = field(default_factory=ElementPlug)
+        upper_magneform_fitting:     MagneformFitting = field(default_factory=MagneformFitting)
+        absorber:                    Absorber         = field(default_factory=Absorber)
+        lower_magneform_fitting:     MagneformFitting = field(default_factory=MagneformFitting)
+        air_follower:                AirGap           = field(default_factory=AirGap)
+        lower_element_plug:          ElementPlug      = field(default_factory=ElementPlug)
+        maximum_withdrawal_distance: float = 15.0 * CM_PER_INCH
+        fraction_withdrawn:          float = 0.0
+        core_centerline_offset:      float = 0.0
+
+        def __post_init__(self):
+            assert self.fraction_withdrawn >= 0.0, "Fraction withdrawn must be non-negative."
+            assert self.fraction_withdrawn <= 1.0, "Fraction withdrawn cannot exceed 1.0."
+            assert self.maximum_withdrawal_distance > 0.0, "Maximum withdrawal distance must be positive."
 
     @dataclass
     class FuelFollowerControlRod:
@@ -598,9 +612,16 @@ class TRIGA:
         lower_element_plug : ElementPlug
             Lower element plug specifications.
             Default thickness: 0.5 inches (Ref. [2]_ pg. 58)
-        position : int
-            Rod positions (in steps) from 0 (fully inserted) to 960 (fully withdrawn)
-            Default 0.
+        maximum_withdrawal_distance : float
+            Maximum withdrawal distance [cm].
+            Default: 15 inches (Ref. [1]_ pg. 4-10)
+        fraction_withdrawn : float
+            Fraction of the maximum withdrawal distance the rod is withdrawn.
+            Default: 0.0 (Fully Inserted).
+        core_centerline_offset : float
+            Offset of the absorber centerline from the core centerline
+            when the control rod is fully inserted [cm].
+            Default: 0.0 (assumed).
         """
 
         @dataclass
@@ -779,7 +800,14 @@ class TRIGA:
         lower_air_gap:               AirGap           = field(default_factory=partial(AirGap, thickness=5.375 * CM_PER_INCH))
         lower_element_plug:          ElementPlug      = field(default_factory=
                                                               partial(ElementPlug, thickness=0.5 * CM_PER_INCH))
-        position:                    int              = 0
+        maximum_withdrawal_distance: float = 15.0 * CM_PER_INCH
+        fraction_withdrawn:          float = 0.0
+        core_centerline_offset:      float = 0.0
+
+        def __post_init__(self):
+            assert self.fraction_withdrawn >= 0.0, "Fraction withdrawn must be non-negative."
+            assert self.fraction_withdrawn <= 1.0, "Fraction withdrawn cannot exceed 1.0."
+            assert self.maximum_withdrawal_distance > 0.0, "Maximum withdrawal distance must be positive."
 
 
     @dataclass
@@ -1130,8 +1158,8 @@ class TRIGA:
     class Core:
         """ Dataclass for the TRIGA core.
 
-        Default core loading and control rod positions are arbitrarily set to
-        524 steps (approximately half withdrawn).  The following core locations
+        Default control rod positions are arbitrarily set to
+        0 steps (Fully inserted).  The following core locations
         are reserved for non-fuel elements (Ref [1]_ Figure 4.4 & pg 4-9):
         - Transient Rod:   C-01
         - Regulating Rod:  C-07
@@ -1149,16 +1177,16 @@ class TRIGA:
             Default: TRIGA.CentralThimble()
         transient_rod : TRIGA.TransientRod
             The TRIGA transient rod specifications.
-            Default: TRIGA.TransientRod(position = 524)
+            Default: TRIGA.TransientRod(position = 0)
         regulating_rod : TRIGA.FuelFollowerControlRod
             The TRIGA regulating rod specifications.
-            Default: TRIGA.FuelFollowerControlRod(position = 524)
+            Default: TRIGA.FuelFollowerControlRod(position = 0)
         shim_1_rod : TRIGA.FuelFollowerControlRod
             The TRIGA shim 1 rod specifications.
-            Default: TRIGA.FuelFollowerControlRod(position = 524)
+            Default: TRIGA.FuelFollowerControlRod(position = 0)
         shim_2_rod : TRIGA.FuelFollowerControlRod
             The TRIGA shim 2 rod specifications.
-            Default: TRIGA.FuelFollowerControlRod(position = 524)
+            Default: TRIGA.FuelFollowerControlRod(position = 0)
         core_loading : Dict[str, Optional[TRIGA.Core.Loadable]]
             Map of mutable core locations and their contents.  Keys must be in RING_MAP and not in
             the locations reserved for the control rods or central thimble (i.e. 'A-01', 'C-01', 'C-07', 'D-06', 'D-14').
@@ -1205,13 +1233,13 @@ class TRIGA:
         central_thimble: TRIGA.CentralThimble          = field(default_factory=lambda: TRIGA.CentralThimble)
         core_loading:    Dict[str, Optional[Loadable]] = field(default_factory=lambda: TRIGA.Core.default_loading())  # pylint: disable=unnecessary-lambda
         transient_rod:   TRIGA.TransientRod            = field(default_factory=lambda:
-                                                               TRIGA.TransientRod(position=524))
+                                                               TRIGA.TransientRod(position=0))
         regulating_rod:  TRIGA.FuelFollowerControlRod  = field(default_factory=lambda:
-                                                               TRIGA.FuelFollowerControlRod(position=524))
+                                                               TRIGA.FuelFollowerControlRod(position=0))
         shim_1_rod:      TRIGA.FuelFollowerControlRod  = field(default_factory=lambda:
-                                                               TRIGA.FuelFollowerControlRod(position=524))
+                                                               TRIGA.FuelFollowerControlRod(position=0))
         shim_2_rod:      TRIGA.FuelFollowerControlRod  = field(default_factory=lambda:
-                                                               TRIGA.FuelFollowerControlRod(position=524))
+                                                               TRIGA.FuelFollowerControlRod(position=0))
 
         def __post_init__(self):
             for location in self.core_loading:

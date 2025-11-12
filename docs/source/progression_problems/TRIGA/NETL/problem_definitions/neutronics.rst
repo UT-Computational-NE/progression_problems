@@ -162,9 +162,9 @@ widths (i.e. beam port radius at the Centerline plane of the beam ports).
 
 For this problem, the core will be filled with fresh fuel rods in all core locations with the exceptions of
 the reserved locations specified in :ref:`reserved-core-locations` table which are filled with those elements
-specified in the table, as well as G-32 which will be filled with a source holder, E-11, F-13, and F-14 which
-will be empty "water holes", and D-03 which will have a graphite element.  The geometry for this problem is
-illustrated in :numref:`figure-triga-netl-problem_3`.
+specified in the table, as well as G-32 which will be filled with a source holder, E-11, F-13, F-14, and G-34
+which will be empty "water holes", and D-03 which will have a graphite element.  The geometry for this problem
+is illustrated in :numref:`figure-triga-netl-problem_3`.
 
 Flux measurements and detector responses are to be simulated in the excore model. Experimental flux locations
 for beam ports 2 thru for are to be along the centerline of the beam ports 1 inch from the tip of the beam port.

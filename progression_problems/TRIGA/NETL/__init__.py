@@ -14,6 +14,7 @@ from progression_problems.TRIGA.NETL.rsr_cavity import RSRCavity
 from progression_problems.TRIGA.NETL.shroud import Shroud
 from progression_problems.TRIGA.NETL.source_holder import SourceHolder
 from progression_problems.TRIGA.NETL.transient_rod import TransientRod
+from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies
 
 __all__ = [
     "BeamPort",
@@ -33,4 +34,5 @@ __all__ = [
     "default_beamport_2",
     "default_beamport_3",
     "default_beamport_4",
+    "build_generic_openmc_tallies"
 ]

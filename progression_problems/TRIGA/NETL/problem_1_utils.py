@@ -14,7 +14,7 @@ import progression_problems.TRIGA as TRIGA
 import progression_problems.TRIGA.NETL as NETL
 
 pitch = NETL.Core().pitch
-lattice_dims = {"height" : pitch * sqrt(3.0)/2.0 * 0.5,
+lattice_dims = {"height" : pitch * 0.5 * 2.0/sqrt(3.0),
                 "width"  : pitch * 0.5}
 
 def build_pincell_geometry(fuel:    TRIGA.FuelElement,
@@ -37,9 +37,9 @@ def build_pincell_geometry(fuel:    TRIGA.FuelElement,
     pincell = CylindricalPinCell(radii = [fuel.fuel_meat.inner_radius,
                                           fuel.fuel_meat.outer_radius,
                                           fuel.cladding.outer_radius],
-                                 materials = [fuel.zr_fill_rod.material,
-                                              fuel.fuel_meat.material,
-                                              fuel.cladding.material,
+                                 materials = [Material(fuel.zr_fill_rod.material),
+                                              Material(fuel.fuel_meat.material),
+                                              Material(fuel.cladding.material),
                                               Material(coolant)])
 
     return pincell
@@ -71,19 +71,19 @@ def build_openmc_model(fuel:    TRIGA.FuelElement,
     quadrant = {}
 
     cell             = openmc.Cell(fill = pincell)
-    cell.translation = [lattice_dims["width"],
-                        lattice_dims["height"], 0.0]
+    cell.translation = [lattice_dims["width"]*0.5,
+                        lattice_dims["height"]*0.5, 0.0]
     quadrant["SW"]  = openmc.Universe(cells=[cell])
 
     cell             = openmc.Cell(fill = pincell)
-    cell.translation = [-lattice_dims["width"],
-                        -lattice_dims["height"], 0.0]
+    cell.translation = [-lattice_dims["width"]*0.5,
+                        -lattice_dims["height"]*0.5, 0.0]
     quadrant["NE"]  = openmc.Universe(cells=[cell])
 
     lattice            = openmc.RectLattice()
-    lattice.lower_left = [0.0, 0.0]
+    lattice.lower_left = [-lattice_dims["width"], -lattice_dims["height"]*0.5]
     lattice.pitch      = [lattice_dims["width"], lattice_dims["height"]]
-    lattice.universes  = [[quadrant['NE']], [quadrant['SW']]]
+    lattice.universes  = [[quadrant['NE'], quadrant['SW']]]
     lattice.outer      = openmc.Universe(cells=[openmc.Cell(fill=coolant)])
 
     outer_surface = openmc.model.RectangularPrism(width         = lattice_dims["width"] * 2,
@@ -93,6 +93,7 @@ def build_openmc_model(fuel:    TRIGA.FuelElement,
 
     main_universe = openmc.Universe(cells=[lattice_cell])
     geometry      = openmc.Geometry(main_universe)
+    materials     = openmc.Materials(list(geometry.get_all_materials().values()))
 
     settings           = openmc.Settings()
     settings.batches   = 100
@@ -100,9 +101,9 @@ def build_openmc_model(fuel:    TRIGA.FuelElement,
     settings.particles = 10000
 
     tallies = NETL.build_generic_openmc_tallies(spectrum_group_structure)
-    settings.tallies = openmc.Tallies(list(tallies.values()))
+    tallies = openmc.Tallies(list(tallies.values()))
 
-    return openmc.model.Model(geometry=geometry, settings=settings, tallies=tallies)
+    return openmc.model.Model(geometry=geometry, materials=materials, settings=settings, tallies=tallies)
 
 
 def write_mpact_input(fuel:     TRIGA.FuelElement,
@@ -128,15 +129,15 @@ def write_mpact_input(fuel:     TRIGA.FuelElement,
 
     pincell = build_pincell_geometry(fuel, coolant)
 
-    bounds = {"SW": mpact_builder.Bounds(X={'min': lattice_dims["width"],  'max': 0.0},
-                                         Y={'min': lattice_dims["height"], 'max': 0.0}),
+    bounds = {"SW": mpact_builder.Bounds(X={'min': -lattice_dims["width"],  'max': 0.0},
+                                         Y={'min': -lattice_dims["height"], 'max': 0.0}),
               "NE": mpact_builder.Bounds(X={'min':  0.0, 'max': lattice_dims["width"]},
                                          Y={'min':  0.0, 'max': lattice_dims["height"]})}
 
     quadrant = {"SW": mpact_builder.build(pincell, build_specs, bounds['SW']).assemblies[0],
                 "NE": mpact_builder.build(pincell, build_specs, bounds['NE']).assemblies[0]}
 
-    geometry = mpactpy.Core([[quadrant["SW"], quadrant["NE"]]])
+    geometry = mpactpy.Core([[quadrant["NE"], quadrant["SW"]]])
 
     states          = [{"rated_power": "1.0",
                         "power":       "1.0",

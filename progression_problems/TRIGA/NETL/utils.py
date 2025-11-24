@@ -54,7 +54,7 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
 
     if universes:
         tallies['mesh_tally'] = openmc.Tally(name='mesh_tally')
-        tallies['mesh_tally'].filters = [openmc.UniverseFilter([u for u in universes])]
+        tallies['mesh_tally'].filters = [openmc.UniverseFilter(list(u for u in universes))]
         tallies['mesh_tally'].scores = ['flux', 'absorption', 'scatter', 'fission', 'nu-fission', 'kappa-fission']
 
     return tallies

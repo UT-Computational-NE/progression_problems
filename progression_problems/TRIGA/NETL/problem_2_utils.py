@@ -1,20 +1,201 @@
 
 from typing import Dict, List, Optional
-from math import sqrt
 
 import openmc
 import mpactpy
-from coreforge.geometry_elements import CylindricalPinCell, HexLattice
+from coreforge.geometry_elements import HexLattice
+from coreforge.mpact_builder.cylindrical_pincell import CylindricalPinCell
+from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
+from coreforge.geometry_elements.triga.netl import CentralThimble, SourceHolder, TransientRod, FuelFollowerControlRod
 from coreforge.materials import Material
-import coreforge.openmc_builder as openmc_builder
-import coreforge.mpact_builder as mpact_builder
+from coreforge import openmc_builder
+from coreforge import mpact_builder
 
-
-import progression_problems.TRIGA as TRIGA
-import progression_problems.TRIGA.NETL as NETL
+from progression_problems import TRIGA
+from progression_problems.TRIGA import NETL
 from progression_problems.TRIGA.NETL.problem_1_utils \
-    import lattice_dims, build_pincell_geometry as build_fuel_pincell_geometry
+    import lattice_dims, build_fuel_pincell_geometry
 from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS
+
+def build_coolant_pincell(coolant: openmc.Material) -> FuelElement.Pincell:
+    """Build a coolant-only pincell using fuel element dimensions.
+
+    Parameters
+    ----------
+    coolant : openmc.Material
+        Coolant material to fill all regions.
+
+    Returns
+    -------
+    FuelElement.Pincell
+        Coolant pincell shaped like the fuel geometry.
+    """
+    filler = TRIGA.FuelElement()
+    cladding = FuelElement.Cladding(thickness    = filler.cladding.thickness,
+                                    outer_radius = filler.cladding.outer_radius,
+                                    material     = Material(coolant))
+
+    fuel_meat = FuelElement.FuelMeat(inner_radius = filler.fuel_meat.inner_radius,
+                                     outer_radius = filler.fuel_meat.outer_radius,
+                                     material     = Material(coolant))
+
+    zr_fill = FuelElement.ZrFillRod(radius   = filler.zr_fill_rod.radius,
+                                    material = Material(coolant))
+
+    return FuelElement.Pincell(cladding       = cladding,
+                               fuel_meat      = fuel_meat,
+                               zr_fill_rod    = zr_fill,
+                               fill_gas       = Material(coolant),
+                               outer_material = Material(coolant))
+
+def build_graphite_pincell(element: TRIGA.GraphiteElement, coolant: openmc.Material) -> GraphiteElement.Pincell:
+    """Build a graphite element pincell.
+
+    Parameters
+    ----------
+    element : TRIGA.GraphiteElement
+        Graphite element definition from progression_problems.
+    coolant : openmc.Material
+        Coolant material surrounding the cladding.
+
+    Returns
+    -------
+    GraphiteElement.Pincell
+        CoreForge graphite pincell.
+    """
+    cladding = GraphiteElement.Cladding(thickness    = element.cladding.thickness,
+                                        outer_radius = element.cladding.outer_radius,
+                                        material     = Material(element.cladding.material))
+
+    meat = GraphiteElement.GraphiteMeat(outer_radius = element.graphite_meat.outer_radius,
+                                        material     = Material(element.graphite_meat.material))
+
+    return GraphiteElement.Pincell(cladding       = cladding,
+                                   graphite_meat  = meat,
+                                   outer_material = Material(coolant))
+
+def build_central_thimble_pincell(element: NETL.CentralThimble, coolant: openmc.Material) -> CentralThimble.Pincell:
+    """Build a central thimble pincell.
+
+    Parameters
+    ----------
+    element : NETL.CentralThimble
+        Central thimble definition from progression_problems.
+    coolant : openmc.Material
+        Coolant material inside and outside the thimble.
+
+    Returns
+    -------
+    CentralThimble.Pincell
+        CoreForge central thimble pincell.
+    """
+    thimble = CentralThimble.Cladding(inner_radius = element.inner_radius,
+                                      outer_radius = element.outer_radius,
+                                      material     = Material(element.material))
+
+    return CentralThimble.Pincell(cladding       = thimble,
+                                  fill_material  = Material(coolant),
+                                  outer_material = Material(coolant))
+
+def build_source_holder_pincell(element: NETL.SourceHolder, coolant: openmc.Material) -> SourceHolder.Pincell:
+    """Build a source holder pincell (cavity + cladding).
+
+    Parameters
+    ----------
+    element : NETL.SourceHolder
+        Source holder definition from progression_problems.
+    coolant : openmc.Material
+        Coolant surrounding the cladding.
+
+    Returns
+    -------
+    SourceHolder.Pincell
+        CoreForge source holder pincell.
+    """
+    cavity = SourceHolder.Cavity(radius   = element.cavity.radius,
+                                 material = Material(element.cavity.material))
+
+    cladding = SourceHolder.Cladding(outer_radius = element.cladding.outer_radius,
+                                     material     = Material(element.cladding.material))
+
+    return SourceHolder.Pincell(cavity         = cavity,
+                                cladding       = cladding,
+                                outer_material = Material(coolant))
+
+def build_transient_rod_pincell(element: NETL.TransientRod, coolant: openmc.Material):
+    """Build a transient rod pincell (absorber or air follower).
+
+    Parameters
+    ----------
+    element : NETL.TransientRod
+        Transient rod definition from progression_problems.
+    coolant : openmc.Material
+        Coolant surrounding the cladding.
+
+    Returns
+    -------
+    TransientRod.AbsorberPincell or TransientRod.AirFollowerPincell
+        CoreForge transient rod pincell for absorber or air-follower section.
+    """
+    cladding = TransientRod.Cladding(thickness    = element.cladding.thickness,
+                                     outer_radius = element.cladding.outer_radius,
+                                     material     = Material(element.cladding.material))
+
+    if element.fraction_withdrawn > 0.0:
+        return TransientRod.AirFollowerPincell(cladding       = cladding,
+                                               fill_gas       = Material(element.fill_gas),
+                                               outer_material = Material(coolant))
+
+    absorber = TransientRod.Absorber(radius   = element.absorber.radius,
+                                     material = Material(element.absorber.material))
+
+    return TransientRod.AbsorberPincell(cladding       = cladding,
+                                        absorber       = absorber,
+                                        fill_gas       = Material(element.fill_gas),
+                                        outer_material = Material(coolant))
+
+def build_ffcr_pincell(element: NETL.FuelFollowerControlRod, coolant: openmc.Material):
+    """Build a fuel-follower control rod pincell (absorber or follower section).
+
+    Parameters
+    ----------
+    element : NETL.FuelFollowerControlRod
+        Fuel-follower control rod definition from progression_problems.
+    coolant : openmc.Material
+        Coolant surrounding the cladding.
+
+    Returns
+    -------
+    FuelFollowerControlRod.AbsorberPincell or FuelFollowerControlRod.FuelFollowerPincell
+        CoreForge pincell for the requested control rod state.
+    """
+    cladding = FuelFollowerControlRod.Cladding(thickness    = element.cladding.thickness,
+                                               outer_radius = element.cladding.outer_radius,
+                                               material     = Material(element.cladding.material))
+
+    if element.fraction_withdrawn > 0.0:
+        follower = FuelFollowerControlRod.FuelFollower(
+            inner_radius = element.fuel_follower.inner_radius,
+            outer_radius = element.cladding.outer_radius - element.cladding.thickness,
+            material     = Material(element.fuel_follower.material))
+
+        zr_fill = FuelFollowerControlRod.ZrFillRod(radius   = element.zr_fill_rod.radius,
+                                                   material = Material(element.zr_fill_rod.material))
+
+        return FuelFollowerControlRod.FuelFollowerPincell(cladding       = cladding,
+                                                          fuel_follower  = follower,
+                                                          zr_fill_rod    = zr_fill,
+                                                          fill_gas       = Material(element.fill_gas),
+                                                          outer_material = Material(coolant))
+
+    absorber = FuelFollowerControlRod.Absorber(radius   = element.absorber.radius,
+                                               material = Material(element.absorber.material))
+
+    return FuelFollowerControlRod.AbsorberPincell(cladding       = cladding,
+                                                  absorber       = absorber,
+                                                  fill_gas       = Material(element.fill_gas),
+                                                  outer_material = Material(coolant))
+
 
 def build_element_pincell_geometry(element: Optional[NETL.Core.Element],
                                    coolant: openmc.Material) -> CylindricalPinCell:
@@ -35,60 +216,23 @@ def build_element_pincell_geometry(element: Optional[NETL.Core.Element],
     """
 
     if element is None:
-        return CylindricalPinCell(radii = [TRIGA.FuelElement().cladding.outer_radius],
-                                  materials = [Material(coolant),
-                                               Material(coolant)])
+        pincell = build_coolant_pincell(coolant)
     elif isinstance(element, TRIGA.FuelElement):
-        return build_fuel_pincell_geometry(element, coolant)
+        pincell = build_fuel_pincell_geometry(element, coolant)
     elif isinstance(element, TRIGA.GraphiteElement):
-        return CylindricalPinCell(radii = [element.graphite_meat.outer_radius,
-                                           element.cladding.outer_radius],
-                                  materials = [Material(element.graphite_meat.material),
-                                               Material(element.cladding.material),
-                                               Material(coolant)])
+        pincell = build_graphite_pincell(element, coolant)
     elif isinstance(element, NETL.CentralThimble):
-        return CylindricalPinCell(radii = [element.inner_radius,
-                                           element.outer_radius],
-                                  materials = [Material(coolant),
-                                               Material(element.material),
-                                               Material(coolant)])
+        pincell = build_central_thimble_pincell(element, coolant)
+    elif isinstance(element, NETL.SourceHolder):
+        pincell = build_source_holder_pincell(element, coolant)
     elif isinstance(element, NETL.TransientRod):
-        clad_inner_radius = element.cladding.outer_radius - element.cladding.thickness
-        if element.fraction_withdrawn > 0.0:
-            return CylindricalPinCell(radii = [clad_inner_radius,
-                                               element.cladding.outer_radius],
-                                      materials = [Material(element.fill_gas),
-                                                   Material(element.cladding.material),
-                                                   Material(coolant)])
-        else:
-            return CylindricalPinCell(radii = [element.absorber.radius,
-                                               clad_inner_radius,
-                                               element.cladding.outer_radius],
-                                      materials = [Material(element.absorber.material),
-                                                   Material(element.fill_gas),
-                                                   Material(element.cladding.material),
-                                                   Material(coolant)])
+        pincell = build_transient_rod_pincell(element, coolant)
     elif isinstance(element, NETL.FuelFollowerControlRod):
-        clad_inner_radius = element.cladding.outer_radius - element.cladding.thickness
-        if element.fraction_withdrawn > 0.0:
-            return CylindricalPinCell(radii = [element.fuel_follower.inner_radius,
-                                               clad_inner_radius,
-                                               element.cladding.outer_radius],
-                                      materials = [Material(element.zr_fill_rod.material),
-                                                   Material(element.fuel_follower.material),
-                                                   Material(element.cladding.material),
-                                                   Material(coolant)])
-        else:
-            return CylindricalPinCell(radii = [element.absorber.radius,
-                                               clad_inner_radius,
-                                               element.cladding.outer_radius],
-                                      materials = [Material(element.absorber.material),
-                                                   Material(element.fill_gas),
-                                                   Material(element.cladding.material),
-                                                   Material(coolant)])
+        pincell = build_ffcr_pincell(element, coolant)
     else:
         raise ValueError(f"Unsupported element type: {type(element)}")
 
+    return pincell
 
 
 def build_multicell_geometry(fuel: TRIGA.FuelElement,
@@ -222,7 +366,7 @@ def write_mpact_input(fuel: TRIGA.FuelElement,
 
     # Build the full hex lattice and then trim to the progression problem domain
     # (i.e. remove top and bottom 3 rows and leftmost and rightmost 2 columns)
-    core_map = [[e for e in row[1:-2]] \
+    core_map = [list(row[1:-2]) \
                 for row in mpact_builder.build(lattice, specs).assembly_map[3:-4]]
     geometry = mpactpy.Core(core_map)
 

@@ -18,6 +18,9 @@ class FuelElement:
     cladding : FuelElement.Cladding
         Cladding specifications.
         Default: Cladding()
+    fill_gas : openmc.Material
+        Fill gas material.
+        Default: DefaultMaterials.air() (Ref. [2]_ pg. 50)
     upper_end_fitting : FuelElement.EndFitting
         Upper End Fitting specifications.
         Default length: 7.3552 cm (Ref. [2]_ pg. 55)
@@ -191,12 +194,8 @@ class FuelElement:
         thickness : float
             Thickness of the air gap above the upper graphite reflector [cm].
             Default: 0.5 inches (Ref. [1]_ pg. 4-3)
-        material : openmc.Material
-            Material of the air gap.
-            Default: DefaultMaterials.air() (Ref. [2]_ pg. 50)
         """
         thickness: float = 0.5 * CM_PER_INCH
-        material:  openmc.Material = field(default_factory=DefaultMaterials.air)
 
         def __post_init__(self):
             assert self.thickness > 0, "Air Gap thickness must be positive."
@@ -227,6 +226,7 @@ class FuelElement:
             assert self.direction in ('up', 'down'), "End Fitting direction must be either 'up' or 'down'."
 
     cladding:                 Cladding          = field(default_factory=Cladding)
+    fill_gas:                 openmc.Material   = field(default_factory=DefaultMaterials.air)
     upper_end_fitting:        EndFitting        = field(default_factory=
                                                         partial(EndFitting, length=7.3552, direction='up'))
     upper_air_gap:            AirGap            = field(default_factory=AirGap)

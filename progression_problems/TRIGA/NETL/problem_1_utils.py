@@ -1,5 +1,5 @@
 
-from typing import Optional
+from typing import Dict, List, Optional
 from math import sqrt
 
 import openmc
@@ -12,12 +12,13 @@ import coreforge.mpact_builder as mpact_builder
 
 import progression_problems.TRIGA as TRIGA
 import progression_problems.TRIGA.NETL as NETL
+from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS
 
 pitch = NETL.Core().pitch
-lattice_dims = {"height" : pitch * 0.5 * 2.0/sqrt(3.0),
-                "width"  : pitch * 0.5}
+lattice_dims = {"width"  : sqrt(pitch**2 - (pitch*0.5)**2) / 2.0,
+                "height" : pitch * 0.5}
 
-def build_pincell_geometry(fuel:    TRIGA.FuelElement,
+def build_pincell_geometry(fuel: TRIGA.FuelElement,
                            coolant: openmc.Material) -> CylindricalPinCell:
     """Build a pincell CoreForge geometry for a given TRIGA fuel element.
 
@@ -45,11 +46,11 @@ def build_pincell_geometry(fuel:    TRIGA.FuelElement,
     return pincell
 
 
-def build_openmc_model(fuel:    TRIGA.FuelElement,
+def build_openmc_model(fuel: TRIGA.FuelElement,
                        coolant: openmc.Material,
                        spectrum_group_structure: str = "MPACT-51"
 ) -> openmc.model.Model:
-    """Build a pincell OpenMC model for a given TRIGA fuel element.
+    """Build a pincell OpenMC model for a given TRIGA fuel element and coolant material.
 
     Parameters
     ----------
@@ -106,11 +107,14 @@ def build_openmc_model(fuel:    TRIGA.FuelElement,
     return openmc.model.Model(geometry=geometry, materials=materials, settings=settings, tallies=tallies)
 
 
-def write_mpact_input(fuel:     TRIGA.FuelElement,
-                      coolant:  openmc.Material,
-                      xslib:    str,
+def write_mpact_input(fuel: TRIGA.FuelElement,
+                      coolant: openmc.Material,
+                      xslib: str,
                       build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
-                      filename: str = "mpact.inp") -> None:
+                      filename: str = "mpact.inp",
+                      states: List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
+                      xsec_settings: Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
+                      options: Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"]) -> None:
     """Write the MPACT input for a given TRIGA fuel element.
 
     Parameters
@@ -125,6 +129,12 @@ def write_mpact_input(fuel:     TRIGA.FuelElement,
         The mpact_builder specifications to use when building the pincell geometry.
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
+    states : List[Dict[str, str]]
+        The state settings to use in the MPACT input.
+    xsec_settings : Dict[str, str]
+        The cross section settings to use in the MPACT input.
+    options : Dict[str, str]
+        The options settings to use in the MPACT input.
     """
 
     pincell = build_pincell_geometry(fuel, coolant)
@@ -139,25 +149,12 @@ def write_mpact_input(fuel:     TRIGA.FuelElement,
 
     geometry = mpactpy.Core([[quadrant["NE"], quadrant["SW"]]])
 
-    states          = [{"rated_power": "1.0",
-                        "power":       "1.0",
-                        "pressure":    "1.0",
-                        "tinlet":      f"{coolant.temperature}",
-                        "rated_flow":  "1.0"}]
+    for state in states:
+        state["tinlet"] = state.get("tinlet", f"{coolant.temperature}")
 
-    xsec_settings = {'xslib'      : xslib,
-                     'xsshielder' : 'T SUBGROUP'}
+    xsec_settings["xslib"] = xsec_settings.get("xslib", xslib)
 
-    options       = {'solver'     : '1 2',
-                     'rr_edits'   : 'HDF5',
-                     'ray'        : '0.05 CHEBYSHEV-YAMAMOTO 16 3',
-                     'conv_crit'  : '1.0E-6 1.0E-6',
-                     'iter_lim'   : '50 1 1',
-                     'vis_edits'  : 'F',
-                     'scatt_meth' : 'TCP0',
-                     'nodal'      : 'T SP3',
-                     'axial_tl'   : 'T ISO LFLAT',
-                     'parallel'   : '1 1 1 1'}
+    options["rr_edits"] = options.get("rr_edits", "HDF5")
 
     mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
     with open(filename, 'w') as file:

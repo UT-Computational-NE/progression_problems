@@ -17,6 +17,9 @@ class FuelFollowerControlRod:
     cladding : Cladding
         Cladding specifications.
         Default: Cladding()
+    fill_gas : openmc.Material
+        Fill gas material.
+        Default: DefaultMaterials.air() (Ref. [2]_ pg. 51)
     upper_element_plug : ElementPlug
         Upper element plug specifications.
         Default thickness: 1.5 inches (Ref. [2]_ pg. 58)
@@ -83,7 +86,7 @@ class FuelFollowerControlRod:
         ----------
         outer_radius : float
             Outer radius of the cladding [cm].
-            Default: 1.31 * 0.5 inches (Ref. [2]_ pg. 55)
+            Default: 1.35 * 0.5 inches (Ref. [2]_ pg. 55)
         thickness : float
             Thickness of the cladding [cm].
             Default: 0.02 inches (Ref. [2]_ pg. 55)
@@ -92,7 +95,7 @@ class FuelFollowerControlRod:
             Default: DefaultMaterials.stainless_steel() (Ref. [2]_ pg. 52)
         """
 
-        outer_radius: float = 1.31 * 0.5 * CM_PER_INCH
+        outer_radius: float = 1.35 * 0.5 * CM_PER_INCH
         thickness:    float = 0.02 * CM_PER_INCH
         material:     openmc.Material = field(default_factory=DefaultMaterials.stainless_steel)
 
@@ -221,18 +224,15 @@ class FuelFollowerControlRod:
         ----------
         thickness : float
             Thickness of the air gap [cm].
-        material : openmc.Material
-            Material of the air gap.
-            Default: DefaultMaterials.air() (Ref. [2]_ pg. 51)
         """
 
         thickness: float
-        material:  openmc.Material = field(default_factory=DefaultMaterials.air)
 
         def __post_init__(self):
             assert self.thickness > 0, "Air Gap thickness must be positive."
 
     cladding:                    Cladding         = field(default_factory=Cladding)
+    fill_gas:                    openmc.Material  = field(default_factory=DefaultMaterials.air)
     upper_element_plug:          ElementPlug      = field(default_factory=
                                                           partial(ElementPlug, thickness=1.5 * CM_PER_INCH))
     upper_air_gap:               AirGap           = field(default_factory=partial(AirGap, thickness=3.5 * CM_PER_INCH))

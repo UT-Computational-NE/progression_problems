@@ -16,6 +16,9 @@ class TransientRod:
     cladding : TransientRod.Cladding
         Transient rod cladding specifications.
         Default: Cladding()
+    fill_gas : openmc.Material
+        Fill gas material.
+        Default: DefaultMaterials.air() (Ref. [2]_ pg. 51)
     upper_element_plug : TransientRod.ElementPlug
         Upper element plug specifications.
         Default: 0.5 inches (Ref. [2]_ pg. 58)
@@ -156,18 +159,15 @@ class TransientRod:
         thickness : float
             Length of the air gap [cm].
             Default: 19.75 inches (Ref. [2]_ pg. 58)
-        material : openmc.Material
-            Material of the air gap.
-            Default: DefaultMaterials.air() (Ref. [2]_ pg. 51)
         """
 
         thickness: float = 19.75 * CM_PER_INCH
-        material:  openmc.Material = field(default_factory=DefaultMaterials.air)
 
         def __post_init__(self):
             assert self.thickness > 0, "Air Gap thickness must be positive."
 
     cladding:                    Cladding         = field(default_factory=Cladding)
+    fill_gas:                    openmc.Material  = field(default_factory=DefaultMaterials.air)
     upper_element_plug:          ElementPlug      = field(default_factory=ElementPlug)
     upper_magneform_fitting:     MagneformFitting = field(default_factory=MagneformFitting)
     absorber:                    Absorber         = field(default_factory=Absorber)

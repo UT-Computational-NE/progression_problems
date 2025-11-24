@@ -63,8 +63,6 @@ here may be present in the actual reactor core such as experimental inserts (7L 
 and Pneumatic Sample Transit tubes, but these are not included in the current progression
 problem definitions.
 
-!!!!!!!!NEED TO USE BETTER CORE DIAGRAM WITH NUMBERING CONSISTENT WITH MCNP MODEL!!!!!
-
 .. table:: Reserved Core Locations
    :name: reserved-core-locations
 
@@ -193,7 +191,7 @@ rods are fully inserted.  The maximum travel distance for FFCRs is 15.0 inches (
    +===================+========================+====================+======================+
    | Cladding          | Thickness (in.)        | 0.02               | Ref. 3_, pg. 55      |
    |                   +------------------------+--------------------+----------------------+
-   |                   | Outer Diameter (in.)   | 1.31               | Ref. 3_, pg. 55      |
+   |                   | Outer Diameter (in.)   | 1.35               | Ref. 3_, pg. 55      |
    |                   +------------------------+--------------------+----------------------+
    |                   | Material               | Stainless Steel    | Ref. 3_, pg. 52      |
    +-------------------+------------------------+--------------------+----------------------+

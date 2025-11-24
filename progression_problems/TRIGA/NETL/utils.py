@@ -5,7 +5,8 @@ import openmc
 from progression_problems.constants import THERMAL_ENERGY_CUTOFF
 
 
-def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51"
+def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
+                                 universes: List[int] = []
 ) -> Dict[str, openmc.Tally]:
     """Build a set of generic OpenMC tallies for TRIGA problems.
 
@@ -13,6 +14,8 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51"
     ----------
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
+    universes : List[int]
+        A list of universe IDs to which the tallies should be applied.
 
     Returns
     -------
@@ -49,4 +52,29 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51"
     tallies['source'] = openmc.Tally(name='source_tally')
     tallies['source'].scores = ['kappa-fission']      # Fission rate multiplied by the pseudo Q. [MeV/source neutron]
 
+    if universes:
+        tallies['mesh_tally'] = openmc.Tally(name='mesh_tally')
+        tallies['mesh_tally'].filters = [openmc.UniverseFilter([u for u in universes])]
+        tallies['mesh_tally'].scores = ['flux', 'absorption', 'scatter', 'fission', 'nu-fission', 'kappa-fission']
+
     return tallies
+
+
+DEFAULT_MPACT_SETTINGS: Dict[str, Dict[str, str]] = {
+    "state": {"rated_power": "1.0",
+              "power":       "1.0",
+              "pressure":    "1.0",
+              "rated_flow":  "1.0"},
+
+    "xsec" : {'xsshielder' : 'T SUBGROUP'},
+
+    "options" : {'solver'     : '1 2',
+                 'ray'        : '0.05 CHEBYSHEV-YAMAMOTO 16 3',
+                 'conv_crit'  : '1.0E-6 1.0E-6',
+                 'iter_lim'   : '50 1 1',
+                 'vis_edits'  : 'F',
+                 'scatt_meth' : 'TCP0',
+                 'nodal'      : 'T SP3',
+                 'axial_tl'   : 'T ISO LFLAT',
+                 'parallel'   : '1 1 1 1'}
+}

@@ -5,6 +5,7 @@ from math import sqrt
 import openmc
 import mpactpy
 from coreforge.materials import Material
+from coreforge.geometry_elements import CylindricalPinCell
 from coreforge.geometry_elements.triga import FuelElement
 from coreforge import openmc_builder
 from coreforge import mpact_builder
@@ -17,8 +18,8 @@ pitch = NETL.Core().pitch
 lattice_dims = {"width"  : sqrt(pitch**2 - (pitch*0.5)**2) / 2.0,
                 "height" : pitch * 0.5}
 
-def build_fuel_pincell_geometry(fuel: TRIGA.FuelElement,
-                                coolant: openmc.Material) -> FuelElement.Pincell:
+def build_fuel_pincell(fuel: TRIGA.FuelElement,
+                       coolant: openmc.Material) -> CylindricalPinCell:
     """Build a pincell CoreForge geometry for a given TRIGA fuel element.
 
     Parameters
@@ -34,24 +35,30 @@ def build_fuel_pincell_geometry(fuel: TRIGA.FuelElement,
         The constructed pincell geometry.
     """
 
-    cladding = FuelElement.Cladding(thickness    = fuel.cladding.thickness,
-                                    outer_radius = fuel.cladding.outer_radius,
-                                    material     = Material(fuel.cladding.material))
+    cladding = FuelElement.Cladding(
+        thickness=fuel.cladding.thickness,
+        outer_radius=fuel.cladding.outer_radius,
+        material=Material(fuel.cladding.material),
+    )
 
-    fuel_meat = FuelElement.FuelMeat(inner_radius = fuel.fuel_meat.inner_radius,
-                                     outer_radius = fuel.fuel_meat.outer_radius,
-                                     material     = Material(fuel.fuel_meat.material))
+    fuel_meat = FuelElement.FuelMeat(
+        inner_radius=fuel.fuel_meat.inner_radius,
+        outer_radius=fuel.fuel_meat.outer_radius,
+        length=fuel.fuel_meat.length,
+        material=Material(fuel.fuel_meat.material),
+    )
 
-    zr_fill = FuelElement.ZrFillRod(radius   = fuel.zr_fill_rod.radius,
-                                    material = Material(fuel.zr_fill_rod.material))
+    zr_fill = FuelElement.ZrFillRod(
+        radius=fuel.zr_fill_rod.radius,
+        material=Material(fuel.zr_fill_rod.material),
+    )
 
-    pincell = FuelElement.Pincell(cladding       = cladding,
-                                  fuel_meat      = fuel_meat,
-                                  zr_fill_rod    = zr_fill,
-                                  fill_gas       = Material(fuel.fill_gas),
-                                  outer_material = Material(coolant))
-
-    return pincell
+    return FuelElement.build_fuel_meat_pincell(
+        cladding=cladding,
+        fuel_meat=fuel_meat,
+        zr_fill_rod=zr_fill,
+        fill_gas=Material(fuel.fill_gas),
+        outer_material=Material(coolant))
 
 
 def build_openmc_model(fuel: TRIGA.FuelElement,
@@ -75,7 +82,7 @@ def build_openmc_model(fuel: TRIGA.FuelElement,
         The constructed OpenMC model.
     """
 
-    pincell = openmc_builder.build(build_fuel_pincell_geometry(fuel, coolant))
+    pincell = openmc_builder.build(build_fuel_pincell(fuel, coolant))
 
     quadrant = {}
 
@@ -145,7 +152,7 @@ def write_mpact_input(fuel: TRIGA.FuelElement,
         The options settings to use in the MPACT input.
     """
 
-    pincell = build_fuel_pincell_geometry(fuel, coolant)
+    pincell = build_fuel_pincell(fuel, coolant)
 
     bounds = {"SW": mpact_builder.Bounds(X={'min': -lattice_dims["width"],  'max': 0.0},
                                          Y={'min': -lattice_dims["height"], 'max': 0.0}),

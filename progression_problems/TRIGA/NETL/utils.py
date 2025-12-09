@@ -6,7 +6,8 @@ from progression_problems.constants import THERMAL_ENERGY_CUTOFF
 
 
 def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
-                                 universes: List[int] = []
+                                 universes: List[int] = [],
+                                 mesh: openmc.RegularMesh = None
 ) -> Dict[str, openmc.Tally]:
     """Build a set of generic OpenMC tallies for TRIGA problems.
 
@@ -16,6 +17,8 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
         The energy group structure to use for the multi-group spectrum tally.
     universes : List[int]
         A list of universe IDs to which the tallies should be applied.
+    mesh : openmc.RegularMesh
+        An optional mesh to use for mesh tallies.
 
     Returns
     -------
@@ -54,8 +57,10 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
 
     if universes:
         tallies['mesh_tally'] = openmc.Tally(name='mesh_tally')
-        tallies['mesh_tally'].filters = [openmc.UniverseFilter(list(u for u in universes))]
         tallies['mesh_tally'].scores = ['flux', 'absorption', 'scatter', 'fission', 'nu-fission', 'kappa-fission']
+        tallies['mesh_tally'].filters = [openmc.UniverseFilter(list(u for u in universes))]
+        if mesh:
+            tallies['mesh_tally'].filters.append(openmc.MeshFilter(mesh))
 
     return tallies
 

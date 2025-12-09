@@ -5,19 +5,19 @@ import mpactpy
 from coreforge.geometry_elements import HexLattice
 from coreforge.materials import Material
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import (
-    Core,
-    FuelFollowerControlRod,
-    TransientRod,
-    CentralThimble,
-    SourceHolder
-)
+from coreforge.geometry_elements.triga.netl import (Core,
+                                                    FuelFollowerControlRod,
+                                                    TransientRod,
+                                                    CentralThimble,
+                                                    SourceHolder)
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
 from progression_problems import TRIGA
 from progression_problems.TRIGA import NETL
+from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
 from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS
+
 
 def build_fuel_element(fuel: TRIGA.FuelElement,
                        coolant: openmc.Material) -> FuelElement:
@@ -248,6 +248,7 @@ def build_central_thimble_element(element: NETL.CentralThimble, coolant: openmc.
 
     return CentralThimble(
         cladding=cladding,
+        length=NETL.Reactor().pool.height,
         fill_material=Material(coolant),
         outer_material=Material(coolant),
     )
@@ -278,9 +279,10 @@ def build_source_holder_element(element: NETL.SourceHolder, coolant: openmc.Mate
         material=Material(element.cladding.material),
     )
 
-    reactor = NETL.Reactor()
-    source_holder_length = reactor.upper_grid_plate.distance_from_core_centerline + reactor.upper_grid_plate.thickness + \
-                           reactor.lower_grid_plate.distance_from_core_centerline - element.distance_from_lower_grid_plate
+    source_holder_length = NETL.Reactor().upper_grid_plate.distance_from_core_centerline + \
+                           NETL.Reactor().lower_grid_plate.distance_from_core_centerline - \
+                           element.distance_from_lower_grid_plate + \
+                           NETL.Reactor().upper_grid_plate.thickness
 
     return SourceHolder(
         length=source_holder_length,
@@ -313,6 +315,7 @@ def build_transient_rod_element(element: NETL.TransientRod, coolant: openmc.Mate
 
     absorber = TransientRod.Absorber(
         radius=element.absorber.radius,
+        length=element.absorber.length,
         material=Material(element.absorber.material),
     )
 
@@ -374,12 +377,14 @@ def build_ffcr_element(element: NETL.FuelFollowerControlRod, coolant: openmc.Mat
 
     absorber = FuelFollowerControlRod.Absorber(
         radius=element.absorber.radius,
+        length=element.absorber.length,
         material=Material(element.absorber.material),
     )
 
     fuel_follower = FuelFollowerControlRod.FuelFollower(
         inner_radius=element.fuel_follower.inner_radius,
         outer_radius=cladding.inner_radius,
+        length=element.fuel_follower.length,
         material=Material(element.fuel_follower.material),
     )
 
@@ -521,10 +526,74 @@ def build_multicell_geometry(fuel: TRIGA.FuelElement,
                       elements       = elements,
                       orientation    = 'y')
 
+def build_element_openmc_universe(element: NETL.Core.Element, control_rod_bottom_position: float) -> openmc.Universe:
+    """ Helper method to build an OpenMC universe for a given core element.
+
+    Parameters
+    ----------
+    element : NETL.Core.Element
+        The core element to build the OpenMC universe for.
+    control_rod_bottom_position : float
+        Axial position for the bottom of a control rod [cm].
+
+    Returns
+    -------
+    openmc.Universe
+        The constructed OpenMC universe.
+    """
+
+    if isinstance(element, FuelElement) or isinstance(element, GraphiteElement):
+        upper_hole_radius = NETL.Reactor().upper_grid_plate.fuel_penetration_radius
+        lower_hole_radius = NETL.Reactor().lower_grid_plate.fuel_penetration_radius
+        dz = -0.5 * element.interior_length - element.lower_end_fitting.length
+    elif isinstance(element, CentralThimble):
+        upper_hole_radius = element.cladding.outer_radius
+        lower_hole_radius = element.cladding.outer_radius
+        dz = -0.5 * element.length
+    elif isinstance(element, SourceHolder):
+        upper_hole_radius = NETL.Reactor().upper_grid_plate.fuel_penetration_radius
+        lower_hole_radius = NETL.Reactor().lower_grid_plate.fuel_penetration_radius
+        dz = NETL.Reactor().upper_grid_plate.distance_from_core_centerline + \
+             NETL.Reactor().upper_grid_plate.thickness - element.length
+    else:
+        upper_hole_radius = NETL.Reactor().upper_grid_plate.control_rod_penetration_radius
+        lower_hole_radius = NETL.Reactor().lower_grid_plate.control_rod_penetration_radius
+        dz = control_rod_bottom_position
+
+    upper_bottom = openmc.ZPlane(NETL.Reactor().upper_grid_plate.distance_from_core_centerline)
+    upper_top    = openmc.ZPlane(NETL.Reactor().upper_grid_plate.distance_from_core_centerline +
+                                 NETL.Reactor().upper_grid_plate.thickness)
+    upper_hole   = openmc.ZCylinder(r = upper_hole_radius)
+    upper_grid   = openmc.Cell(fill   = NETL.Reactor().upper_grid_plate.material,
+                               region = +upper_bottom & -upper_top & +upper_hole)
+
+    lower_top    = openmc.ZPlane(-NETL.Reactor().lower_grid_plate.distance_from_core_centerline)
+    lower_bottom = openmc.ZPlane(-(NETL.Reactor().lower_grid_plate.distance_from_core_centerline +
+                                   NETL.Reactor().lower_grid_plate.thickness))
+    lower_hole   = openmc.ZCylinder(r = lower_hole_radius)
+    lower_grid   = openmc.Cell(fill   = NETL.Reactor().lower_grid_plate.material,
+                               region = +lower_bottom & -lower_top & +lower_hole)
+
+    grid_region = upper_grid.region | lower_grid.region
+
+    bottom_plane = openmc.ZPlane(dz)
+    top_plane    = openmc.ZPlane(dz + element.length)
+
+    element_region = ~grid_region & +bottom_plane & -top_plane
+    element_cell   = openmc.Cell(fill=openmc_builder.build(element), region=element_region)
+    element_cell.translation = (0.0, 0.0, dz)
+
+    outer_region = ~grid_region & ~(+bottom_plane & -top_plane)
+    outer_fill   = element.outer_material.openmc_material
+    outer_cell   = openmc.Cell(fill=outer_fill, region=outer_region)
+
+    return openmc.Universe(cells=[element_cell, outer_cell, upper_grid, lower_grid])
+
 
 def build_openmc_model(fuel: TRIGA.FuelElement,
                        coolant: openmc.Material,
                        central_element: Optional[NETL.Core.Element],
+                       control_rod_bottom_position: float = 0.0,
                        spectrum_group_structure: str = "MPACT-51"
 ) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
@@ -537,6 +606,8 @@ def build_openmc_model(fuel: TRIGA.FuelElement,
         The coolant material to use in the multicell geometry.
     central_element : Optional[NETL.Core.Element]
         The central element to include in the multicell geometry.
+    control_rod_bottom_position : float
+        Axial position for the bottom of a control rod [cm].
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
 
@@ -545,6 +616,59 @@ def build_openmc_model(fuel: TRIGA.FuelElement,
     openmc.model.Model
         The constructed OpenMC model.
     """
+
+    lattice   = build_multicell_geometry(fuel, coolant, central_element)
+    universes = []
+    for ring in lattice.elements:
+        ring_universes = []
+        for element in ring:
+            ring_universes.append(build_element_openmc_universe(element, control_rod_bottom_position))
+        universes.append(ring_universes)
+
+    outer_material = lattice.outer_material.openmc_material
+    outer_universe = openmc.Universe(cells=[openmc.Cell(fill=outer_material)])
+
+    openmc_lattice = openmc.HexLattice()
+    openmc_lattice.orientation = lattice.orientation
+    openmc_lattice.pitch = [lattice.pitch]
+    openmc_lattice.center = (0.0, 0.0)
+    openmc_lattice.universes = universes
+    openmc_lattice.outer = outer_universe
+
+    top_boundary    = openmc.ZPlane(z0 =  0.5 * NETL.Reactor().pool.height, boundary_type='vacuum')
+    bottom_boundary = openmc.ZPlane(z0 = -0.5 * NETL.Reactor().pool.height, boundary_type='vacuum')
+    radial_boundary = openmc.model.RectangularPrism(width         = lattice_dims["width"] * 8,
+                                                    height        = lattice_dims["height"] * 6,
+                                                    boundary_type = 'reflective')
+    lattice_cell    = openmc.Cell(fill   = openmc_lattice,
+                                  region = -radial_boundary & +bottom_boundary & -top_boundary)
+
+    main_universe = openmc.Universe(cells=[lattice_cell])
+    geometry      = openmc.Geometry(main_universe)
+    materials     = openmc.Materials(list(geometry.get_all_materials().values()))
+
+    settings           = openmc.Settings()
+    settings.batches   = 100
+    settings.inactive  = 20
+    settings.particles = 10000
+
+    fuel_element = next(e for ring in lattice.elements
+                        for e in ring if isinstance(e, FuelElement))
+    mesh_zmin    = -0.5 * fuel_element.interior_length
+    mesh_zmax    =  0.5 * fuel_element.interior_length
+    lower, upper = geometry.bounding_box
+
+    mesh             = openmc.RegularMesh()
+    mesh.lower_left  = (lower[0], lower[1], mesh_zmin)
+    mesh.upper_right = (upper[0], upper[1], mesh_zmax)
+    mesh.dimension   = (1, 1, 10)
+
+    universe_ids = [universe.id for ring in universes for universe in ring]
+
+    tallies      = NETL.build_generic_openmc_tallies(spectrum_group_structure, universe_ids, mesh)
+    tallies      = openmc.Tallies(list(tallies.values()))
+
+    return openmc.model.Model(geometry=geometry, materials=materials, settings=settings, tallies=tallies)
 
 
 def write_mpact_input(fuel: TRIGA.FuelElement,

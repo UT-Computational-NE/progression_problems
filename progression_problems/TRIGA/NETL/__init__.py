@@ -5,6 +5,7 @@ from progression_problems.TRIGA.NETL.beam_port import (BeamPort, default_beampor
 from progression_problems.TRIGA.NETL.central_thimble import CentralThimble
 from progression_problems.TRIGA.NETL.core import Core
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials
+from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries
 from progression_problems.TRIGA.NETL.fuel_follower_control_rod import FuelFollowerControlRod
 from progression_problems.TRIGA.NETL.grid_plate import GridPlate
 from progression_problems.TRIGA.NETL.pool import Pool
@@ -14,13 +15,14 @@ from progression_problems.TRIGA.NETL.rsr_cavity import RSRCavity
 from progression_problems.TRIGA.NETL.shroud import Shroud
 from progression_problems.TRIGA.NETL.source_holder import SourceHolder
 from progression_problems.TRIGA.NETL.transient_rod import TransientRod
-from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies
+from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies, DEFAULT_MPACT_SETTINGS
 
 __all__ = [
     "BeamPort",
     "CentralThimble",
     "Core",
     "DefaultMaterials",
+    "DefaultGeometries",
     "FuelFollowerControlRod",
     "GridPlate",
     "Pool",
@@ -34,5 +36,6 @@ __all__ = [
     "default_beamport_2",
     "default_beamport_3",
     "default_beamport_4",
-    "build_generic_openmc_tallies"
+    "build_generic_openmc_tallies",
+    "DEFAULT_MPACT_SETTINGS",
 ]

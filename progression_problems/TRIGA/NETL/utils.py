@@ -71,7 +71,8 @@ DEFAULT_MPACT_SETTINGS: Dict[str, Dict[str, str]] = {
               "pressure":    "1.0",
               "rated_flow":  "1.0"},
 
-    "xsec" : {'xsshielder' : 'T SUBGROUP'},
+    "xsec" : {'xslib'      : 'ORNL mpact51n19g_71_4.4m1_02212021.fmt',
+              'xsshielder' : 'T SUBGROUP'},
 
     "options" : {'solver'     : '1 2',
                  'ray'        : '0.05 CHEBYSHEV-YAMAMOTO 16 3',

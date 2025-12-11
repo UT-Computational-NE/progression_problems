@@ -14,9 +14,8 @@ class DefaultMaterials:
 
     DEFAULT_TEMPERATURE = 293.6
 
-    @classmethod
-    def fresh_fuel(cls,
-                   temperature:   float = DEFAULT_TEMPERATURE,
+    @staticmethod
+    def fresh_fuel(temperature:   float = DEFAULT_TEMPERATURE,
                    density:       float = 5.85,
                    density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns the default fresh fuel material for TRIGA reactors.
@@ -63,9 +62,8 @@ class DefaultMaterials:
         material.add_s_alpha_beta('c_Zr_in_ZrH')
         return material
 
-    @classmethod
-    def zirc_filler(cls,
-                    temperature: float = DEFAULT_TEMPERATURE,
+    @staticmethod
+    def zirc_filler(temperature: float = DEFAULT_TEMPERATURE,
                     density: float = 0.0408,
                     density_units: str = 'atom/b-cm') -> openmc.Material:
         """Creates and returns zirconium filler rod material.
@@ -102,9 +100,8 @@ class DefaultMaterials:
         material.add_nuclide('Zr96', 0.0280, percent_type='ao')
         return material
 
-    @classmethod
-    def stainless_steel(cls,
-                        temperature: float = DEFAULT_TEMPERATURE,
+    @staticmethod
+    def stainless_steel(temperature: float = DEFAULT_TEMPERATURE,
                         density: float = 0.0858,
                         density_units: str = 'atom/b-cm') -> openmc.Material:
         """Creates and returns stainless steel material.
@@ -150,9 +147,8 @@ class DefaultMaterials:
         material.add_nuclide('Ni64', 6.85e-05,   percent_type='ao')
         return material
 
-    @classmethod
-    def graphite(cls,
-                 temperature: float = DEFAULT_TEMPERATURE,
+    @staticmethod
+    def graphite(temperature: float = DEFAULT_TEMPERATURE,
                  density: float = 1.6,
                  density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns graphite material.
@@ -186,9 +182,8 @@ class DefaultMaterials:
         material.add_s_alpha_beta('c_Graphite')
         return material
 
-    @classmethod
-    def aluminum(cls,
-                 temperature: float = DEFAULT_TEMPERATURE,
+    @staticmethod
+    def aluminum(temperature: float = DEFAULT_TEMPERATURE,
                  density: float = 2.7,
                  density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns aluminum 6061-T6 material.
@@ -234,9 +229,8 @@ class DefaultMaterials:
         material.add_nuclide('Cu65', 2.1628e-05, percent_type='ao')
         return material
 
-    @classmethod
-    def air(cls,
-            temperature: float = DEFAULT_TEMPERATURE,
+    @staticmethod
+    def air(temperature: float = DEFAULT_TEMPERATURE,
             density: float = 0.001225,
             density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns air material.
@@ -270,9 +264,8 @@ class DefaultMaterials:
         material.add_nuclide('O16', 0.21, percent_type='ao')
         return material
 
-    @classmethod
-    def molybdenum(cls,
-                   temperature: float = DEFAULT_TEMPERATURE,
+    @staticmethod
+    def molybdenum(temperature: float = DEFAULT_TEMPERATURE,
                    density: float = 10.3,
                    density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns molybdenum material.

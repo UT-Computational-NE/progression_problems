@@ -18,9 +18,8 @@ class DefaultMaterials(TRIGADefaultMaterials):
 
     """
 
-    @classmethod
-    def water(cls,
-              temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+    @staticmethod
+    def water(temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
               density: float = 1.0,
               density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns water material.
@@ -55,9 +54,8 @@ class DefaultMaterials(TRIGADefaultMaterials):
         material.add_s_alpha_beta('c_H_in_H2O')
         return material
 
-    @classmethod
-    def control_rod_absorber(cls,
-                             temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+    @staticmethod
+    def control_rod_absorber(temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
                              density: float = 2.48,
                              density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns fuel follower control rod absorber material.
@@ -92,9 +90,8 @@ class DefaultMaterials(TRIGADefaultMaterials):
         material.add_element('C',   0.2,    percent_type='ao')
         return material
 
-    @classmethod
-    def cadmium(cls,
-                temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+    @staticmethod
+    def cadmium(temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
                 density: float = 8.65,
                 density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns cadmium material.

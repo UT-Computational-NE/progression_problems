@@ -17,10 +17,12 @@ from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
 
 
 UPPER_GRID_PLATE = NETL.DefaultGeometries.upper_grid_plate()
-UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = NETL.DefaultGeometries.UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
+UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = \
+    NETL.DefaultGeometries.reactor().upper_grid_plate_distance_from_core_centerline
 
 LOWER_GRID_PLATE = NETL.DefaultGeometries.lower_grid_plate()
-LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = NETL.DefaultGeometries.LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
+LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = \
+    NETL.DefaultGeometries.reactor().lower_grid_plate_distance_from_core_centerline
 
 POOL_HEIGHT = NETL.DefaultGeometries.pool().height
 

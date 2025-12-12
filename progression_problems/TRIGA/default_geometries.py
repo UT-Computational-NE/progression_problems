@@ -102,28 +102,28 @@ class DefaultGeometries:
         GraphiteElement
             Default CoreForge graphite element.
         """
-        fuel_defaults = DefaultGeometries.fuel_element()
+        fuel_element = DefaultGeometries.fuel_element()
 
         cladding = GraphiteElement.Cladding(
-            thickness    = FuelElement.Cladding().thickness,             # Ref. [1]_ Section 4.2.3.b
-            outer_radius = FuelElement.Cladding().outer_radius,          # Ref. [1]_ Section 4.2.3.b
+            thickness    = fuel_element.cladding.thickness,              # Ref. [1]_ Section 4.2.3.b
+            outer_radius = fuel_element.cladding.outer_radius,           # Ref. [1]_ Section 4.2.3.b
             material     = Material(DefaultMaterials.aluminum()),        # Ref. [2]_ pg. 50
         )
 
         graphite_meat = GraphiteElement.GraphiteMeat(
-            outer_radius = FuelElement.FuelMeat().outer_radius,          # Ref. [1]_ Section 4.2.3.b
-            length       = fuel_defaults.interior_length,                # Ref. [1]_ Section 4.2.3.b
+            outer_radius = fuel_element.fuel_meat.outer_radius,          # Ref. [1]_ Section 4.2.3.b
+            length       = fuel_element.interior_length,                 # Ref. [1]_ Section 4.2.3.b
             material     = Material(DefaultMaterials.graphite()),        # Ref. [2]_ pg. 50
         )
 
         upper_end_fitting = GraphiteElement.EndFitting(
-            length    =  fuel_defaults.upper_end_fitting.length,         # Ref. [1]_ Section 4.2.3.b
+            length    =  fuel_element.upper_end_fitting.length,          # Ref. [1]_ Section 4.2.3.b
             direction = 'up',
             material  = Material(DefaultMaterials.aluminum()),           # Ref. [2]_ pg. 50
         )
 
         lower_end_fitting = GraphiteElement.EndFitting(
-            length    =  fuel_defaults.lower_end_fitting.length,         # Ref. [1]_ Section 4.2.3.b
+            length    =  fuel_element.lower_end_fitting.length,          # Ref. [1]_ Section 4.2.3.b
             direction = 'down',
             material  = Material(DefaultMaterials.aluminum()),           # Ref. [2]_ pg. 50
         )

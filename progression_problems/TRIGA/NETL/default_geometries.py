@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+from CoreForge.coreforge.geometry_elements.triga.netl.beam_port import BeamPort
+from CoreForge.coreforge.geometry_elements.triga.netl.reactor import Reactor
+from CoreForge.coreforge.geometry_elements.triga.netl.rsr_cavity import RSRCavity
+from CoreForge.coreforge.geometry_elements.triga.netl.shroud import Shroud
+from coreforge.geometry_elements.triga.netl.reflector import Reflector
 from coreforge.geometry_elements.triga.netl import (CentralThimble,
                                                     SourceHolder,
                                                     FuelFollowerControlRod,
                                                     TransientRod,
                                                     GridPlate,
-                                                    Pool)
+                                                    Pool,
+                                                    Core)
 from coreforge.materials import Material
+from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGADefaultGeometries
 from progression_problems.TRIGA.default_materials import DefaultMaterials as TRIGADefaultMaterials
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.constants import CM_PER_INCH
+from progression_problems.progression_problems.TRIGA.NETL.core import Core
 
 
 class DefaultGeometries:
@@ -24,8 +32,8 @@ class DefaultGeometries:
            (NETL-FF-BP1/5-128-cca).", Nov. 2022. https://doi.org/10.2172/1898256
     """
 
-    UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE =  12.75 * CM_PER_INCH  # Ref. [2]_ pg. 55
-    LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE =  13.06 * CM_PER_INCH  # Ref. [2]_ pg. 55
+    TRANSIENT_ROD_FULLY_INSERTED_POSITION = -73.0250  * CM_PER_INCH  # Ref. [2]_ pg. 58
+    FFCR_FULLY_INSERTED_POSITION          = -76.5180  * CM_PER_INCH  # Ref. [2]_ pg. 58
 
     @staticmethod
     def central_thimble() -> CentralThimble:
@@ -63,8 +71,8 @@ class DefaultGeometries:
         """
         upper_plate = DefaultGeometries.upper_grid_plate()
 
-        upper_grid_plate_distance  = DefaultGeometries.UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
-        lower_grid_plate_distance  = DefaultGeometries.LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
+        upper_grid_plate_distance  = DefaultGeometries.reactor().upper_grid_plate.distance_from_core_centerline
+        lower_grid_plate_distance  = DefaultGeometries.reactor().lower_grid_plate.distance_from_core_centerline
         distance_from_lower_plate  = 1.1934  # Ref. [2]_ pg. 55
 
         length = (upper_grid_plate_distance + lower_grid_plate_distance -
@@ -287,4 +295,224 @@ class DefaultGeometries:
             height   = 160.0,                                           # Ref. [2]_ pg. 54
             material = Material(NETLDefaultMaterials.water()),          # Ref. [2]_ pg. 48
             name     = "pool",
+        )
+
+    @staticmethod
+    def reflector() -> Reflector:
+        """Creates and returns the default reflector.
+
+        Returns
+        -------
+        Reflector
+            Default NETL TRIGA reflector.
+        """
+        return Reflector(
+            radius   = 42.0 * 0.5 * CM_PER_INCH,                       # Ref. [2]_ pg. 54
+            height   = 23.13 * CM_PER_INCH,                            # Ref. [2]_ pg. 55
+            material = Material(NETLDefaultMaterials.graphite()),      # Ref. [2]_ pg. 48
+            name     = "reflector",
+        )
+
+    @staticmethod
+    def shroud() -> Shroud:
+        """Creates and returns the default shroud.
+
+        Returns
+        -------
+        Shroud
+            Default NETL TRIGA shroud.
+        """
+        return Shroud(
+            thickness          = 0.1875 * CM_PER_INCH,                       # Ref. [2]_ pg. 54 & 55
+            height             = 23.13 * CM_PER_INCH,                        # Ref. [2]_ pg. 55
+            large_hex_inradius = 10.75 * CM_PER_INCH,                        # Ref. [2]_ pg. 54
+            small_hex_inradius = 10.21875 * CM_PER_INCH,                     # Ref. [2]_ pg. 55
+            material           = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 48
+            name               = "shroud",
+        )
+
+    @staticmethod
+    def rsr_cavity() -> RSRCavity:
+        """Creates and returns the default rotary specimen rack cavity.
+
+        Returns
+        -------
+        RSRCavity
+            Default NETL TRIGA rotary specimen rack cavity.
+        """
+        specimen_tube = RSRCavity.SpecimenTube(
+            outer_radius = 1.0 * 0.5 * CM_PER_INCH,                          # Ref. [2]_ pg. 56 & 57
+            thickness    = 0.058 * CM_PER_INCH,                              # Ref. [1]_ pg. 10-27
+            material     = Material(NETLDefaultMaterials.aluminum()),        # Assumed
+        )
+
+        return RSRCavity(
+            outer_radius            = 28.625 * 0.5 * CM_PER_INCH,            # Ref. [2]_ pg. 55
+            height                  = 10.8174 * CM_PER_INCH,                 # Ref. [2]_ pg. 55
+            number_of_tubes         = 40,                                    # Ref. [1]_ pg. 10-27
+            tube_to_center_distance = 26.312 * 0.5 * CM_PER_INCH,            # Ref. [1]_ pg. 10-27
+            tube_specs              = specimen_tube,
+            material                = Material(NETLDefaultMaterials.air()),  # Ref. [2]_ pg. 48
+            name                    = "rsr_cavity",
+        )
+
+    @staticmethod
+    def beam_port() -> BeamPort:
+        """Creates and returns the default beam port geometry.
+
+        Notes
+        -----
+        The beam port length is set arbitrarily to the pool diameter to ensure sufficient length
+        for penetration through pool / reflector and to provide some known length with which to work
+        default transformations off of.
+
+        Returns
+        -------
+        BeamPort
+            Default NETL TRIGA beam port.
+        """
+
+        return BeamPort(
+            length        = DefaultGeometries.pool().radius * 2.0,
+            inner_radius  = 6.065 * 0.5 * CM_PER_INCH,                  # Ref. [2]_ Figures 4 & 5
+            outer_radius  = 6.625 * CM_PER_INCH,                        # Ref. [2]_ Figures 4 & 5
+            tube_material = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 48
+            fill_material = Material(NETLDefaultMaterials.air()),       # Ref. [2]_ pg. 48
+            name = "beam_port",
+        )
+
+    @staticmethod
+    def core() -> Core:
+        """Creates and returns a default core geometry.
+
+        Returns
+        -------
+        Core
+            Default NETL TRIGA core geometry.
+        """
+        fuel          = lambda: TRIGADefaultGeometries.fuel_element()
+        graphite      = lambda: TRIGADefaultGeometries.graphite_element()
+        source_holder = lambda: DefaultGeometries.source_holder()
+        empty         = lambda: None
+
+        def fill(locations, factory):
+            return {loc: factory() for loc in locations}
+
+        core_loading = {}
+        core_loading |= fill(["B-01", "B-02", "B-03", "B-04", "B-05", "B-06"], fuel)
+
+        core_loading |= fill([        "C-02", "C-03", "C-04", "C-05", "C-06",
+                                      "C-08", "C-09", "C-10", "C-11", "C-12"], fuel)
+
+        core_loading |= fill(["D-01", "D-02",         "D-04", "D-05",
+                              "D-07", "D-08", "D-09", "D-10", "D-11", "D-12",
+                              "D-13",         "D-15", "D-16", "D-17", "D-18"], fuel)
+        core_loading["D-03"] = graphite()
+
+        core_loading |= fill(["E-01", "E-02", "E-03", "E-04", "E-05", "E-06",
+                              "E-07", "E-08", "E-09", "E-10",         "E-12",
+                              "E-13", "E-14", "E-15", "E-16", "E-17", "E-18",
+                              "E-19", "E-20", "E-21", "E-22", "E-23", "E-24"], fuel)
+        core_loading["E-11"] = empty()
+
+        core_loading |= fill(["F-01", "F-02", "F-03", "F-04", "F-05", "F-06",
+                              "F-07", "F-08", "F-09", "F-10", "F-11", "F-12",
+                                              "F-15", "F-16", "F-17", "F-18",
+                              "F-19", "F-20", "F-21", "F-22", "F-23", "F-24",
+                              "F-25", "F-26", "F-27", "F-28", "F-29", "F-30"], fuel)
+        core_loading["F-13"] = empty()
+        core_loading["F-14"] = empty()
+
+        core_loading |= fill([        "G-02", "G-03", "G-04", "G-05", "G-06",
+                                      "G-08", "G-09", "G-10", "G-11", "G-12",
+                                      "G-14", "G-15", "G-16", "G-17", "G-18",
+                                      "G-20", "G-21", "G-22", "G-23", "G-24",
+                                      "G-26", "G-27", "G-28", "G-29", "G-30",
+                                              "G-33", "G-35", "G-36"], fuel)
+        core_loading["G-32"] = source_holder()
+        core_loading["G-34"] = empty()
+
+        return Core(
+            pitch           = 1.714 * CM_PER_INCH,          # Ref. [2]_ pg. 54
+            central_thimble = DefaultGeometries.central_thimble(),
+            transient_rod   = DefaultGeometries.transient_rod(),
+            regulating_rod  = DefaultGeometries.fuel_follower_control_rod(),
+            shim_1_rod      = DefaultGeometries.fuel_follower_control_rod(),
+            shim_2_rod      = DefaultGeometries.fuel_follower_control_rod(),
+            name            = "core",
+            core_loading    = core_loading,
+        )
+
+    @staticmethod
+    def reactor() -> Reactor:
+        """Creates and returns a default reactor geometry.
+
+        Returns
+        -------
+        Reactor
+            Default NETL TRIGA reactor geometry.
+        """
+        return Reactor(
+            pool                        = DefaultGeometries.pool(),
+            shroud                      = DefaultGeometries.shroud(),
+            rotary_specimen_rack_cavity = DefaultGeometries.rsr_cavity(),
+            core                        = DefaultGeometries.core(),
+            name                        = "reactor",
+            reflector = Reactor.Reflector(
+                geometry = DefaultGeometries.reflector(),
+                core_centerline_offset = 0.565 * CM_PER_INCH  # Ref. [2]_ pg. 55
+            ),
+            upper_grid_plate = Reactor.GridPlate(
+                geometry = DefaultGeometries.upper_grid_plate(),
+                distance_from_core_centerline = 12.75 * CM_PER_INCH  # Ref. [2]_ pg. 55,
+            ),
+            lower_grid_plate = Reactor.GridPlate(
+                geometry = DefaultGeometries.lower_grid_plate(),
+                distance_from_core_centerline = 13.06 * CM_PER_INCH  # Ref. [2]_ pg. 55
+            ),
+            transient_rod = Reactor.TransientRod(
+                geometry = DefaultGeometries.transient_rod(),
+                bottom_z = DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION,
+            ),
+            regulating_rod = Reactor.FuelFollowerControlRod(
+                geometry = DefaultGeometries.fuel_follower_control_rod(),
+                bottom_z = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            ),
+            shim_1_rod = Reactor.FuelFollowerControlRod(
+                geometry = DefaultGeometries.fuel_follower_control_rod(),
+                bottom_z = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            ),
+            shim_2_rod = Reactor.FuelFollowerControlRod(
+                geometry = DefaultGeometries.fuel_follower_control_rod(),
+                bottom_z = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            ),
+            # Beam port 1/5 specifications from Ref. [2]_ pages 48, 56, 59
+            beam_port_1_5 = Reactor.BeamPort(
+                geometry    = DefaultGeometries.beam_port(),
+                translation = (35.2425, 0.0, -6.985),
+            ),
+            # Beam port 2 specifications from Ref. [2]_ pages 48, 56, 59
+            beam_port_2 = Reactor.BeamPort(
+                geometry    = DefaultGeometries.beam_port(),
+                rotation    = ((150.0,  60.0, 90.0),
+                               (120.0, 150.0, 90.0),
+                               ( 90.0,  90.0,  0.0)),
+                translation = (-18.399365255524088, 77.9004555727542, -6.985),
+            ),
+            # Beam port 3 specifications from Ref. [2]_ pages 48, 56, 59
+            beam_port_3 = Reactor.BeamPort(
+                geometry    = DefaultGeometries.beam_port(),
+                rotation    = (( 90.0, 180.0, 90.0),
+                               (  0.0,  90.0, 90.0),
+                               ( 90.0,  90.0,  0.0)),
+                translation = (-116.43188, 0.0, -6.985),
+            ),
+            # Beam port 4 specifications from Ref. [2]_ pages 48, 56, 59
+            beam_port_4 = Reactor.BeamPort(
+                geometry    = DefaultGeometries.beam_port(),
+                rotation    = (( 75.0,  60.0, 90.0),
+                               (120.0,  75.0, 90.0),
+                               ( 90.0,  90.0,  0.0)),
+                translation = (-69.63559769456143, -6.33393280074954, -6.985),
+            ),
         )

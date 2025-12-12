@@ -5,26 +5,22 @@ import mpactpy
 from coreforge.geometry_elements import HexLattice
 from coreforge.materials import Material
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import (Core,
-                                                    CentralThimble,
-                                                    SourceHolder)
+from coreforge.geometry_elements.triga.netl import Core, CentralThimble, SourceHolder
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
-from progression_problems import TRIGA
-from progression_problems.TRIGA import NETL
+from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGA_DefaultGeometries
+from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
+from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies, DEFAULT_MPACT_SETTINGS
 
 
-UPPER_GRID_PLATE = NETL.DefaultGeometries.upper_grid_plate()
-UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = \
-    NETL.DefaultGeometries.reactor().upper_grid_plate_distance_from_core_centerline
-
-LOWER_GRID_PLATE = NETL.DefaultGeometries.lower_grid_plate()
-LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = \
-    NETL.DefaultGeometries.reactor().lower_grid_plate_distance_from_core_centerline
-
-POOL_HEIGHT = NETL.DefaultGeometries.pool().height
+reactor                                        = NETL_DefaultGeometries.reactor()
+UPPER_GRID_PLATE                               = reactor.upper_grid_plate.geometry
+UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = reactor.upper_grid_plate.distance_from_core_centerline
+LOWER_GRID_PLATE                               = reactor.lower_grid_plate.geometry
+LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = reactor.lower_grid_plate.distance_from_core_centerline
+POOL_HEIGHT                                    = NETL_DefaultGeometries.pool().height
 
 
 def build_coolant_element(coolant: openmc.Material) -> FuelElement:
@@ -40,7 +36,7 @@ def build_coolant_element(coolant: openmc.Material) -> FuelElement:
     FuelElement
         Coolant core element shaped like the fuel geometry.
     """
-    filler = TRIGA.DefaultGeometries.fuel_element()
+    filler = TRIGA_DefaultGeometries.fuel_element()
 
     cladding = FuelElement.Cladding(thickness    = filler.cladding.thickness,
                                     outer_radius = filler.cladding.outer_radius,
@@ -87,8 +83,8 @@ def build_coolant_element(coolant: openmc.Material) -> FuelElement:
                        outer_material           = Material(coolant))
 
 
-def build_multicell_geometry(fuel: FuelElement,
-                             coolant: openmc.Material,
+def build_multicell_geometry(fuel:            FuelElement,
+                             coolant:         openmc.Material,
                              central_element: Optional[Core.Element]
     ) -> HexLattice:
     """ Build a multicell CoreForge geometry for a fuel design,
@@ -121,17 +117,19 @@ def build_multicell_geometry(fuel: FuelElement,
                 [     f,      f,     ],
                 [         f,         ]]
 
-    return HexLattice(pitch          = NETL.Core().pitch,
-                      outer_material = Material(coolant),
-                      elements       = elements,
-                      orientation    = 'y')
+    return HexLattice(
+        pitch=NETL_DefaultGeometries.core().pitch,
+        outer_material=Material(coolant),
+        elements=elements,
+        orientation="y",
+    )
 
 
-def build_openmc_model(fuel: FuelElement,
-                       coolant: openmc.Material,
-                       central_element: Optional[Core.Element],
+def build_openmc_model(fuel:                        FuelElement,
+                       coolant:                     openmc.Material,
+                       central_element:             Optional[Core.Element],
                        control_rod_bottom_position: float = 0.0,
-                       spectrum_group_structure: str = "MPACT-51"
+                       spectrum_group_structure:    str = "MPACT-51"
 ) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
 
@@ -212,22 +210,22 @@ def build_openmc_model(fuel: FuelElement,
 
     universe_ids = [universe.id for ring in universes for universe in ring]
 
-    tallies      = NETL.build_generic_openmc_tallies(spectrum_group_structure, universe_ids, mesh)
+    tallies      = build_generic_openmc_tallies(spectrum_group_structure, universe_ids, mesh)
     tallies      = openmc.Tallies(list(tallies.values()))
 
     return openmc.model.Model(geometry=geometry, materials=materials, settings=settings, tallies=tallies)
 
 
-def write_mpact_input(fuel: FuelElement,
-                      coolant: openmc.Material,
-                      central_element: Optional[Core.Element],
+def write_mpact_input(fuel:                        FuelElement,
+                      coolant:                     openmc.Material,
+                      central_element:             Optional[Core.Element],
                       control_rod_bottom_position: float = 0.0,
-                      fuel_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
-                      element_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
-                      filename: str = "mpact.inp",
-                      states: List[Dict[str, str]] = [NETL.DEFAULT_MPACT_SETTINGS["state"]],
-                      xsec_settings: Dict[str, str] = NETL.DEFAULT_MPACT_SETTINGS["xsec"],
-                      options: Dict[str, str] = NETL.DEFAULT_MPACT_SETTINGS["options"]) -> None:
+                      fuel_build_specs:            Optional[mpact_builder.CylindricalPinCell.Specs] = None,
+                      element_build_specs:         Optional[mpact_builder.CylindricalPinCell.Specs] = None,
+                      filename:                    str = "mpact.inp",
+                      states:                      List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
+                      xsec_settings:               Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
+                      options:                     Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"]) -> None:
     """Write the MPACT input for a given TRIGA fuel element, coolant, and central element.
 
     Parameters
@@ -253,3 +251,5 @@ def write_mpact_input(fuel: FuelElement,
     options : Dict[str, str]
         The options settings to use in the MPACT input.
     """
+
+    pass

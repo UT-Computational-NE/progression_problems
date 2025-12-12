@@ -1,23 +1,13 @@
 from __future__ import annotations
 
-from CoreForge.coreforge.geometry_elements.triga.netl.beam_port import BeamPort
-from CoreForge.coreforge.geometry_elements.triga.netl.reactor import Reactor
-from CoreForge.coreforge.geometry_elements.triga.netl.rsr_cavity import RSRCavity
-from CoreForge.coreforge.geometry_elements.triga.netl.shroud import Shroud
-from coreforge.geometry_elements.triga.netl.reflector import Reflector
-from coreforge.geometry_elements.triga.netl import (CentralThimble,
-                                                    SourceHolder,
-                                                    FuelFollowerControlRod,
-                                                    TransientRod,
-                                                    GridPlate,
-                                                    Pool,
-                                                    Core)
+from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder, FuelFollowerControlRod,
+                                                    TransientRod, GridPlate, BeamPort, Pool, RSRCavity,
+                                                    Reflector, Shroud, Core, Reactor)
 from coreforge.materials import Material
 from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGADefaultGeometries
 from progression_problems.TRIGA.default_materials import DefaultMaterials as TRIGADefaultMaterials
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.constants import CM_PER_INCH
-from progression_problems.progression_problems.TRIGA.NETL.core import Core
 
 
 class DefaultGeometries:
@@ -32,8 +22,16 @@ class DefaultGeometries:
            (NETL-FF-BP1/5-128-cca).", Nov. 2022. https://doi.org/10.2172/1898256
     """
 
-    TRANSIENT_ROD_FULLY_INSERTED_POSITION = -73.0250  * CM_PER_INCH  # Ref. [2]_ pg. 58
-    FFCR_FULLY_INSERTED_POSITION          = -76.5180  * CM_PER_INCH  # Ref. [2]_ pg. 58
+    UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = 12.75  * CM_PER_INCH  # Ref. [2]_ pg. 55
+    LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = 13.06 * CM_PER_INCH   # Ref. [2]_ pg. 55
+    TRANSIENT_ROD_FULLY_INSERTED_POSITION          = -73.0250              # Ref. [2]_ pg. 58
+    FFCR_FULLY_INSERTED_POSITION                   = -76.5180              # Ref. [2]_ pg. 58
+    TRANSIENT_ROD_MAX_WITHDRAWAL_DISTANCE          = 15.0  * CM_PER_INCH   # Ref. [1]_ pg. 4-10
+    FFCR_MAX_WITHDRAWAL_DISTANCE                   = 15.0  * CM_PER_INCH   # Ref. [1]_ pg. 4-10
+    TRANSIENT_ROD_FULLY_WITHDRAWN_POSITION         = TRANSIENT_ROD_FULLY_INSERTED_POSITION + \
+                                                     TRANSIENT_ROD_MAX_WITHDRAWAL_DISTANCE
+    FFCR_FULLY_WITHDRAWN_POSITION                  = FFCR_FULLY_INSERTED_POSITION + \
+                                                     FFCR_MAX_WITHDRAWAL_DISTANCE
 
     @staticmethod
     def central_thimble() -> CentralThimble:
@@ -71,8 +69,9 @@ class DefaultGeometries:
         """
         upper_plate = DefaultGeometries.upper_grid_plate()
 
-        upper_grid_plate_distance  = DefaultGeometries.reactor().upper_grid_plate.distance_from_core_centerline
-        lower_grid_plate_distance  = DefaultGeometries.reactor().lower_grid_plate.distance_from_core_centerline
+        # Use published grid offsets directly to avoid recursive calls into reactor/core builders
+        upper_grid_plate_distance  = DefaultGeometries.UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
+        lower_grid_plate_distance  = DefaultGeometries.LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
         distance_from_lower_plate  = 1.1934  # Ref. [2]_ pg. 55
 
         length = (upper_grid_plate_distance + lower_grid_plate_distance -
@@ -464,11 +463,11 @@ class DefaultGeometries:
             ),
             upper_grid_plate = Reactor.GridPlate(
                 geometry = DefaultGeometries.upper_grid_plate(),
-                distance_from_core_centerline = 12.75 * CM_PER_INCH  # Ref. [2]_ pg. 55,
+                distance_from_core_centerline = DefaultGeometries.UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
             ),
             lower_grid_plate = Reactor.GridPlate(
                 geometry = DefaultGeometries.lower_grid_plate(),
-                distance_from_core_centerline = 13.06 * CM_PER_INCH  # Ref. [2]_ pg. 55
+                distance_from_core_centerline = DefaultGeometries.LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
             ),
             transient_rod = Reactor.TransientRod(
                 geometry = DefaultGeometries.transient_rod(),

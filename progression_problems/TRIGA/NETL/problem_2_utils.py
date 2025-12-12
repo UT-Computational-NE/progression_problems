@@ -1,4 +1,3 @@
-
 from typing import Dict, List, Optional
 
 import openmc
@@ -6,14 +5,16 @@ import mpactpy
 from coreforge.geometry_elements import HexLattice
 from coreforge.geometry_elements import CylindricalPinCell
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import CentralThimble, SourceHolder, TransientRod, FuelFollowerControlRod, Core
+from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder, TransientRod,
+                                                    FuelFollowerControlRod, Core)
 from coreforge.materials import Material
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
-from progression_problems import TRIGA
-from progression_problems.TRIGA import NETL
+from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGA_DefaultGeometries
+from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
+from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS, build_generic_openmc_tallies
 
 
 def build_coolant_pincell(coolant: openmc.Material) -> CylindricalPinCell:
@@ -29,7 +30,7 @@ def build_coolant_pincell(coolant: openmc.Material) -> CylindricalPinCell:
     CylindricalPinCell
         Coolant pincell shaped like the fuel geometry.
     """
-    filler = TRIGA.DefaultGeometries.fuel_element()
+    filler = TRIGA_DefaultGeometries.fuel_element()
     cladding = FuelElement.Cladding(thickness    = filler.cladding.thickness,
                                     outer_radius = filler.cladding.outer_radius,
                                     material     = Material(coolant))
@@ -133,10 +134,10 @@ def build_element_pincell_geometry(element: Optional[Core.Element],
     return pincell
 
 
-def build_multicell_geometry(fuel: FuelElement,
-                             coolant: openmc.Material,
-                             central_element: Optional[Core.Element],
-                            control_rod_inserted: bool
+def build_multicell_geometry(fuel:                 FuelElement,
+                             coolant:              openmc.Material,
+                             central_element:      Optional[Core.Element],
+                             control_rod_inserted: bool
     ) -> HexLattice:
     """ Build a multicell CoreForge geometry for a fuel design,
         central element, and coolant material.
@@ -173,7 +174,7 @@ def build_multicell_geometry(fuel: FuelElement,
 
     elements = [[build_element_pincell_geometry(e, coolant, control_rod_inserted)
                  for e in row] for row in lattice]
-    return HexLattice(pitch          = NETL.Core().pitch,
+    return HexLattice(pitch          = NETL_DefaultGeometries.core().pitch,
                       outer_material = Material(coolant),
                       elements       = elements,
                       orientation    = 'y')
@@ -207,8 +208,8 @@ def build_openmc_model(fuel: FuelElement,
         The constructed OpenMC model.
     """
 
-    lattice = build_multicell_geometry(fuel, coolant, central_element, control_rod_inserted)
-    lattice = openmc_builder.build(lattice)
+    lattice        = build_multicell_geometry(fuel, coolant, central_element, control_rod_inserted)
+    lattice        = openmc_builder.build(lattice)
     outer_surface = openmc.model.RectangularPrism(width         = lattice_dims["width"] * 8,
                                                   height        = lattice_dims["height"] * 6,
                                                   boundary_type = 'reflective')
@@ -224,8 +225,8 @@ def build_openmc_model(fuel: FuelElement,
     settings.particles = 10000
 
     universes = list(lattice.get_all_universes().keys())
-    tallies = NETL.build_generic_openmc_tallies(spectrum_group_structure, universes)
-    tallies = openmc.Tallies(list(tallies.values()))
+    tallies   = build_generic_openmc_tallies(spectrum_group_structure, universes)
+    tallies   = openmc.Tallies(list(tallies.values()))
 
     return openmc.model.Model(geometry=geometry, materials=materials, settings=settings, tallies=tallies)
 
@@ -237,9 +238,9 @@ def write_mpact_input(fuel: FuelElement,
                       fuel_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       element_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       filename: str = "mpact.inp",
-                      states: List[Dict[str, str]] = [NETL.DEFAULT_MPACT_SETTINGS["state"]],
-                      xsec_settings: Dict[str, str] = NETL.DEFAULT_MPACT_SETTINGS["xsec"],
-                      options: Dict[str, str] = NETL.DEFAULT_MPACT_SETTINGS["options"]) -> None:
+                      states: List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
+                      xsec_settings: Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
+                      options: Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"]) -> None:
     """Write the MPACT input for a given TRIGA fuel element, coolant, and central element.
 
     Parameters

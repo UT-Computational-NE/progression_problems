@@ -1,4 +1,3 @@
-
 from typing import Dict, List, Optional
 from math import sqrt
 
@@ -10,17 +9,17 @@ from coreforge.geometry_elements.triga import FuelElement
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
-from progression_problems.TRIGA import NETL
-from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS
+from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries
+from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS, build_generic_openmc_tallies
 
-pitch = NETL.Core().pitch
-lattice_dims = {"width"  : sqrt(pitch**2 - (pitch*0.5)**2) / 2.0,
-                "height" : pitch * 0.5}
+# Lattice dimensions derived from default NETL core pitch
+pitch = DefaultGeometries.core().pitch
+lattice_dims = {"width": sqrt(pitch**2 - (pitch * 0.5) ** 2) / 2.0, "height": pitch * 0.5}
 
 
-def build_openmc_model(fuel: FuelElement,
-                       coolant: openmc.Material,
-                       spectrum_group_structure: str = "MPACT-51"
+def build_openmc_model(fuel:                     FuelElement,
+                       coolant:                  openmc.Material,
+                       spectrum_group_structure: str = "MPACT-51",
 ) -> openmc.model.Model:
     """Build a pincell OpenMC model for a given TRIGA fuel element and coolant material.
 
@@ -50,25 +49,25 @@ def build_openmc_model(fuel: FuelElement,
 
     quadrant = {}
 
-    cell             = openmc.Cell(fill = pincell)
-    cell.translation = [lattice_dims["width"]*0.5,
-                        lattice_dims["height"]*0.5, 0.0]
-    quadrant["SW"]  = openmc.Universe(cells=[cell])
+    cell = openmc.Cell(fill=pincell)
+    cell.translation = [lattice_dims["width"] * 0.5,
+                        lattice_dims["height"] * 0.5, 0.0]
+    quadrant["SW"] = openmc.Universe(cells=[cell])
 
-    cell             = openmc.Cell(fill = pincell)
-    cell.translation = [-lattice_dims["width"]*0.5,
-                        -lattice_dims["height"]*0.5, 0.0]
-    quadrant["NE"]  = openmc.Universe(cells=[cell])
+    cell = openmc.Cell(fill=pincell)
+    cell.translation = [-lattice_dims["width"] * 0.5,
+                        -lattice_dims["height"] * 0.5, 0.0]
+    quadrant["NE"] = openmc.Universe(cells=[cell])
 
     lattice            = openmc.RectLattice()
-    lattice.lower_left = [-lattice_dims["width"], -lattice_dims["height"]*0.5]
+    lattice.lower_left = [-lattice_dims["width"], -lattice_dims["height"] * 0.5]
     lattice.pitch      = [lattice_dims["width"], lattice_dims["height"]]
-    lattice.universes  = [[quadrant['NE'], quadrant['SW']]]
+    lattice.universes  = [[quadrant["NE"], quadrant["SW"]]]
     lattice.outer      = openmc.Universe(cells=[openmc.Cell(fill=coolant)])
 
     outer_surface = openmc.model.RectangularPrism(width         = lattice_dims["width"] * 2,
                                                   height        = lattice_dims["height"],
-                                                  boundary_type = 'reflective')
+                                                  boundary_type = "reflective")
     lattice_cell = openmc.Cell(fill=lattice, region=-outer_surface)
 
     main_universe = openmc.Universe(cells=[lattice_cell])
@@ -80,20 +79,21 @@ def build_openmc_model(fuel: FuelElement,
     settings.inactive  = 20
     settings.particles = 10000
 
-    tallies = NETL.build_generic_openmc_tallies(spectrum_group_structure)
+    tallies = build_generic_openmc_tallies(spectrum_group_structure)
     tallies = openmc.Tallies(list(tallies.values()))
 
     return openmc.model.Model(geometry=geometry, materials=materials, settings=settings, tallies=tallies)
 
 
-def write_mpact_input(fuel: FuelElement,
-                      coolant: openmc.Material,
-                      xslib: str,
-                      build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
-                      filename: str = "mpact.inp",
-                      states: List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
-                      xsec_settings: Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
-                      options: Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"]) -> None:
+def write_mpact_input(fuel:                     FuelElement,
+                      coolant:                  openmc.Material,
+                      xslib:                    str,
+                      build_specs:              Optional[mpact_builder.CylindricalPinCell.Specs] = None,
+                      filename:                 str = "mpact.inp",
+                      states:                   List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
+                      xsec_settings:            Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
+                      options:                  Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"],
+) -> None:
     """Write the MPACT input for a given TRIGA fuel element.
 
     Parameters
@@ -124,13 +124,13 @@ def write_mpact_input(fuel: FuelElement,
                                                   gap_tolerance  = fuel.gap_tolerance,
                                                   name           = fuel.name + "_fuel_meat_pincell")
 
-    bounds = {"SW": mpact_builder.Bounds(X={'min': -lattice_dims["width"],  'max': 0.0},
-                                         Y={'min': -lattice_dims["height"], 'max': 0.0}),
-              "NE": mpact_builder.Bounds(X={'min':  0.0, 'max': lattice_dims["width"]},
-                                         Y={'min':  0.0, 'max': lattice_dims["height"]})}
+    bounds = {"SW": mpact_builder.Bounds(X={"min": -lattice_dims["width"], "max": 0.0},
+                                         Y={"min": -lattice_dims["height"], "max": 0.0}),
+              "NE": mpact_builder.Bounds(X={"min": 0.0, "max": lattice_dims["width"]},
+                                         Y={"min": 0.0, "max": lattice_dims["height"]})}
 
-    quadrant = {"SW": mpact_builder.build(pincell, build_specs, bounds['SW']).assemblies[0],
-                "NE": mpact_builder.build(pincell, build_specs, bounds['NE']).assemblies[0]}
+    quadrant = {"SW": mpact_builder.build(pincell, build_specs, bounds["SW"]).assemblies[0],
+                "NE": mpact_builder.build(pincell, build_specs, bounds["NE"]).assemblies[0]}
 
     geometry = mpactpy.Core([[quadrant["NE"], quadrant["SW"]]])
 
@@ -142,5 +142,5 @@ def write_mpact_input(fuel: FuelElement,
     options["rr_edits"] = options.get("rr_edits", "HDF5")
 
     mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
-    with open(filename, 'w') as file:
+    with open(filename, "w") as file:
         file.write(mpact_model.write_to_string("TRIGA", indent=4))

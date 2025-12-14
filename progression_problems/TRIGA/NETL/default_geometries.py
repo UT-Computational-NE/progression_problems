@@ -324,8 +324,8 @@ class DefaultGeometries:
         return Shroud(
             thickness          = 0.1875 * CM_PER_INCH,                       # Ref. [2]_ pg. 54 & 55
             height             = 23.13 * CM_PER_INCH,                        # Ref. [2]_ pg. 55
-            large_hex_inradius = 10.75 * CM_PER_INCH,                        # Ref. [2]_ pg. 54
-            small_hex_inradius = 10.21875 * CM_PER_INCH,                     # Ref. [2]_ pg. 55
+            outer_hex_inner_radius = 10.75 * CM_PER_INCH,                    # Ref. [2]_ pg. 54
+            inner_hex_inner_radius = 10.21875 * CM_PER_INCH,                 # Ref. [2]_ pg. 55
             material           = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 48
             name               = "shroud",
         )
@@ -397,39 +397,39 @@ class DefaultGeometries:
         def fill(locations, factory):
             return {loc: factory() for loc in locations}
 
-        core_loading = {}
-        core_loading |= fill(["B-01", "B-02", "B-03", "B-04", "B-05", "B-06"], fuel)
+        loading = {}
+        loading |= fill(["B-01", "B-02", "B-03", "B-04", "B-05", "B-06"], fuel)
 
-        core_loading |= fill([        "C-02", "C-03", "C-04", "C-05", "C-06",
-                                      "C-08", "C-09", "C-10", "C-11", "C-12"], fuel)
+        loading |= fill([        "C-02", "C-03", "C-04", "C-05", "C-06",
+                                 "C-08", "C-09", "C-10", "C-11", "C-12"], fuel)
 
-        core_loading |= fill(["D-01", "D-02",         "D-04", "D-05",
-                              "D-07", "D-08", "D-09", "D-10", "D-11", "D-12",
-                              "D-13",         "D-15", "D-16", "D-17", "D-18"], fuel)
-        core_loading["D-03"] = graphite()
+        loading |= fill(["D-01", "D-02",         "D-04", "D-05",
+                         "D-07", "D-08", "D-09", "D-10", "D-11", "D-12",
+                         "D-13",         "D-15", "D-16", "D-17", "D-18"], fuel)
+        loading["D-03"] = graphite()
 
-        core_loading |= fill(["E-01", "E-02", "E-03", "E-04", "E-05", "E-06",
-                              "E-07", "E-08", "E-09", "E-10",         "E-12",
-                              "E-13", "E-14", "E-15", "E-16", "E-17", "E-18",
-                              "E-19", "E-20", "E-21", "E-22", "E-23", "E-24"], fuel)
-        core_loading["E-11"] = empty()
+        loading |= fill(["E-01", "E-02", "E-03", "E-04", "E-05", "E-06",
+                         "E-07", "E-08", "E-09", "E-10",         "E-12",
+                         "E-13", "E-14", "E-15", "E-16", "E-17", "E-18",
+                         "E-19", "E-20", "E-21", "E-22", "E-23", "E-24"], fuel)
+        loading["E-11"] = empty()
 
-        core_loading |= fill(["F-01", "F-02", "F-03", "F-04", "F-05", "F-06",
-                              "F-07", "F-08", "F-09", "F-10", "F-11", "F-12",
-                                              "F-15", "F-16", "F-17", "F-18",
-                              "F-19", "F-20", "F-21", "F-22", "F-23", "F-24",
-                              "F-25", "F-26", "F-27", "F-28", "F-29", "F-30"], fuel)
-        core_loading["F-13"] = empty()
-        core_loading["F-14"] = empty()
+        loading |= fill(["F-01", "F-02", "F-03", "F-04", "F-05", "F-06",
+                         "F-07", "F-08", "F-09", "F-10", "F-11", "F-12",
+                                         "F-15", "F-16", "F-17", "F-18",
+                         "F-19", "F-20", "F-21", "F-22", "F-23", "F-24",
+                         "F-25", "F-26", "F-27", "F-28", "F-29", "F-30"], fuel)
+        loading["F-13"] = empty()
+        loading["F-14"] = empty()
 
-        core_loading |= fill([        "G-02", "G-03", "G-04", "G-05", "G-06",
-                                      "G-08", "G-09", "G-10", "G-11", "G-12",
-                                      "G-14", "G-15", "G-16", "G-17", "G-18",
-                                      "G-20", "G-21", "G-22", "G-23", "G-24",
-                                      "G-26", "G-27", "G-28", "G-29", "G-30",
-                                              "G-33", "G-35", "G-36"], fuel)
-        core_loading["G-32"] = source_holder()
-        core_loading["G-34"] = empty()
+        loading |= fill([        "G-02", "G-03", "G-04", "G-05", "G-06",
+                                 "G-08", "G-09", "G-10", "G-11", "G-12",
+                                 "G-14", "G-15", "G-16", "G-17", "G-18",
+                                 "G-20", "G-21", "G-22", "G-23", "G-24",
+                                 "G-26", "G-27", "G-28", "G-29", "G-30",
+                                         "G-33", "G-35", "G-36"], fuel)
+        loading["G-32"] = source_holder()
+        loading["G-34"] = empty()
 
         return Core(
             pitch           = 1.714 * CM_PER_INCH,          # Ref. [2]_ pg. 54
@@ -438,8 +438,9 @@ class DefaultGeometries:
             regulating_rod  = DefaultGeometries.fuel_follower_control_rod(),
             shim_1_rod      = DefaultGeometries.fuel_follower_control_rod(),
             shim_2_rod      = DefaultGeometries.fuel_follower_control_rod(),
+            loading         = loading,
+            fill_material   = DefaultGeometries.pool().material,
             name            = "core",
-            core_loading    = core_loading,
         )
 
     @staticmethod
@@ -469,22 +470,10 @@ class DefaultGeometries:
                 geometry = DefaultGeometries.lower_grid_plate(),
                 distance_from_core_centerline = DefaultGeometries.LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
             ),
-            transient_rod = Reactor.TransientRod(
-                geometry = DefaultGeometries.transient_rod(),
-                bottom_z = DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION,
-            ),
-            regulating_rod = Reactor.FuelFollowerControlRod(
-                geometry = DefaultGeometries.fuel_follower_control_rod(),
-                bottom_z = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            ),
-            shim_1_rod = Reactor.FuelFollowerControlRod(
-                geometry = DefaultGeometries.fuel_follower_control_rod(),
-                bottom_z = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            ),
-            shim_2_rod = Reactor.FuelFollowerControlRod(
-                geometry = DefaultGeometries.fuel_follower_control_rod(),
-                bottom_z = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            ),
+            transient_rod_position = DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION,
+            regulating_rod_position = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            shim_1_rod_position = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            shim_2_rod_position = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
             # Beam port 1/5 specifications from Ref. [2]_ pages 48, 56, 59
             beam_port_1_5 = Reactor.BeamPort(
                 geometry    = DefaultGeometries.beam_port(),

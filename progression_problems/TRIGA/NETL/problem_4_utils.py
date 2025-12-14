@@ -16,10 +16,10 @@ from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies, 
 
 
 reactor                                        = NETL_DefaultGeometries.reactor()
-UPPER_GRID_PLATE                               = reactor.upper_grid_plate.geometry
-UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = reactor.upper_grid_plate.distance_from_core_centerline
-LOWER_GRID_PLATE                               = reactor.lower_grid_plate.geometry
-LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = reactor.lower_grid_plate.distance_from_core_centerline
+UPPER_GRID_PLATE                               = reactor.upper_grid_plate
+UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = UPPER_GRID_PLATE.distance_from_core_centerline
+LOWER_GRID_PLATE                               = reactor.lower_grid_plate
+LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = LOWER_GRID_PLATE.distance_from_core_centerline
 POOL_HEIGHT                                    = NETL_DefaultGeometries.pool().height
 
 
@@ -165,11 +165,10 @@ def build_openmc_model(fuel:                        FuelElement,
                 element_bottom_axial_position = -0.5 * element.length
             elif isinstance(element, SourceHolder):
                 element_bottom_axial_position = UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE + \
-                                                UPPER_GRID_PLATE.thickness - element.length
-            universe = openmc_builder.triga.netl.reactor.build_element_cell_universe(
+                                                UPPER_GRID_PLATE.geometry.thickness - element.length
+            universe = openmc_builder.triga.netl.reactor.build_core_element(
                 element, element_bottom_axial_position, outer_material,
-                UPPER_GRID_PLATE, UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE,
-                LOWER_GRID_PLATE, LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
+                UPPER_GRID_PLATE, LOWER_GRID_PLATE
             )
             ring_universes.append(universe)
         universes.append(ring_universes)
@@ -208,7 +207,7 @@ def build_openmc_model(fuel:                        FuelElement,
     mesh.upper_right = (upper[0], upper[1], mesh_zmax)
     mesh.dimension   = (1, 1, 10)
 
-    universe_ids = [universe.id for ring in universes for universe in ring]
+    universe_ids = [universe.id for ring in openmc_lattice.universes for universe in ring]
 
     tallies      = build_generic_openmc_tallies(spectrum_group_structure, universe_ids, mesh)
     tallies      = openmc.Tallies(list(tallies.values()))

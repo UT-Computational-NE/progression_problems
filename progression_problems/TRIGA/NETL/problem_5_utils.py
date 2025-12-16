@@ -41,7 +41,6 @@ def build_openmc_model(reactor: Reactor,
     mesh_zmax    =  0.5 * fuel_element.interior_length
     lower, upper = geometry.bounding_box
 
-    print(lower, upper)
     mesh             = openmc.RegularMesh()
     mesh.lower_left  = (lower[0], lower[1], mesh_zmin)
     mesh.upper_right = (upper[0], upper[1], mesh_zmax)

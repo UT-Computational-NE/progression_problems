@@ -322,12 +322,12 @@ class DefaultGeometries:
             Default NETL TRIGA shroud.
         """
         return Shroud(
-            thickness          = 0.1875 * CM_PER_INCH,                       # Ref. [2]_ pg. 54 & 55
-            height             = 23.13 * CM_PER_INCH,                        # Ref. [2]_ pg. 55
-            outer_hex_inner_radius = 10.75 * CM_PER_INCH,                    # Ref. [2]_ pg. 54
-            inner_hex_inner_radius = 10.21875 * CM_PER_INCH,                 # Ref. [2]_ pg. 55
-            material           = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 48
-            name               = "shroud",
+            thickness                = 0.1875 * CM_PER_INCH,                      # Ref. [2]_ pg. 54 & 55
+            height                   = 23.13 * CM_PER_INCH,                       # Ref. [2]_ pg. 55
+            primary_hex_inner_radius = 10.21875 * CM_PER_INCH,                    # Ref. [2]_ pg. 55
+            rotated_hex_inner_radius = 10.75 * CM_PER_INCH,                       # Ref. [2]_ pg. 54
+            material                 = Material(NETLDefaultMaterials.aluminum()), # Ref. [2]_ pg. 48
+            name                     = "shroud",
         )
 
     @staticmethod

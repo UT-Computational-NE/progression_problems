@@ -30,8 +30,9 @@ also provides a conduit for thermocouple lead wires.
 Three distinct end fixture designs have been fabricated—referred to as original, integral, and streamlined—as illustrated in
 :numref:`figure-fuel-elements`. For the sake of simplicity, these end fittings are typically approximated using a conical geometry.
 As such, an conical equivalent estimate is provided for this specification assuming a cone with a base-radius equal to the cladding
-outer-radius. General geometric specifications relevant to the TRIGA progression problems are summarized in :numref:`table-fuel-element`,
-and the axial configuration of the fuel element is depicted in :numref:`figure-fuel-element-axial_profile`.
+outer-radius and a cone slope squared of ``r2 = 0.25``, with the remaining length of the end-fixture treated as a solid cylinder.
+General geometric specifications relevant to the TRIGA progression problems are summarized in :numref:`table-fuel-element`, and the
+axial configuration of the fuel element is depicted in :numref:`figure-fuel-element-axial_profile`.
 
 .. _figure-fuel-elements:
 
@@ -90,6 +91,8 @@ and the axial configuration of the fuel element is depicted in :numref:`figure-f
    |               | Lower Fitting Equivalent Cone  | 7.6209           | Ref. 2_, pg 55-56  |
    |               | Approximation Length (cm)      |                  |                    |
    |               +--------------------------------+------------------+--------------------+
+   |               | Cone Slope Squared (r2)        | 0.25 (unitless)  | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
    |               | Material                       | Stainless-Steel  | Ref. 1_, Table 4.1 |
    +---------------+--------------------------------+------------------+--------------------+
 
@@ -137,6 +140,8 @@ General geometric specifications relevant to the TRIGA progression problems are 
    |               +--------------------------------+-----------------------------------------+----------------------------+
    |               | Lower Fitting Equivalent Cone  | Fuel Element Lower End Fitting          | Ref. 1_ Section 4.2.3.b    |
    |               | Approximation Length           | Cone Approximation Length               |                            |
+   |               +--------------------------------+-----------------------------------------+----------------------------+
+   |               | Cone Slope Squared (r2)        | 0.25 (unitless)                         | Ref. 2_, pg. 55            |
    |               +--------------------------------+-----------------------------------------+----------------------------+
    |               | Material                       | Aluminum                                | Ref. 2_, pg. 50            |
    +---------------+--------------------------------+-----------------------------------------+----------------------------+

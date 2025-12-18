@@ -370,8 +370,8 @@ General geometric specifications relevant to the NETL TRIGA progression problems
    |               | Control Rod Penetration   | 1.505              | Ref. 2_, Sec. 4.2.4.a|
    |               | Diameter (in.)            |                    |                      |
    |               +---------------------------+--------------------+----------------------+
-   |               | Distance from Core        | 12.75              | Ref. 3_, pg. 55      |
-   |               | Axial Centerline (in.)    |                    |                      |
+   |               | Top to Core Axial         | 12.75              | Ref. 3_, pg. 55      |
+   |               | Centerline Distance (in.) |                    |                      |
    |               +---------------------------+--------------------+----------------------+
    |               | Material                  | Aluminum           | Ref. 3_, pg. 50      |
    +---------------+---------------------------+--------------------+----------------------+
@@ -383,8 +383,8 @@ General geometric specifications relevant to the NETL TRIGA progression problems
    |               | Control Rod Penetration   | 1.505              | Ref. 2_, Sec. 4.2.4.b|
    |               | Diameter (in.)            |                    |                      |
    |               +---------------------------+--------------------+----------------------+
-   |               | Distance from Core        | 13.06              | Ref. 3_, pg. 55      |
-   |               | Axial Centerline (in.)    |                    |                      |
+   |               | Top to Core Axial         | 13.06              | Ref. 3_, pg. 55      |
+   |               | Centerline Distance (in.) |                    |                      |
    |               +---------------------------+--------------------+----------------------+
    |               | Material                  | Aluminum           | Ref. 3_, pg. 50      |
    +---------------+---------------------------+--------------------+----------------------+
@@ -485,7 +485,7 @@ provides a neutron beam with a harder spectrum due to direct line-of-sight to th
 
 General geometric specifications relevant to the NETL TRIGA progression problems are summarized in
 :numref:`table-beam-ports`.  Translations and rotations of the beam ports are provided with respect to the core
-orientation shown in :numref:`figure-core-diagram`, with alignment with the Y-axis denoting no rotation.
+orientation shown in :numref:`figure-core-diagram`, with alignment with the X-axis denoting no rotation.
 Translations and rotations are provided in the manner consistent with MCNP transformations, with rotations being
 applied first and translations second.
 
@@ -506,42 +506,29 @@ applied first and translations second.
    |               +-----------------------+--------------------+-------------------------+
    |               | Fill Material         | Air                | Ref. 3_, pg. 48         |
    +---------------+-----------------------+--------------------+-------------------------+
-   | Beam Port 1   | Rotation Matrix       | None               | Ref. 3_, pg. 48, 56     |
-   |               | (degrees)             |                    |                         |
+   | Beam Port 1   | Rotation              | 90.0               | Ref. 2_, pg. 4-24       |
+   |               | (degrees)             |                    | Ref. 3_, pg. 48, 56     |
    |               +-----------------------+--------------------+-------------------------+
-   |               | Radial Translation    | (35.2425, 0.0)     | Ref. 3_, pg. 48, 56     |
-   |               | Vector (cm)           |                    |                         |
+   |               | Center of Tube Length | (35.2425, 0.0)     | Ref. 3_, pg. 48, 56, 59 |
+   |               | X-Y Coordinates (cm)  |                    |                         |
    +---------------+-----------------------+--------------------+-------------------------+
-   | Beam Port 2   | Rotation Matrix       | 150  60  90        | Ref. 3_, pg. 48, 56, 59 |
-   |               | (degrees)             | 120 150  90        |                         |
-   |               |                       | 90  90   0         |                         |
+   | Beam Port 2   | Rotation              |  150.0             | Ref. 2_, pg. 4-24       |
+   |               | (degrees)             |                    | Ref. 3_, pg. 48, 56     |
    |               +-----------------------+--------------------+-------------------------+
-   |               | Radial Translation    | (6.222, 35.255)    | Ref. 3_, pg. 48, 56, 59 |
-   |               | Vector (cm)           |                    |                         |
-   |               +-----------------------+--------------------+-------------------------+
-   |               | Termination X-Plane   | x0 = -12.621       | Ref. 3_, pg. 48, 56, 59 |
-   |               +-----------------------+--------------------+-------------------------+
-   |               | Termination X-Plane   | 20 125  90         | Ref. 3_, pg. 48, 56, 59 |
-   |               | Rotation Matrix       | 100  20  90        |                         |
-   |               | (degrees)             | 90  90   0         |                         |
+   |               | Center of Tip         | (6.222, 35.255)    | Ref. 3_, pg. 48, 56, 59 |
+   |               | X-Y Coordinates (cm)  |                    |                         |
    +---------------+-----------------------+--------------------+-------------------------+
-   | Beam Port 3   | Rotation Matrix       | 90 180  90         | Ref. 3_, pg. 48, 56     |
-   |               | (degrees)             | 0  90  90          |                         |
-   |               |                       | 90  90   0         |                         |
+   | Beam Port 3   | Rotation              |  0.0               | Ref. 2_, pg. 4-24       |
+   |               | (degrees)             |                    | Ref. 3_, pg. 48, 56     |
    |               +-----------------------+--------------------+-------------------------+
-   |               | Radial Translation    | None               | Ref. 3_, pg. 48, 56     |
-   |               | Vector (cm)           |                    |                         |
-   |               +-----------------------+--------------------+-------------------------+
-   |               | Terminates at         | Shroud Outer Wall  | Ref. 3_, pg. 48, 56, 59 |
+   |               | Center of Tip         | (-26.43188, 0.0)   | Ref. 3_, pg. 48, 56, 59 |
+   |               | X-Y Coordinates (cm)  |                    |                         |
    +---------------+-----------------------+--------------------+-------------------------+
-   | Beam Port 4   | Rotation Matrix       | 75  60  90         | Ref. 3_, pg. 48, 56, 59 |
-   |               | (degrees)             | 120  75  90        |                         |
-   |               |                       | 90  90   0         |                         |
+   | Beam Port 4   | Rotation              |  60.0              | Ref. 2_, pg. 4-24       |
+   |               | (degrees)             |                    | Ref. 3_, pg. 48, 56     |
    |               +-----------------------+--------------------+-------------------------+
-   |               | Radial Translation    | (-13.216, 22.871)  | Ref. 3_, pg. 48, 56, 59 |
-   |               | Vector (cm)           |                    |                         |
-   |               +-----------------------+--------------------+-------------------------+
-   |               | Terminates at         | Shroud Outer Wall  | Ref. 3_, pg. 48, 56, 59 |
+   |               | Center of Tip         | (-13.216,-22.871)  | Ref. 3_, pg. 48, 56, 59 |
+   |               | X-Y Coordinates (cm)  |                    |                         |
    +---------------+-----------------------+--------------------+-------------------------+
 
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from math import cos, radians, sin
+
 from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder, FuelFollowerControlRod,
                                                     TransientRod, GridPlate, BeamPort, Pool, RSRCavity,
                                                     Reflector, Shroud, Core, Reactor)
@@ -9,6 +11,8 @@ from progression_problems.TRIGA.default_materials import DefaultMaterials as TRI
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.constants import CM_PER_INCH
 
+sind = lambda d: sin(radians(d))
+cosd = lambda d: cos(radians(d))
 
 class DefaultGeometries:
     """ Dataclass containing default geometries for NETL reactor models
@@ -22,16 +26,16 @@ class DefaultGeometries:
            (NETL-FF-BP1/5-128-cca).", Nov. 2022. https://doi.org/10.2172/1898256
     """
 
-    UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = 12.75  * CM_PER_INCH  # Ref. [2]_ pg. 55
-    LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = 13.06 * CM_PER_INCH   # Ref. [2]_ pg. 55
-    TRANSIENT_ROD_FULLY_INSERTED_POSITION          = -73.0250              # Ref. [2]_ pg. 58
-    FFCR_FULLY_INSERTED_POSITION                   = -76.5180              # Ref. [2]_ pg. 58
-    TRANSIENT_ROD_MAX_WITHDRAWAL_DISTANCE          = 15.0  * CM_PER_INCH   # Ref. [1]_ pg. 4-10
-    FFCR_MAX_WITHDRAWAL_DISTANCE                   = 15.0  * CM_PER_INCH   # Ref. [1]_ pg. 4-10
-    TRANSIENT_ROD_FULLY_WITHDRAWN_POSITION         = TRANSIENT_ROD_FULLY_INSERTED_POSITION + \
-                                                     TRANSIENT_ROD_MAX_WITHDRAWAL_DISTANCE
-    FFCR_FULLY_WITHDRAWN_POSITION                  = FFCR_FULLY_INSERTED_POSITION + \
-                                                     FFCR_MAX_WITHDRAWAL_DISTANCE
+    UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE = 12.75  * CM_PER_INCH  # Ref. [2]_ pg. 55
+    LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE = 13.06 * CM_PER_INCH   # Ref. [2]_ pg. 55
+    TRANSIENT_ROD_FULLY_INSERTED_POSITION            = -73.0250              # Ref. [2]_ pg. 58
+    FFCR_FULLY_INSERTED_POSITION                     = -76.5180              # Ref. [2]_ pg. 58
+    TRANSIENT_ROD_MAX_WITHDRAWAL_DISTANCE            = 15.0  * CM_PER_INCH   # Ref. [1]_ pg. 4-10
+    FFCR_MAX_WITHDRAWAL_DISTANCE                     = 15.0  * CM_PER_INCH   # Ref. [1]_ pg. 4-10
+    TRANSIENT_ROD_FULLY_WITHDRAWN_POSITION           = TRANSIENT_ROD_FULLY_INSERTED_POSITION + \
+                                                       TRANSIENT_ROD_MAX_WITHDRAWAL_DISTANCE
+    FFCR_FULLY_WITHDRAWN_POSITION                    = FFCR_FULLY_INSERTED_POSITION + \
+                                                       FFCR_MAX_WITHDRAWAL_DISTANCE
 
     @staticmethod
     def central_thimble() -> CentralThimble:
@@ -67,15 +71,12 @@ class DefaultGeometries:
         SourceHolder
             Default NETL TRIGA source holder.
         """
-        upper_plate = DefaultGeometries.upper_grid_plate()
 
-        # Use published grid offsets directly to avoid recursive calls into reactor/core builders
-        upper_grid_plate_distance  = DefaultGeometries.UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
-        lower_grid_plate_distance  = DefaultGeometries.LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
+        upper_grid_plate_distance  = DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+        lower_grid_plate_distance  = DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
         distance_from_lower_plate  = 1.1934  # Ref. [2]_ pg. 55
 
-        length = (upper_grid_plate_distance + lower_grid_plate_distance -
-                  distance_from_lower_plate + upper_plate.thickness)
+        length = (upper_grid_plate_distance + lower_grid_plate_distance - distance_from_lower_plate)
 
         # Set such that the cavity center is at core centerline Ref. [2]_ pg. 55
         axial_offset = -distance_from_lower_plate
@@ -323,7 +324,6 @@ class DefaultGeometries:
         """
         return Shroud(
             thickness                = 0.1875 * CM_PER_INCH,                      # Ref. [2]_ pg. 54 & 55
-            height                   = 23.13 * CM_PER_INCH,                       # Ref. [2]_ pg. 55
             primary_hex_inner_radius = 10.21875 * CM_PER_INCH,                    # Ref. [2]_ pg. 55
             rotated_hex_inner_radius = 10.75 * CM_PER_INCH,                       # Ref. [2]_ pg. 54
             material                 = Material(NETLDefaultMaterials.aluminum()), # Ref. [2]_ pg. 48
@@ -374,7 +374,7 @@ class DefaultGeometries:
         return BeamPort(
             length        = DefaultGeometries.pool().radius * 2.0,
             inner_radius  = 6.065 * 0.5 * CM_PER_INCH,                  # Ref. [2]_ Figures 4 & 5
-            outer_radius  = 6.625 * CM_PER_INCH,                        # Ref. [2]_ Figures 4 & 5
+            outer_radius  = 6.625 * 0.5 * CM_PER_INCH,                  # Ref. [2]_ Figures 4 & 5
             tube_material = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 48
             fill_material = Material(NETLDefaultMaterials.air()),       # Ref. [2]_ pg. 48
             name = "beam_port",
@@ -452,55 +452,53 @@ class DefaultGeometries:
         Reactor
             Default NETL TRIGA reactor geometry.
         """
+
+        bp_length       = DefaultGeometries.beam_port().length
+        bp_axial_offset = -6.985
+
         return Reactor(
+            name                        = "reactor",
             pool                        = DefaultGeometries.pool(),
             shroud                      = DefaultGeometries.shroud(),
             rotary_specimen_rack_cavity = DefaultGeometries.rsr_cavity(),
             core                        = DefaultGeometries.core(),
-            name                        = "reactor",
-            reflector = Reactor.Reflector(
-                geometry = DefaultGeometries.reflector(),
-                core_centerline_offset = 0.565 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            ),
+            transient_rod_position      = DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION,
+            regulating_rod_position     = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            shim_1_rod_position         = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            shim_2_rod_position         = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+
+            # Beam port specifications from Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59
+            beam_port_1_5               = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+                                                           rotation    = 90.0,
+                                                           translation = (35.2425,
+                                                                          0.0,
+                                                                          bp_axial_offset)),
+            beam_port_2                 = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+                                                           rotation    = 150.0,
+                                                           translation = ( 6.222 + cosd(150.0)*bp_length*0.5,
+                                                                          35.255 + sind(150.0)*bp_length*0.5,
+                                                                          bp_axial_offset)),
+            beam_port_3                 = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+                                                           rotation    = 0.0,
+                                                           translation = (-bp_length*0.5 - 26.43188,
+                                                                          0.0,
+                                                                          bp_axial_offset)),
+            beam_port_4                 = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+                                                           rotation    = 60.0,
+                                                           translation = (-13.216 - cosd(60.0)*bp_length*0.5,
+                                                                          -22.871 - sind(60.0)*bp_length*0.5,
+                                                                          bp_axial_offset)),
+
+            reflector = Reactor.Reflector(geometry = DefaultGeometries.reflector(),
+                                          core_centerline_offset = 0.565 * CM_PER_INCH),  # Ref. [2]_ pg. 55
+
             upper_grid_plate = Reactor.GridPlate(
                 geometry = DefaultGeometries.upper_grid_plate(),
-                distance_from_core_centerline = DefaultGeometries.UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
+                top_to_core_centerline_distance = DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
             ),
+
             lower_grid_plate = Reactor.GridPlate(
                 geometry = DefaultGeometries.lower_grid_plate(),
-                distance_from_core_centerline = DefaultGeometries.LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE
-            ),
-            transient_rod_position = DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION,
-            regulating_rod_position = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            shim_1_rod_position = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            shim_2_rod_position = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            # Beam port 1/5 specifications from Ref. [2]_ pages 48, 56, 59
-            beam_port_1_5 = Reactor.BeamPort(
-                geometry    = DefaultGeometries.beam_port(),
-                translation = (35.2425, 0.0, -6.985),
-            ),
-            # Beam port 2 specifications from Ref. [2]_ pages 48, 56, 59
-            beam_port_2 = Reactor.BeamPort(
-                geometry    = DefaultGeometries.beam_port(),
-                rotation    = ((150.0,  60.0, 90.0),
-                               (120.0, 150.0, 90.0),
-                               ( 90.0,  90.0,  0.0)),
-                translation = (-18.399365255524088, 77.9004555727542, -6.985),
-            ),
-            # Beam port 3 specifications from Ref. [2]_ pages 48, 56, 59
-            beam_port_3 = Reactor.BeamPort(
-                geometry    = DefaultGeometries.beam_port(),
-                rotation    = (( 90.0, 180.0, 90.0),
-                               (  0.0,  90.0, 90.0),
-                               ( 90.0,  90.0,  0.0)),
-                translation = (-116.43188, 0.0, -6.985),
-            ),
-            # Beam port 4 specifications from Ref. [2]_ pages 48, 56, 59
-            beam_port_4 = Reactor.BeamPort(
-                geometry    = DefaultGeometries.beam_port(),
-                rotation    = (( 75.0,  60.0, 90.0),
-                               (120.0,  75.0, 90.0),
-                               ( 90.0,  90.0,  0.0)),
-                translation = (-69.63559769456143, -6.33393280074954, -6.985),
+                top_to_core_centerline_distance = DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
             ),
         )

@@ -17,9 +17,9 @@ from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies, 
 
 reactor                                        = NETL_DefaultGeometries.reactor()
 UPPER_GRID_PLATE                               = reactor.upper_grid_plate
-UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = UPPER_GRID_PLATE.distance_from_core_centerline
+UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = UPPER_GRID_PLATE.top_to_core_centerline_distance
 LOWER_GRID_PLATE                               = reactor.lower_grid_plate
-LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = LOWER_GRID_PLATE.distance_from_core_centerline
+LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = LOWER_GRID_PLATE.top_to_core_centerline_distance
 POOL_HEIGHT                                    = NETL_DefaultGeometries.pool().height
 
 
@@ -51,6 +51,7 @@ def build_coolant_element(coolant: openmc.Material) -> FuelElement:
                                     material = Material(coolant))
 
     upper_end_fitting = FuelElement.EndFitting(length    = filler.upper_end_fitting.length,
+                                               r2        = filler.upper_end_fitting.r2,
                                                direction = filler.upper_end_fitting.direction,
                                                material  = Material(coolant))
 
@@ -67,6 +68,7 @@ def build_coolant_element(coolant: openmc.Material) -> FuelElement:
                                                              material  = Material(coolant))
 
     lower_end_fitting = FuelElement.EndFitting(length    = filler.lower_end_fitting.length,
+                                               r2        = filler.lower_end_fitting.r2,
                                                direction = filler.lower_end_fitting.direction,
                                                material  = Material(coolant))
 

@@ -36,6 +36,7 @@ class DefaultGeometries:
 
         upper_end_fitting = FuelElement.EndFitting(
             length    = 7.3552,                                         # Ref. [2]_ pg. 55 (cone approx.)
+            r2        = 0.25,                                           # Ref. [2]_ pg. 55 (slope^2)
             direction = 'up',
             material  = Material(DefaultMaterials.stainless_steel())    # Ref. [2]_ pg. 51
         )
@@ -76,6 +77,7 @@ class DefaultGeometries:
 
         lower_end_fitting = FuelElement.EndFitting(
             length    = 7.6209,                                         # Ref. [2]_ pg. 55-56 (cone approx.)
+            r2        = 0.25,                                           # Ref. [2]_ pg. 55 (slope^2)
             direction = 'down',
             material  = Material(DefaultMaterials.stainless_steel())    # Ref. [2]_ pg. 51
         )
@@ -118,12 +120,14 @@ class DefaultGeometries:
 
         upper_end_fitting = GraphiteElement.EndFitting(
             length    =  fuel_element.upper_end_fitting.length,          # Ref. [1]_ Section 4.2.3.b
+            r2        =  0.25,                                           # Ref. [2]_ pg. 55 (slope^2)
             direction = 'up',
             material  = Material(DefaultMaterials.aluminum()),           # Ref. [2]_ pg. 50
         )
 
         lower_end_fitting = GraphiteElement.EndFitting(
             length    =  fuel_element.lower_end_fitting.length,          # Ref. [1]_ Section 4.2.3.b
+            r2        =  0.25,                                           # Ref. [2]_ pg. 55 (slope^2)
             direction = 'down',
             material  = Material(DefaultMaterials.aluminum()),           # Ref. [2]_ pg. 50
         )

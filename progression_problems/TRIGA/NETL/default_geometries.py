@@ -5,6 +5,7 @@ from math import cos, radians, sin
 from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder, FuelFollowerControlRod,
                                                     TransientRod, GridPlate, BeamPort, Pool, RSRCavity,
                                                     Reflector, Shroud, Core, Reactor)
+from coreforge.geometry_elements.triga.netl.grid_plate import grid_plate_penetration_map
 from coreforge.materials import Material
 from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGADefaultGeometries
 from progression_problems.TRIGA.default_materials import DefaultMaterials as TRIGADefaultMaterials
@@ -72,11 +73,11 @@ class DefaultGeometries:
             Default NETL TRIGA source holder.
         """
 
-        upper_grid_plate_distance  = DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
-        lower_grid_plate_distance  = DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+        upper_grid_top  = DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+        lower_grid_top  = DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
         distance_from_lower_plate  = 1.1934  # Ref. [2]_ pg. 55
 
-        length = (upper_grid_plate_distance + lower_grid_plate_distance - distance_from_lower_plate)
+        length = (upper_grid_top + lower_grid_top - distance_from_lower_plate)
 
         # Set such that the cavity center is at core centerline Ref. [2]_ pg. 55
         axial_offset = -distance_from_lower_plate
@@ -257,13 +258,15 @@ class DefaultGeometries:
         GridPlate
             Default NETL TRIGA upper grid plate.
         """
-        return GridPlate(
-            thickness                     = 0.62 * CM_PER_INCH,                         # Ref. [2]_ pg. 55
-            fuel_penetration_radius       = 1.505 * 0.5 * CM_PER_INCH,                  # Ref. [1]_ Section 4.2.4.a
-            control_rod_penetration_radius= 1.505 * 0.5 * CM_PER_INCH,                  # Ref. [1]_ Section 4.2.4.a
-            material                      = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 50
-            name                          = "upper_grid_plate",
-        )
+        fuel_radius    = 1.505 * 0.5 * CM_PER_INCH   # Ref. [1]_ Section 4.2.4.a
+        control_radius = 1.505 * 0.5 * CM_PER_INCH   # Ref. [1]_ Section 4.2.4.a
+        penetration_map = grid_plate_penetration_map(fuel_radius,
+                                                     control_radius,
+                                                     DefaultGeometries.central_thimble().cladding.outer_radius)
+        return GridPlate(penetration_map = penetration_map,
+                         thickness       = 0.62 * CM_PER_INCH,                         # Ref. [2]_ pg. 55
+                         material        = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 50
+                         name            = "upper_grid_plate")
 
     @staticmethod
     def lower_grid_plate() -> GridPlate:
@@ -273,13 +276,17 @@ class DefaultGeometries:
         GridPlate
             Default NETL TRIGA lower grid plate.
         """
-        return GridPlate(
-            thickness                     = 1.25 * CM_PER_INCH,                         # Ref. [2]_ pg. 55
-            fuel_penetration_radius       = 1.25  * 0.5 * CM_PER_INCH,                  # Ref. [1]_ Section 4.2.4.b
-            control_rod_penetration_radius= 1.505 * 0.5 * CM_PER_INCH,                  # Ref. [1]_ Section 4.2.4.b
-            material                      = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 50
-            name                          = "lower_grid_plate",
-        )
+
+        fuel_radius    = 1.25 * 0.5 * CM_PER_INCH   # Ref. [1]_ Section 4.2.4.b
+        control_radius = 1.505 * 0.5 * CM_PER_INCH   # Ref. [1]_ Section 4.2.4.b
+        penetration_map = grid_plate_penetration_map(fuel_radius,
+                                                     control_radius,
+                                                     DefaultGeometries.central_thimble().cladding.outer_radius)
+        return GridPlate(penetration_map = penetration_map,
+                         thickness       = 1.25 * CM_PER_INCH,                         # Ref. [2]_ pg. 55
+                         material        = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 50
+                         name            = "lower_grid_plate")
+
 
     @staticmethod
     def pool() -> Pool:

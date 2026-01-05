@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional
 
+from CoreForge.coreforge.geometry_elements.triga.netl.reactor import Reactor
 import openmc
 import mpactpy
 from coreforge.geometry_elements import HexLattice
@@ -15,74 +16,8 @@ from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
 from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies, DEFAULT_MPACT_SETTINGS
 
 
-reactor                                        = NETL_DefaultGeometries.reactor()
-UPPER_GRID_PLATE                               = reactor.upper_grid_plate
-UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = UPPER_GRID_PLATE.top_to_core_centerline_distance
-LOWER_GRID_PLATE                               = reactor.lower_grid_plate
-LOWER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE = LOWER_GRID_PLATE.top_to_core_centerline_distance
-POOL_HEIGHT                                    = NETL_DefaultGeometries.pool().height
-
-
-def build_coolant_element(coolant: openmc.Material) -> FuelElement:
-    """Build a coolant-only core element using fuel element dimensions.
-
-    Parameters
-    ----------
-    coolant : openmc.Material
-        Coolant material to fill all regions.
-
-    Returns
-    -------
-    FuelElement
-        Coolant core element shaped like the fuel geometry.
-    """
-    filler = TRIGA_DefaultGeometries.fuel_element()
-
-    cladding = FuelElement.Cladding(thickness    = filler.cladding.thickness,
-                                    outer_radius = filler.cladding.outer_radius,
-                                    material     = Material(coolant))
-
-    fuel_meat = FuelElement.FuelMeat(inner_radius = filler.fuel_meat.inner_radius,
-                                     outer_radius = filler.fuel_meat.outer_radius,
-                                     length       = filler.fuel_meat.length,
-                                     material     = Material(coolant))
-
-    zr_fill = FuelElement.ZrFillRod(radius   = filler.zr_fill_rod.radius,
-                                    material = Material(coolant))
-
-    upper_end_fitting = FuelElement.EndFitting(length    = filler.upper_end_fitting.length,
-                                               r2        = filler.upper_end_fitting.r2,
-                                               direction = filler.upper_end_fitting.direction,
-                                               material  = Material(coolant))
-
-    upper_graphite_reflector = FuelElement.GraphiteReflector(radius    = filler.upper_graphite_reflector.radius,
-                                                             thickness = filler.upper_graphite_reflector.thickness,
-                                                             material  = Material(coolant))
-
-    moly_disc = FuelElement.MolyDisc(radius    = filler.moly_disc.radius,
-                                     thickness = filler.moly_disc.thickness,
-                                     material  = Material(coolant))
-
-    lower_graphite_reflector = FuelElement.GraphiteReflector(radius    = filler.lower_graphite_reflector.radius,
-                                                             thickness = filler.lower_graphite_reflector.thickness,
-                                                             material  = Material(coolant))
-
-    lower_end_fitting = FuelElement.EndFitting(length    = filler.lower_end_fitting.length,
-                                               r2        = filler.lower_end_fitting.r2,
-                                               direction = filler.lower_end_fitting.direction,
-                                               material  = Material(coolant))
-
-    return FuelElement(cladding                 = cladding,
-                       upper_end_fitting        = upper_end_fitting,
-                       upper_air_gap            = filler.upper_air_gap,
-                       upper_graphite_reflector = upper_graphite_reflector,
-                       zr_fill_rod              = zr_fill,
-                       fuel_meat                = fuel_meat,
-                       moly_disc                = moly_disc,
-                       lower_graphite_reflector = lower_graphite_reflector,
-                       lower_end_fitting        = lower_end_fitting,
-                       fill_gas                 = Material(coolant),
-                       outer_material           = Material(coolant))
+reactor          = NETL_DefaultGeometries.reactor()
+POOL_HEIGHT      = NETL_DefaultGeometries.pool().height
 
 
 def build_multicell_geometry(fuel:            FuelElement,
@@ -108,7 +43,7 @@ def build_multicell_geometry(fuel:            FuelElement,
     """
 
     f = fuel
-    c = central_element or build_coolant_element(coolant)
+    c = central_element
     elements = [[         f,         ],
                 [     f,      f,     ],
                 [ f,      f,      f, ],
@@ -120,17 +55,77 @@ def build_multicell_geometry(fuel:            FuelElement,
                 [         f,         ]]
 
     return HexLattice(
-        pitch=NETL_DefaultGeometries.core().pitch,
-        outer_material=Material(coolant),
-        elements=elements,
-        orientation="y",
-    )
+        pitch          = NETL_DefaultGeometries.core().pitch,
+        outer_material = Material(coolant),
+        elements       = elements,
+        orientation    = "y")
+
+
+def core_location(element: Core.Element) -> str:
+    """Get the core location string for a given core element.
+
+    Parameters
+    ----------
+    element : Core.Element
+        The core element to get the location for.
+
+    Returns
+    -------
+    str
+        The core location string.
+    """
+
+    if isinstance(element, CentralThimble):
+        return "A-01"
+    elif isinstance(element, Core.ControlRod):
+        return "C-01"
+    else:
+        return "B-01"
+
+
+def element_bottom_axial_position(element: Core.Element,
+                                  control_rod_bottom_position: float,
+                                  upper_grid_plate: Reactor.GridPlate) -> float:
+    """Get the bottom axial position for a core element.
+
+    Parameters
+    ----------
+    element : Core.Element
+        The core element to get the bottom axial position for.
+    control_rod_bottom_position : float
+        The bottom axial position of control rods [cm].
+    upper_grid_plate : Core.GridPlate
+        The upper grid plate to use for calculating axial positions.
+
+    Returns
+    -------
+    float
+        The bottom axial position of the element [cm].
+    """
+
+    bottom_axial_position = control_rod_bottom_position
+    if isinstance(element, CentralThimble):
+        bottom_axial_position = -0.5 * element.length
+    elif isinstance(element, FuelElement):
+        bottom_axial_position = (-0.5 * element.fuel_meat.length -
+                element.moly_disc.thickness -
+                element.lower_end_fitting.length -
+                element.lower_graphite_reflector.thickness)
+    elif isinstance(element, GraphiteElement):
+        bottom_axial_position = (-0.5 * element.graphite_meat.length -
+                element.lower_end_fitting.length)
+    elif isinstance(element, SourceHolder):
+        bottom_axial_position = (upper_grid_plate.top_to_core_centerline_distance -
+                element.length)
+    return bottom_axial_position
 
 
 def build_openmc_model(fuel:                        FuelElement,
                        coolant:                     openmc.Material,
                        central_element:             Optional[Core.Element],
                        control_rod_bottom_position: float = 0.0,
+                       upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
+                       lower_grid_plate:            Reactor.GridPlate = reactor.lower_grid_plate,
                        spectrum_group_structure:    str = "MPACT-51"
 ) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
@@ -145,6 +140,10 @@ def build_openmc_model(fuel:                        FuelElement,
         The central element to include in the multicell geometry.
     control_rod_bottom_position : float
         Axial position for the bottom of a control rod [cm].
+    upper_grid_plate : Core.GridPlate
+        The upper grid plate to use in the model.
+    lower_grid_plate : Core.GridPlate
+        The lower grid plate to use in the model.
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
 
@@ -162,15 +161,17 @@ def build_openmc_model(fuel:                        FuelElement,
     for ring in lattice.elements:
         ring_universes = []
         for element in ring:
-            element_bottom_axial_position = control_rod_bottom_position
-            if isinstance(element, (FuelElement, GraphiteElement, CentralThimble)):
-                element_bottom_axial_position = -0.5 * element.length
-            elif isinstance(element, SourceHolder):
-                element_bottom_axial_position = UPPER_GRID_PLATE_DISTANCE_FROM_CORE_CENTERLINE + \
-                                                UPPER_GRID_PLATE.geometry.thickness - element.length
             universe = openmc_builder.triga.netl.reactor.build_core_element(
-                element, element_bottom_axial_position, outer_material,
-                UPPER_GRID_PLATE, LOWER_GRID_PLATE
+                element,
+                core_location=core_location(element),
+                element_bottom_axial_position=element_bottom_axial_position(
+                    element,
+                    control_rod_bottom_position,
+                    upper_grid_plate
+                ),
+                outer_material=outer_material,
+                upper_grid_plate=upper_grid_plate,
+                lower_grid_plate=lower_grid_plate,
             )
             ring_universes.append(universe)
         universes.append(ring_universes)
@@ -221,6 +222,8 @@ def write_mpact_input(fuel:                        FuelElement,
                       coolant:                     openmc.Material,
                       central_element:             Optional[Core.Element],
                       control_rod_bottom_position: float = 0.0,
+                      upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
+                      lower_grid_plate:            Reactor.GridPlate = reactor.lower_grid_plate,
                       fuel_build_specs:            Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       element_build_specs:         Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       filename:                    str = "mpact.inp",
@@ -239,6 +242,10 @@ def write_mpact_input(fuel:                        FuelElement,
         The central element to use for building the multicell geometry.
     control_rod_bottom_position : float
         Axial position for the bottom of a control rod [cm].
+    upper_grid_plate : Core.GridPlate
+        The upper grid plate to use in the model.
+    lower_grid_plate : Core.GridPlate
+        The lower grid plate to use in the model.
     fuel_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
         The mpact_builder specifications to use when building the fuel pincell geometry.
     element_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]

@@ -153,27 +153,20 @@ Problem 3: 2D Full Core
 
 This problem introduces a full-core 2D representation of the NETL TRIGA reactor which increases
 radial geometric complexity and introduces non-reflective boundary conditions.  This problem has
-two primary variations, one with essentially no-excore features and one with excore features included.
-The geometry for this problem is illustrated in :numref:`figure-triga-netl-problem_3`. The non-excore
-model uses a circular boundary terminating at the shroud inner radius, while the excore model includes the
-excore features such as shroud, beam ports, and reflector.  Axially, both models are assumed to
-have reflective boundary conditions, with the excore model representing the beam ports as their full
-widths (i.e. beam port radius at the Centerline plane of the beam ports).
+three primary variations: a non-excore model, an excore model with the rotary specimen rack (RSR)
+included, and an excore model with beam ports included.  The geometry for this problem is illustrated
+in :numref:`figure-triga-netl-problem_3`. The non-excore model is bounded by a circular region with a
+radius equal to seven times the core lattice pitch, while the excore models include the shroud,
+reflector, pool, and either the RSR cavity or the beam ports.  Axially, all models are assumed to have
+reflective boundary conditions, with the beam port model representing beam ports at their full
+widths (i.e. beam port radius at the centerline plane of the beam ports).
 
 For this problem, the core will be filled with fresh fuel rods in all core locations with the exceptions of
 the reserved locations specified in :ref:`reserved-core-locations` table which are filled with those elements
 specified in the table, as well as G-32 which will be filled with a source holder, E-11, F-13, F-14, and G-34
 which will be empty "water holes", and D-03 which will have a graphite element.  The geometry for this problem
-is illustrated in :numref:`figure-triga-netl-problem_3`.
-
-Flux measurements and detector responses are to be simulated in the excore model. Experimental flux locations
-for beam ports 2 thru for are to be along the centerline of the beam ports 1 inch from the tip of the beam port.
-For beam port 1 / 5, the experimental flux location is to be at the point where the centerline of the beam port
-intersects the centerline of the core.  For the central thimble, the experimental flux location is to be at the
-center of the thimble.  To represent an excore detector, reaction rates for B-10 absorption and U-235 fission
-shall be tallied within a circular region of 1-inch radius, centered 1 inch outside the reflector along the core
-centerline in the southern direction :numref:`table-problem-3-definitions` provides the remaining specifications
-for the cases to be simulated for this problem.
+is illustrated in :numref:`figure-triga-netl-problem_3`.  :numref:`table-problem-3-definitions` provides the
+remaining specifications for the cases to be simulated for this problem.
 
 Recommended outputs for this problem include:
   - k-effective
@@ -197,19 +190,25 @@ Recommended outputs for this problem include:
    | Problem | Excore   | TCR      | FFCR     | Fuel / Zr Filler | Clad / Coolant  | Coolant        |
    |         | Features?| Section  | Section  | Temperature (K)  | Temperature (K) | Density (g/cc) |
    +=========+==========+==========+==========+==================+=================+================+
-   | 3A      |  No      | Air      | Fuel     |  293.15          |  293.15         |  0.9970        |
+   | 3A      |  None    | Air      | Fuel     |  293.15          |  293.15         |  0.9970        |
    |         |          | Follower | Follower |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3B      |  No      | Air      | Fuel     |  600.0           |  322.15         |  0.9885        |
+   | 3B      |  None    | Air      | Fuel     |  600.0           |  322.15         |  0.9885        |
    |         |          | Follower | Follower |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3C      |  No      | Air      | Fuel     |  600.0           |  293.15         |  0.9970        |
+   | 3C      |  None    | Air      | Fuel     |  600.0           |  293.15         |  0.9970        |
    |         |          | Follower | Follower |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3D      |  Yes     | Air      | Fuel     |    ↓             |    ↓            |    ↓           |
+   | 3D      |  RSR     | Air      | Fuel     |    ↓             |    ↓            |    ↓           |
    |         |          | Follower | Follower |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3E      |  Yes     | Absorber | Absorber |    ↓             |    ↓            |    ↓           |
+   | 3E      |  RSR     | Absorber | Absorber |    ↓             |    ↓            |    ↓           |
+   +---------+----------+----------+----------+------------------+-----------------+----------------+
+   | 3F      |  Beam    | Air      | Fuel     |    ↓             |    ↓            |    ↓           |
+   |         |  Ports   | Follower | Follower |                  |                 |                |
+   +---------+----------+----------+----------+------------------+-----------------+----------------+
+   | 3G      |  Beam    | Absorber | Absorber |    ↓             |    ↓            |    ↓           |
+   |         |  Ports   |          |          |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
 
 
@@ -275,7 +274,8 @@ Problem 5: 3D Full Core
 This progression problem is a 3D extension of Problem 3 with all ex-core features, introducing
 all axial heterogeneities of the full core (cylindrical beam ports, core element axial structures,
 rotary specimen rack, etc.) as well as both axial and radial vacuum boundary conditions.  The
-geometry for this problem is illustrated in :numref:`figure-triga-netl-problem_5`.
+radial profiles of this geometry are the same as those illustrated in :numref:`figure-triga-netl-problem_3`
+while a Y-Z axial profile slicing through the center of the core is illustrated in :numref:`figure-triga-netl-problem_5`.
 
 :numref:`table-problem-5-definitions` provides the specifications for the various cases
 to be simulated for this problem.  Axially, these models should include upper and lower axial

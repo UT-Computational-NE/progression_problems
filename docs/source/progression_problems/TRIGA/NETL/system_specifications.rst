@@ -335,10 +335,10 @@ General geometric specifications relevant to the NETL TRIGA progression problems
    |               +----------------------+--------------------+----------------------+
    |               | Height (in.)         | 23.13              | Ref. 3_, pg. 55      |
    |               +----------------------+--------------------+----------------------+
-   |               | Large Hexagon        | 10.75              | Ref. 3_, pg. 54      |
+   |               | Small Hexagon        | 10.21875           | Ref. 3_, pg. 55      |
    |               | Inradius (in.)       |                    |                      |
    |               +----------------------+--------------------+----------------------+
-   |               | Small Hexagon        | 10.21875           | Ref. 3_, pg. 55      |
+   |               | Large Hexagon        | 10.75              | Ref. 3_, pg. 54      |
    |               | Inradius (in.)       |                    |                      |
    |               +----------------------+--------------------+----------------------+
    |               | Material             | Aluminum           | Ref. 3_, pg. 48      |

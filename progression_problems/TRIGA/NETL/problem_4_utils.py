@@ -1,12 +1,11 @@
 from typing import Dict, List, Optional
 
-from CoreForge.coreforge.geometry_elements.triga.netl.reactor import Reactor
 import openmc
 import mpactpy
 from coreforge.geometry_elements import HexLattice
 from coreforge.materials import Material
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import Core, CentralThimble, SourceHolder
+from coreforge.geometry_elements.triga.netl import Core, CentralThimble, SourceHolder, Reactor
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 

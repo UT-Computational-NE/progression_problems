@@ -4,7 +4,7 @@ import pytest
 import progression_problems.TRIGA as TRIGA
 import progression_problems.TRIGA.NETL as NETL
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
-from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, problem_4_utils
+from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, problem_3_utils, problem_4_utils, problem_5_utils
 
 
 @pytest.fixture
@@ -83,6 +83,25 @@ def test_problem_2_mpact_tools(fuel_element, graphite_element, central_thimble,
         os.remove("mpact.inp")
 
 
+def test_problem_3_openmc_tools(coolant):
+    reactor = NETL.DefaultGeometries.reactor()
+
+    control_cases = [problem_3_utils.ControlRodSpecs(),
+                     problem_3_utils.ControlRodSpecs(transient_rod_inserted=True,
+                                                     shim_1_rod_inserted=True,
+                                                     shim_2_rod_inserted=True,
+                                                     regulating_rod_inserted=True)]
+
+    excore_cases = ["none", "rsr", "beamports"]
+
+    for excore in excore_cases:
+        for specs in control_cases:
+            model = problem_3_utils.build_openmc_model(reactor,
+                                                       coolant,
+                                                       control_rod_specs = specs,
+                                                       excore_features   = excore)
+            assert model is not None
+
 def test_problem_4_openmc_tools(fuel_element, graphite_element, central_thimble,
                                 transient_rod, fuel_follower_control_rod,
                                 coolant):
@@ -108,3 +127,9 @@ def test_problem_4_openmc_tools(fuel_element, graphite_element, central_thimble,
                                                    element,
                                                    control_rod_position)
         assert model is not None
+
+
+def test_problem_5_openmc_tools():
+    reactor = NETL.DefaultGeometries.reactor()
+    model = problem_5_utils.build_openmc_model(reactor)
+    assert model is not None

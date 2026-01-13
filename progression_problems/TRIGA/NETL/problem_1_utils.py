@@ -124,10 +124,12 @@ def write_mpact_input(fuel:                     FuelElement,
                                                   gap_tolerance  = fuel.gap_tolerance,
                                                   name           = fuel.name + "_fuel_meat_pincell")
 
-    bounds = {"SW": mpact_builder.Bounds(X={"min": -lattice_dims["width"], "max": 0.0},
-                                         Y={"min": -lattice_dims["height"], "max": 0.0}),
-              "NE": mpact_builder.Bounds(X={"min": 0.0, "max": lattice_dims["width"]},
-                                         Y={"min": 0.0, "max": lattice_dims["height"]})}
+    bounds = {"SW": mpact_builder.Bounds(
+                  X=mpact_builder.AxisBounds(min=-lattice_dims["width"], max=0.0),
+                  Y=mpact_builder.AxisBounds(min=-lattice_dims["height"], max=0.0)),
+              "NE": mpact_builder.Bounds(
+                  X=mpact_builder.AxisBounds(min=0.0, max=lattice_dims["width"]),
+                  Y=mpact_builder.AxisBounds(min=0.0, max=lattice_dims["height"]))}
 
     quadrant = {"SW": mpact_builder.build(pincell, build_specs, bounds["SW"]).assemblies[0],
                 "NE": mpact_builder.build(pincell, build_specs, bounds["NE"]).assemblies[0]}

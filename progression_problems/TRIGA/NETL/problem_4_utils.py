@@ -161,16 +161,16 @@ def build_openmc_model(fuel:                        FuelElement,
         ring_universes = []
         for element in ring:
             universe = openmc_builder.triga.netl.reactor.build_core_element(
-                element,
                 core_location=core_location(element),
+                upper_grid_plate=upper_grid_plate,
+                lower_grid_plate=lower_grid_plate,
+                element=element,
                 element_bottom_axial_position=element_bottom_axial_position(
                     element,
                     control_rod_bottom_position,
                     upper_grid_plate
                 ),
                 outer_material=outer_material,
-                upper_grid_plate=upper_grid_plate,
-                lower_grid_plate=lower_grid_plate,
             )
             ring_universes.append(universe)
         universes.append(ring_universes)
@@ -223,8 +223,9 @@ def write_mpact_input(fuel:                        FuelElement,
                       control_rod_bottom_position: float = 0.0,
                       upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
                       lower_grid_plate:            Reactor.GridPlate = reactor.lower_grid_plate,
-                      fuel_build_specs:            Optional[mpact_builder.CylindricalPinCell.Specs] = None,
-                      element_build_specs:         Optional[mpact_builder.CylindricalPinCell.Specs] = None,
+                      fuel_build_specs:            Optional[mpact_builder.triga.FuelElement.Specs] = None,
+                      element_build_specs:         Optional[mpact_builder.BuilderSpecs] = None,
+                      outer_region_specs:          Optional[mpact_builder.Stack.Segment.Specs] = None,
                       filename:                    str = "mpact.inp",
                       states:                      List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
                       xsec_settings:               Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
@@ -245,10 +246,13 @@ def write_mpact_input(fuel:                        FuelElement,
         The upper grid plate to use in the model.
     lower_grid_plate : Core.GridPlate
         The lower grid plate to use in the model.
-    fuel_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
-        The mpact_builder specifications to use when building the fuel pincell geometry.
-    element_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
-        The mpact_builder specifications to use when building the central element pincell geometry.
+    fuel_build_specs : Optional[mpact_builder.triga.FuelElement.Specs]
+        The mpact_builder specifications to use when building the fuel elements.
+    element_build_specs : Optional[mpact_builder.BuilderSpecs]
+        The mpact_builder specifications to use when building the central element, if provided.
+    outer_region_specs : Optional[mpact_builder.Stack.Segment.Specs]
+        The mpact_builder specifications to use when building the outer axial regions
+        (coolant above/below the elements).
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
     states : List[Dict[str, str]]
@@ -259,4 +263,55 @@ def write_mpact_input(fuel:                        FuelElement,
         The options settings to use in the MPACT input.
     """
 
-    pass
+    lattice = build_multicell_geometry(fuel, coolant, central_element)
+
+    stack_elements = []
+    element_specs = {}
+    axial_bounds = (-0.5 * POOL_HEIGHT, 0.5 * POOL_HEIGHT)
+
+    for ring in lattice.elements:
+        ring_stacks = []
+        for element in ring:
+            build_specs = fuel_build_specs if isinstance(element, FuelElement) else None
+            if element is not None and element is central_element and element_build_specs is not None:
+                build_specs = element_build_specs
+
+            bottom_position = None
+            if element is not None:
+                bottom_position = element_bottom_axial_position(element,
+                                                                control_rod_bottom_position,
+                                                                upper_grid_plate)
+
+            stack, stack_specs = mpact_builder.triga.netl.reactor.build_core_element(
+                core_location                = core_location(element),
+                upper_grid_plate             = upper_grid_plate,
+                lower_grid_plate             = lower_grid_plate,
+                element                      = element,
+                element_bottom_axial_position= bottom_position,
+                axial_bounds                 = axial_bounds,
+                outer_material               = lattice.outer_material,
+                element_specs                = build_specs,
+                outer_region_specs           = outer_region_specs,
+            )
+
+            ring_stacks.append(stack)
+            element_specs[stack] = stack_specs
+        stack_elements.append(ring_stacks)
+
+    stack_lattice = HexLattice(pitch          = lattice.pitch,
+                               outer_material = lattice.outer_material,
+                               elements       = stack_elements,
+                               orientation    = lattice.orientation,
+                               map_type       = "ring")
+    specs = mpact_builder.HexLattice.Specs(element_specs=element_specs)
+
+    core = mpact_builder.build(stack_lattice, specs)
+    core_map = [list(row[1:-2]) for row in core.assembly_map[3:-4]]
+    geometry = mpactpy.Core(core_map)
+
+    for state in states:
+        state["tinlet"] = state.get("tinlet", f"{coolant.temperature}")
+
+    mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
+    with open(filename, "w") as file:
+        file.write(mpact_model.write_to_string("TRIGA", indent=4))

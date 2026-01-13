@@ -129,6 +129,34 @@ def test_problem_4_openmc_tools(fuel_element, graphite_element, central_thimble,
         assert model is not None
 
 
+def test_problem_4_mpact_tools(fuel_element, graphite_element, central_thimble,
+                               transient_rod, fuel_follower_control_rod,
+                               coolant):
+
+    cases = [(None,                      False),
+             (graphite_element,          False),
+             (central_thimble,           False),
+             (transient_rod,             False),
+             (transient_rod,             True),
+             (fuel_follower_control_rod, False),
+             (fuel_follower_control_rod, True)]
+
+    for element, inserted in cases:
+        control_rod_position = 0.0
+        if element is transient_rod:
+            control_rod_position = NETL.DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION if inserted else \
+                                   NETL.DefaultGeometries.TRANSIENT_ROD_FULLY_WITHDRAWN_POSITION
+        elif element is fuel_follower_control_rod:
+            control_rod_position = NETL.DefaultGeometries.FFCR_FULLY_INSERTED_POSITION if inserted else \
+                                   NETL.DefaultGeometries.FFCR_FULLY_WITHDRAWN_POSITION
+        problem_4_utils.write_mpact_input(fuel_element,
+                                          coolant,
+                                          element,
+                                          control_rod_position)
+        assert os.path.exists("mpact.inp")
+        os.remove("mpact.inp")
+
+
 def test_problem_5_openmc_tools():
     reactor = NETL.DefaultGeometries.reactor()
     model = problem_5_utils.build_openmc_model(reactor)

@@ -224,8 +224,8 @@ def write_mpact_input(fuel:                        FuelElement,
                       upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
                       lower_grid_plate:            Reactor.GridPlate = reactor.lower_grid_plate,
                       fuel_build_specs:            Optional[mpact_builder.triga.FuelElement.Specs] = None,
-                      element_build_specs:         Optional[mpact_builder.BuilderSpecs] = None,
-                      outer_region_specs:          Optional[mpact_builder.Stack.Segment.Specs] = None,
+                      element_build_specs:         Optional[mpact_builder.triga.netl.Reactor.CoreElementSpecs] = None,
+                      outer_region_specs:          Optional[mpact_builder.triga.CoreElement.SegmentSpecs] = None,
                       filename:                    str = "mpact.inp",
                       states:                      List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
                       xsec_settings:               Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
@@ -248,9 +248,9 @@ def write_mpact_input(fuel:                        FuelElement,
         The lower grid plate to use in the model.
     fuel_build_specs : Optional[mpact_builder.triga.FuelElement.Specs]
         The mpact_builder specifications to use when building the fuel elements.
-    element_build_specs : Optional[mpact_builder.BuilderSpecs]
+    element_build_specs : Optional[mpact_builder.triga.netl.CoreElementSpecs]
         The mpact_builder specifications to use when building the central element, if provided.
-    outer_region_specs : Optional[mpact_builder.Stack.Segment.Specs]
+    outer_region_specs : Optional[mpact_builder.triga.CoreElement.SegmentSpecs]
         The mpact_builder specifications to use when building the outer axial regions
         (coolant above/below the elements).
     filename : str
@@ -282,17 +282,19 @@ def write_mpact_input(fuel:                        FuelElement,
                                                                 control_rod_bottom_position,
                                                                 upper_grid_plate)
 
+            core_cell_specs = mpact_builder.triga.netl.Reactor.CoreCellSpecs(
+                element_specs=build_specs,
+                outer_region_specs=outer_region_specs,
+                axial_bounds=axial_bounds)
+
             stack, stack_specs = mpact_builder.triga.netl.reactor.build_core_element(
-                core_location                = core_location(element),
-                upper_grid_plate             = upper_grid_plate,
-                lower_grid_plate             = lower_grid_plate,
-                element                      = element,
-                element_bottom_axial_position= bottom_position,
-                axial_bounds                 = axial_bounds,
-                outer_material               = lattice.outer_material,
-                element_specs                = build_specs,
-                outer_region_specs           = outer_region_specs,
-            )
+                core_location                 = core_location(element),
+                upper_grid_plate              = upper_grid_plate,
+                lower_grid_plate              = lower_grid_plate,
+                element                       = element,
+                element_bottom_axial_position = bottom_position,
+                outer_material                = lattice.outer_material,
+                core_cell_specs               = core_cell_specs)
 
             ring_stacks.append(stack)
             element_specs[stack] = stack_specs

@@ -161,3 +161,10 @@ def test_problem_5_openmc_tools():
     reactor = NETL.DefaultGeometries.reactor()
     model = problem_5_utils.build_openmc_model(reactor)
     assert model is not None
+
+
+def test_problem_5_mpact_tools(num_procs):
+    reactor = NETL.DefaultGeometries.reactor()
+    problem_5_utils.write_mpact_input(reactor, num_procs=num_procs)
+    assert os.path.exists("mpact.inp")
+    os.remove("mpact.inp")

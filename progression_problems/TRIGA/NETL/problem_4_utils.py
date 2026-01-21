@@ -9,10 +9,11 @@ from coreforge.geometry_elements.triga.netl import Core, CentralThimble, SourceH
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
-from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGA_DefaultGeometries
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
-from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies, DEFAULT_MPACT_SETTINGS
+from progression_problems.TRIGA.NETL.utils import (build_generic_openmc_tallies,
+                                                   DEFAULT_MPACT_SETTINGS,
+                                                   default_mpact_material_specs)
 
 
 reactor          = NETL_DefaultGeometries.reactor()
@@ -76,10 +77,9 @@ def core_location(element: Core.Element) -> str:
 
     if isinstance(element, CentralThimble):
         return "A-01"
-    elif isinstance(element, Core.ControlRod):
+    if isinstance(element, Core.ControlRod):
         return "C-01"
-    else:
-        return "B-01"
+    return "B-01"
 
 
 def element_bottom_axial_position(element: Core.Element,
@@ -297,6 +297,8 @@ def write_mpact_input(fuel:                        FuelElement,
                 core_cell_specs               = core_cell_specs)
 
             ring_stacks.append(stack)
+            materials = element.get_materials() if element is not None else []
+            stack_specs.apply_material_specs(stack, default_mpact_material_specs(materials))
             element_specs[stack] = stack_specs
         stack_elements.append(ring_stacks)
 

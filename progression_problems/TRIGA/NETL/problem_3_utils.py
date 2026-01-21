@@ -1,19 +1,16 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Tuple
 from dataclasses import dataclass
 from math import cos, radians, sin
 
 import openmc
-import mpactpy
 from coreforge.materials import Material
 from coreforge.geometry_elements import HexLattice
 from coreforge.geometry_elements.triga.netl import Reactor, RSRCavity
 from coreforge.shapes import Hexagon
 from coreforge import openmc_builder
-from coreforge import mpact_builder
 
-from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGA_DefaultGeometries
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
-from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies, DEFAULT_MPACT_SETTINGS
+from progression_problems.TRIGA.NETL.utils import build_generic_openmc_tallies
 from progression_problems.TRIGA.NETL.problem_2_utils import build_element_pincell_geometry
 
 
@@ -394,9 +391,9 @@ def build_openmc_model(reactor:                  Reactor,
 
     if excore_features == "none":
         root_universe = build_no_excore(reactor, core_lattice)
-    if excore_features == "beamports":
+    elif excore_features == "beamports":
         root_universe = build_beamport_excore(reactor, core_lattice)
-    if excore_features == "rsr":
+    else:
         root_universe = build_rsr_excore(reactor, core_lattice)
     geometry      = openmc.Geometry(root_universe)
     materials     = openmc.Materials(list(geometry.get_all_materials().values()))

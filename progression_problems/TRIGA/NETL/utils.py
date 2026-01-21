@@ -1,5 +1,10 @@
 from typing import Dict, List
 
+import mpactpy
+
+from coreforge import materials
+from coreforge.materials.material import Material
+from coreforge.mpact_builder.builder_specs import MaterialSpecs, DEFAULT_MPACT_MATERIAL_SPECS
 import openmc
 
 from progression_problems.constants import THERMAL_ENERGY_CUTOFF
@@ -84,3 +89,38 @@ DEFAULT_MPACT_SETTINGS: Dict[str, Dict[str, str]] = {
                  'axial_tl'   : 'T ISO LFLAT',
                  'parallel'   : '1 1 1 1'}
 }
+
+
+DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, MaterialSpecs] = {
+    "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH],
+    "zirc_filler":          DEFAULT_MPACT_MATERIAL_SPECS[materials.Zr],
+    "stainless_steel":      DEFAULT_MPACT_MATERIAL_SPECS[materials.SS304],
+    "graphite":             DEFAULT_MPACT_MATERIAL_SPECS[materials.Graphite],
+    "aluminum":             DEFAULT_MPACT_MATERIAL_SPECS[materials.Al6061T6],
+    "air":                  DEFAULT_MPACT_MATERIAL_SPECS[materials.Air],
+    "molybdenum":           DEFAULT_MPACT_MATERIAL_SPECS[materials.Mo],
+    "water":                DEFAULT_MPACT_MATERIAL_SPECS[materials.Water],
+    "control_rod_absorber": DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
+    "cadmium":              mpactpy.Material.MPACTSpecs({}, False, False, False, False),
+    }
+
+def default_mpact_material_specs(materials: List[Material]) -> MaterialSpecs:
+    """Get the default MPACT material specifications for a list of materials.
+
+    Parameters
+    ----------
+    materials : List[Material]
+        A list of materials for which to get the default MPACT specifications.
+
+    Returns
+    -------
+    MaterialSpecs
+        A dictionary mapping each material to its default MPACT specifications.
+    """
+
+    specs: MaterialSpecs = {}
+    for material in materials:
+        material_name = material.name.lower()
+        if material_name in DEFAULT_MPACT_MATERIAL_SPECS_MAPPING:
+            specs[material] = DEFAULT_MPACT_MATERIAL_SPECS_MAPPING[material_name]
+    return specs

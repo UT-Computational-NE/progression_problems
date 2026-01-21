@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from math import cos, radians, sin
 
+from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
 from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder, FuelFollowerControlRod,
                                                     TransientRod, GridPlate, BeamPort, Pool, RSRCavity,
                                                     Reflector, Shroud, Core, Reactor)
@@ -12,8 +13,12 @@ from progression_problems.TRIGA.default_materials import DefaultMaterials as TRI
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.constants import CM_PER_INCH
 
-sind = lambda d: sin(radians(d))
-cosd = lambda d: cos(radians(d))
+def sind(degrees: float) -> float:
+    return sin(radians(degrees))
+
+
+def cosd(degrees: float) -> float:
+    return cos(radians(degrees))
 
 class DefaultGeometries:
     """ Dataclass containing default geometries for NETL reactor models
@@ -77,7 +82,7 @@ class DefaultGeometries:
         lower_grid_top  = DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
         distance_from_lower_plate  = 1.1934  # Ref. [2]_ pg. 55
 
-        length = (upper_grid_top + lower_grid_top - distance_from_lower_plate)
+        length = upper_grid_top + lower_grid_top - distance_from_lower_plate
 
         # Set such that the cavity center is at core centerline Ref. [2]_ pg. 55
         axial_offset = -distance_from_lower_plate
@@ -396,10 +401,14 @@ class DefaultGeometries:
         Core
             Default NETL TRIGA core geometry.
         """
-        fuel          = lambda: TRIGADefaultGeometries.fuel_element()
-        graphite      = lambda: TRIGADefaultGeometries.graphite_element()
-        source_holder = lambda: DefaultGeometries.source_holder()
-        empty         = lambda: None
+        def fuel() -> FuelElement:
+            return TRIGADefaultGeometries.fuel_element()
+
+        def graphite() -> GraphiteElement:
+            return TRIGADefaultGeometries.graphite_element()
+
+        def source_holder() -> SourceHolder:
+            return DefaultGeometries.source_holder()
 
         def fill(locations, factory):
             return {loc: factory() for loc in locations}
@@ -419,15 +428,15 @@ class DefaultGeometries:
                          "E-07", "E-08", "E-09", "E-10",         "E-12",
                          "E-13", "E-14", "E-15", "E-16", "E-17", "E-18",
                          "E-19", "E-20", "E-21", "E-22", "E-23", "E-24"], fuel)
-        loading["E-11"] = empty()
+        loading["E-11"] = None
 
         loading |= fill(["F-01", "F-02", "F-03", "F-04", "F-05", "F-06",
                          "F-07", "F-08", "F-09", "F-10", "F-11", "F-12",
                                          "F-15", "F-16", "F-17", "F-18",
                          "F-19", "F-20", "F-21", "F-22", "F-23", "F-24",
                          "F-25", "F-26", "F-27", "F-28", "F-29", "F-30"], fuel)
-        loading["F-13"] = empty()
-        loading["F-14"] = empty()
+        loading["F-13"] = None
+        loading["F-14"] = None
 
         loading |= fill([        "G-02", "G-03", "G-04", "G-05", "G-06",
                                  "G-08", "G-09", "G-10", "G-11", "G-12",
@@ -436,7 +445,7 @@ class DefaultGeometries:
                                  "G-26", "G-27", "G-28", "G-29", "G-30",
                                          "G-33", "G-35", "G-36"], fuel)
         loading["G-32"] = source_holder()
-        loading["G-34"] = empty()
+        loading["G-34"] = None
 
         return Core(
             pitch           = 1.714 * CM_PER_INCH,          # Ref. [2]_ pg. 54

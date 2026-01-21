@@ -43,7 +43,7 @@ class DefaultMaterials:
         """
         assert temperature >= 0.0, "Temperature must be positive in Kelvin."
 
-        material = openmc.Material(name='Fresh_Fuel')
+        material = openmc.Material(name='Fuel')
         material.temperature = temperature
         material.set_density(density_units, density)
         material.add_nuclide('H1',   0.014355 , percent_type='wo')

@@ -4,13 +4,14 @@ from math import sqrt
 import openmc
 import mpactpy
 from coreforge.materials import Material
-from coreforge.geometry_elements import CylindricalPinCell
 from coreforge.geometry_elements.triga import FuelElement
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries
-from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS, build_generic_openmc_tallies
+from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS,
+                                                  build_generic_openmc_tallies,
+                                                  default_mpact_material_specs)
 
 # Lattice dimensions derived from default NETL core pitch
 pitch = DefaultGeometries.core().pitch
@@ -124,6 +125,8 @@ def write_mpact_input(fuel:                     FuelElement,
                                                   gap_tolerance  = fuel.gap_tolerance,
                                                   name           = fuel.name + "_fuel_meat_pincell")
 
+    build_specs = apply_default_mpact_material_specs(build_specs, fuel.get_materials())
+
     bounds = {"SW": mpact_builder.Bounds(
                   X=mpact_builder.AxisBounds(min=-lattice_dims["width"], max=0.0),
                   Y=mpact_builder.AxisBounds(min=-lattice_dims["height"], max=0.0)),
@@ -146,3 +149,28 @@ def write_mpact_input(fuel:                     FuelElement,
     mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
     with open(filename, "w") as file:
         file.write(mpact_model.write_to_string("TRIGA", indent=4))
+
+
+def apply_default_mpact_material_specs(
+    build_specs: Optional[mpact_builder.CylindricalPinCell.Specs],
+    materials: List[Material],
+) -> mpact_builder.CylindricalPinCell.Specs:
+    """Return build specs with default material specs applied.
+
+    Parameters
+    ----------
+    build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
+        Build specs to update or create if None.
+    materials : List[Material]
+        Materials to use for default material specs.
+
+    Returns
+    -------
+    mpact_builder.CylindricalPinCell.Specs
+        Build specs with merged material specs.
+    """
+    defaults = default_mpact_material_specs(materials)
+    if build_specs is None:
+        return mpact_builder.CylindricalPinCell.Specs(material_specs=defaults)
+    build_specs.material_specs = defaults | build_specs.material_specs
+    return build_specs

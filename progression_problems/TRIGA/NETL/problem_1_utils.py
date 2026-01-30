@@ -91,9 +91,9 @@ def write_mpact_input(fuel:                     FuelElement,
                       xslib:                    str,
                       build_specs:              Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       filename:                 str = "mpact.inp",
-                      states:                   List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
-                      xsec_settings:            Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
-                      options:                  Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"],
+                      states:                   Optional[List[Dict[str, str]]] = None,
+                      xsec_settings:            Optional[Dict[str, str]] = None,
+                      options:                  Optional[Dict[str, str]] = None,
 ) -> None:
     """Write the MPACT input for a given TRIGA fuel element.
 
@@ -138,6 +138,10 @@ def write_mpact_input(fuel:                     FuelElement,
                 "NE": mpact_builder.build(pincell, build_specs, bounds["NE"]).assemblies[0]}
 
     geometry = mpactpy.Core([[quadrant["NE"], quadrant["SW"]]])
+
+    states = [dict(state) for state in (states or [DEFAULT_MPACT_SETTINGS["state"]])]
+    xsec_settings = dict(xsec_settings or DEFAULT_MPACT_SETTINGS["xsec"])
+    options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
 
     for state in states:
         state["tinlet"] = state.get("tinlet", f"{coolant.temperature}")

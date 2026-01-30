@@ -5,6 +5,7 @@ import progression_problems.TRIGA as TRIGA
 import progression_problems.TRIGA.NETL as NETL
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, problem_3_utils, problem_4_utils, problem_5_utils
+from coreforge import mpact_builder
 
 
 @pytest.fixture
@@ -102,6 +103,29 @@ def test_problem_3_openmc_tools(coolant):
                                                        excore_features   = excore)
             assert model is not None
 
+def test_problem_3_mpact_tools(coolant, num_procs):
+    reactor = NETL.DefaultGeometries.reactor()
+    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(num_procs=num_procs)
+
+    control_cases = [problem_3_utils.ControlRodSpecs(),
+                     problem_3_utils.ControlRodSpecs(transient_rod_inserted=True,
+                                                     shim_1_rod_inserted=True,
+                                                     shim_2_rod_inserted=True,
+                                                     regulating_rod_inserted=True)]
+
+    excore_cases = ["none", "rsr", "beamports"]
+
+    for excore in excore_cases:
+        for specs in control_cases:
+            problem_3_utils.write_mpact_input(reactor,
+                                              coolant,
+                                              control_rod_specs   = specs,
+                                              excore_features     = excore,
+                                              reactor_build_specs = reactor_build_specs)
+            assert os.path.exists("mpact.inp")
+            os.remove("mpact.inp")
+
+
 def test_problem_4_openmc_tools(fuel_element, graphite_element, central_thimble,
                                 transient_rod, fuel_follower_control_rod,
                                 coolant):
@@ -165,6 +189,7 @@ def test_problem_5_openmc_tools():
 
 def test_problem_5_mpact_tools(num_procs):
     reactor = NETL.DefaultGeometries.reactor()
-    problem_5_utils.write_mpact_input(reactor, num_procs=num_procs)
+    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(num_procs=num_procs)
+    problem_5_utils.write_mpact_input(reactor, reactor_build_specs=reactor_build_specs)
     assert os.path.exists("mpact.inp")
     os.remove("mpact.inp")

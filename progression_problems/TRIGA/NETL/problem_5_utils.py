@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import openmc
 import mpactpy
@@ -70,20 +70,20 @@ def build_openmc_model(reactor: Reactor,
 
 
 
-def write_mpact_input(reactor:        Reactor,
-                      num_procs:      int = 1,
-                      filename:       str = "mpact.inp",
-                      states:         List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
-                      xsec_settings:  Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
-                      options:        Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"]) -> None:
+def write_mpact_input(reactor:             Reactor,
+                      reactor_build_specs: Optional[mpact_builder.triga.netl.Reactor.Specs] = None,
+                      filename:            str = "mpact.inp",
+                      states:              Optional[List[Dict[str, str]]] = None,
+                      xsec_settings:       Optional[Dict[str, str]] = None,
+                      options:             Optional[Dict[str, str]] = None) -> None:
     """Write an MPACT input file for the TRIGA NETL reactor.
 
     Parameters
     ----------
     reactor : Reactor
         The TRIGA NETL reactor geometry element.
-    num_procs : int
-        The number of processors to use in the MPACT input. (Default: 1)
+    reactor_build_specs : Optional[mpact_builder.triga.netl.Reactor.Specs]
+        The specifications for building the MPACT reactor geometry. If None, default specs are used.
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
     states : List[Dict[str, str]]
@@ -94,11 +94,16 @@ def write_mpact_input(reactor:        Reactor,
         The options settings to use in the MPACT input.
     """
 
-    specs = mpact_builder.triga.netl.Reactor.Specs(
-        material_specs = default_mpact_material_specs(reactor.get_materials()),
-        num_procs      = num_procs
-    )
+    specs = reactor_build_specs or mpact_builder.triga.netl.Reactor.Specs()
+
+    default_mat_specs    = default_mpact_material_specs(reactor.get_materials())
+    specs.material_specs = specs.material_specs or default_mat_specs
+
     geometry = mpact_builder.build(reactor, specs)
+    states = [dict(state) for state in (states or [DEFAULT_MPACT_SETTINGS["state"]])]
+    xsec_settings = dict(xsec_settings or DEFAULT_MPACT_SETTINGS["xsec"])
+    options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
+
     for state in states:
         state["tinlet"] = state.get("tinlet", f"{reactor.pool.material.temperature}")
 

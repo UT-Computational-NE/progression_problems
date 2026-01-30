@@ -227,9 +227,9 @@ def write_mpact_input(fuel:                        FuelElement,
                       element_build_specs:         Optional[mpact_builder.triga.netl.Reactor.CoreElementSpecs] = None,
                       outer_region_specs:          Optional[mpact_builder.triga.CoreElement.SegmentSpecs] = None,
                       filename:                    str = "mpact.inp",
-                      states:                      List[Dict[str, str]] = [DEFAULT_MPACT_SETTINGS["state"]],
-                      xsec_settings:               Dict[str, str] = DEFAULT_MPACT_SETTINGS["xsec"],
-                      options:                     Dict[str, str] = DEFAULT_MPACT_SETTINGS["options"]) -> None:
+                      states:                      Optional[List[Dict[str, str]]] = None,
+                      xsec_settings:               Optional[Dict[str, str]] = None,
+                      options:                     Optional[Dict[str, str]] = None) -> None:
     """Write the MPACT input for a given TRIGA fuel element, coolant, and central element.
 
     Parameters
@@ -312,6 +312,10 @@ def write_mpact_input(fuel:                        FuelElement,
     core = mpact_builder.build(stack_lattice, specs)
     core_map = [list(row[1:-2]) for row in core.assembly_map[3:-4]]
     geometry = mpactpy.Core(core_map)
+
+    states = [dict(state) for state in (states or [DEFAULT_MPACT_SETTINGS["state"]])]
+    xsec_settings = dict(xsec_settings or DEFAULT_MPACT_SETTINGS["xsec"])
+    options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
 
     for state in states:
         state["tinlet"] = state.get("tinlet", f"{coolant.temperature}")

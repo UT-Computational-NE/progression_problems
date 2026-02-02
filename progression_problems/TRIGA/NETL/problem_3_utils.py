@@ -2,7 +2,6 @@ from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass
 from math import ceil, cos, radians, sin
 
-from CoreForge.coreforge.mpact_builder.builder_specs import DEFAULT_MPACT_MATERIAL_SPECS
 import openmc
 import mpactpy
 from coreforge.materials import Material
@@ -12,6 +11,7 @@ from coreforge.geometry_elements.triga.netl import Reactor, Core, RSRCavity
 from coreforge.shapes import Hexagon
 from coreforge import openmc_builder
 from coreforge import mpact_builder
+from coreforge.mpact_builder.builder_specs import DEFAULT_MPACT_MATERIAL_SPECS
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.utils import DEFAULT_MPACT_SETTINGS, build_generic_openmc_tallies, default_mpact_material_specs
@@ -514,12 +514,12 @@ def _build_mpact_geometry(reactor:             Reactor,
                         specs = specs.absorber.builder_specs if control_rod_specs.regulating_rod_inserted else \
                                 specs.fuel_follower.builder_specs
 
-            specs = specs or mpact_builder.CylindricalPincell.Specs()
+            specs = specs or mpact_builder.CylindricalPinCell.Specs()
             specs.material_specs = reactor_build_specs.material_specs | specs.material_specs
             element_specs[lattice.elements[i][j]] = specs
 
-    lattice_specs = HexLattice.Specs(element_specs = element_specs,
-                                     num_procs     = reactor_build_specs.num_procs)
+    lattice_specs = mpact_builder.HexLattice.Specs(element_specs = element_specs,
+                                                   num_procs     = reactor_build_specs.num_procs)
 
     mpact_core = mpact_builder.build(lattice, lattice_specs)
 

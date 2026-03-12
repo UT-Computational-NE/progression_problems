@@ -13,14 +13,16 @@ from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS,
                                                   build_generic_openmc_tallies,
                                                   default_mpact_material_specs)
 
-# Lattice dimensions derived from default NETL core pitch
-pitch = DefaultGeometries.core().pitch
-lattice_dims = {"width": sqrt(pitch**2 - (pitch * 0.5) ** 2) / 2.0, "height": pitch * 0.5}
+
+def lattice_dims(pitch: float) -> Dict[str, float]:
+    """Return lattice dimensions derived from a hexagonal pitch."""
+    return {"width": sqrt(pitch**2 - (pitch * 0.5) ** 2) / 2.0, "height": pitch * 0.5}
 
 
 def build_openmc_model(fuel:                     FuelElement,
                        coolant:                  openmc.Material,
                        spectrum_group_structure: str = "MPACT-51",
+                       pitch:                    float = DefaultGeometries.core().pitch,
 ) -> openmc.model.Model:
     """Build a pincell OpenMC model for a given TRIGA fuel element and coolant material.
 
@@ -32,12 +34,17 @@ def build_openmc_model(fuel:                     FuelElement,
         The coolant material to use in the pincell geometry.
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
+    pitch : float
+        Hexagonal lattice pitch to use when constructing the repeated pincell
+        geometry. Defaults to the NETL core pitch.
 
     Returns
     -------
     openmc.model.Model
         The constructed OpenMC model.
     """
+
+    dims = lattice_dims(pitch)
 
     pincell = FuelElement.build_fuel_meat_pincell(cladding       = fuel.cladding,
                                                   fuel_meat      = fuel.fuel_meat,
@@ -51,23 +58,23 @@ def build_openmc_model(fuel:                     FuelElement,
     quadrant = {}
 
     cell = openmc.Cell(fill=pincell)
-    cell.translation = [lattice_dims["width"] * 0.5,
-                        lattice_dims["height"] * 0.5, 0.0]
+    cell.translation = [dims["width"] * 0.5,
+                        dims["height"] * 0.5, 0.0]
     quadrant["SW"] = openmc.Universe(cells=[cell])
 
     cell = openmc.Cell(fill=pincell)
-    cell.translation = [-lattice_dims["width"] * 0.5,
-                        -lattice_dims["height"] * 0.5, 0.0]
+    cell.translation = [-dims["width"] * 0.5,
+                        -dims["height"] * 0.5, 0.0]
     quadrant["NE"] = openmc.Universe(cells=[cell])
 
     lattice            = openmc.RectLattice()
-    lattice.lower_left = [-lattice_dims["width"], -lattice_dims["height"] * 0.5]
-    lattice.pitch      = [lattice_dims["width"], lattice_dims["height"]]
+    lattice.lower_left = [-dims["width"], -dims["height"] * 0.5]
+    lattice.pitch      = [dims["width"], dims["height"]]
     lattice.universes  = [[quadrant["NE"], quadrant["SW"]]]
     lattice.outer      = openmc.Universe(cells=[openmc.Cell(fill=coolant)])
 
-    outer_surface = openmc.model.RectangularPrism(width         = lattice_dims["width"] * 2,
-                                                  height        = lattice_dims["height"],
+    outer_surface = openmc.model.RectangularPrism(width         = dims["width"] * 2,
+                                                  height        = dims["height"],
                                                   boundary_type = "reflective")
     lattice_cell = openmc.Cell(fill=lattice, region=-outer_surface)
 
@@ -89,6 +96,7 @@ def build_openmc_model(fuel:                     FuelElement,
 def write_mpact_input(fuel:                     FuelElement,
                       coolant:                  openmc.Material,
                       xslib:                    str,
+                      pitch:                    float = DefaultGeometries.core().pitch,
                       build_specs:              Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       filename:                 str = "mpact.inp",
                       states:                   Optional[List[Dict[str, str]]] = None,
@@ -105,6 +113,9 @@ def write_mpact_input(fuel:                     FuelElement,
         The coolant material to use in the pincell geometry.
     xslib : str
         The cross section library file to use in the MPACT input.
+    pitch : float
+        Hexagonal lattice pitch to use when constructing the repeated pincell
+        geometry. Defaults to the NETL core pitch.
     build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
         The mpact_builder specifications to use when building the pincell geometry.
     filename : str
@@ -117,6 +128,8 @@ def write_mpact_input(fuel:                     FuelElement,
         The options settings to use in the MPACT input.
     """
 
+    dims = lattice_dims(pitch)
+
     pincell = FuelElement.build_fuel_meat_pincell(cladding       = fuel.cladding,
                                                   fuel_meat      = fuel.fuel_meat,
                                                   zr_fill_rod    = fuel.zr_fill_rod,
@@ -128,11 +141,11 @@ def write_mpact_input(fuel:                     FuelElement,
     build_specs = apply_default_mpact_material_specs(build_specs, fuel.get_materials())
 
     bounds = {"SW": mpact_builder.Bounds(
-                  X=mpact_builder.AxisBounds(min=-lattice_dims["width"], max=0.0),
-                  Y=mpact_builder.AxisBounds(min=-lattice_dims["height"], max=0.0)),
+                  X=mpact_builder.AxisBounds(min=-dims["width"], max=0.0),
+                  Y=mpact_builder.AxisBounds(min=-dims["height"], max=0.0)),
               "NE": mpact_builder.Bounds(
-                  X=mpact_builder.AxisBounds(min=0.0, max=lattice_dims["width"]),
-                  Y=mpact_builder.AxisBounds(min=0.0, max=lattice_dims["height"]))}
+                  X=mpact_builder.AxisBounds(min=0.0, max=dims["width"]),
+                  Y=mpact_builder.AxisBounds(min=0.0, max=dims["height"]))}
 
     quadrant = {"SW": mpact_builder.build(pincell, build_specs, bounds["SW"]).assemblies[0],
                 "NE": mpact_builder.build(pincell, build_specs, bounds["NE"]).assemblies[0]}

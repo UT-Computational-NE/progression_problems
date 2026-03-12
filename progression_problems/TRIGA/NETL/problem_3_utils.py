@@ -40,7 +40,8 @@ class ControlRodSpecs:
 
 
 def build_no_excore(reactor:      Reactor,
-                    core_lattice: openmc.Universe) -> openmc.Universe:
+                    core_lattice: openmc.Universe,
+                    pitch:        float) -> openmc.Universe:
     """ Build the OpenMC universe for the TRIGA NETL core without excore features.
 
     Parameters
@@ -49,8 +50,10 @@ def build_no_excore(reactor:      Reactor,
         The TRIGA NETL reactor geometry element.
     core_lattice : openmc.Universe
         The core lattice to use in the universe.
+    pitch : float
+        Hexagonal lattice pitch used to construct the core lattice.
     """
-    boundary_radius = 7.0 * reactor.core.lattice.pitch
+    boundary_radius = 7.0 * pitch
     radial_boundary = openmc.ZCylinder(r=boundary_radius, boundary_type="vacuum")
     top_boundary    = openmc.ZPlane(z0=0.5, boundary_type="reflective")
     bottom_boundary = openmc.ZPlane(z0=-0.5, boundary_type="reflective")
@@ -171,7 +174,8 @@ def build_rsr_excore(reactor:      Reactor,
 
 def build_core_lattice(reactor: Reactor,
                        coolant: openmc.Material,
-                       control_rod_specs: ControlRodSpecs) -> HexLattice:
+                       control_rod_specs: ControlRodSpecs,
+                       pitch: float = NETL_DefaultGeometries.core().pitch) -> HexLattice:
     """Build the OpenMC hex lattice for the TRIGA NETL core.
 
     Parameters
@@ -182,6 +186,9 @@ def build_core_lattice(reactor: Reactor,
         The coolant material to use in the core lattice.
     control_rod_specs : ControlRodSpecs
         The specifications for the control rod positions.
+    pitch : float
+        Hexagonal lattice pitch to use for the core lattice. Defaults to the
+        NETL core pitch.
 
     Returns
     -------
@@ -206,7 +213,7 @@ def build_core_lattice(reactor: Reactor,
             entries.append(pincell)
         elements.append(entries)
 
-    return HexLattice(pitch          = NETL_DefaultGeometries.core().pitch,
+    return HexLattice(pitch          = pitch,
                       outer_material = Material(coolant),
                       elements       = elements,
                       orientation    = 'y',
@@ -365,7 +372,8 @@ def build_openmc_model(reactor:                  Reactor,
                        coolant:                  openmc.Material,
                        control_rod_specs:        Optional[ControlRodSpecs] = None,
                        excore_features:          str = "none",
-                       spectrum_group_structure: str = "MPACT-51") -> openmc.model.Model:
+                       spectrum_group_structure: str = "MPACT-51",
+                       pitch:                    float = NETL_DefaultGeometries.core().pitch) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
 
     Parameters
@@ -380,6 +388,9 @@ def build_openmc_model(reactor:                  Reactor,
         The excore features to include in the model. Options are "none", "beamports", and "rsr"
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
+    pitch : float
+        Hexagonal lattice pitch to use for the core lattice. Defaults to the
+        NETL core pitch.
 
     Returns
     -------
@@ -392,11 +403,11 @@ def build_openmc_model(reactor:                  Reactor,
     assert excore_features in ["none", "beamports", "rsr"], \
         f"Invalid excore_features option: {excore_features}. Must be one of 'none', 'beamports', or 'rsr'."
 
-    core_lattice   = build_core_lattice(reactor, coolant, control_rod_specs)
+    core_lattice   = build_core_lattice(reactor, coolant, control_rod_specs, pitch)
     core_lattice   = openmc_builder.build(core_lattice)
 
     if excore_features == "none":
-        root_universe = build_no_excore(reactor, core_lattice)
+        root_universe = build_no_excore(reactor, core_lattice, pitch)
     elif excore_features == "beamports":
         root_universe = build_beamport_excore(reactor, core_lattice)
     else:
@@ -421,6 +432,7 @@ def write_mpact_input(reactor:             Reactor,
                       coolant:             openmc.Material,
                       control_rod_specs:   Optional[ControlRodSpecs] = None,
                       excore_features:     str = "none",
+                      pitch:               float = NETL_DefaultGeometries.core().pitch,
                       reactor_build_specs: Optional[mpact_builder.triga.netl.Reactor.Specs] = None,
                       filename:            str = "mpact.inp",
                       states:              Optional[List[Dict[str, str]]] = None,
@@ -438,6 +450,9 @@ def write_mpact_input(reactor:             Reactor,
         The specifications for the control rod positions. Defaults to all rods withdrawn.
     excore_features : str, optional
         The excore features to include in the model. Options are "none", "beamports", and "rsr"
+    pitch : float
+        Hexagonal lattice pitch to use for the core lattice. Defaults to the
+        NETL core pitch.
     reactor_build_specs : Optional[mpact_builder.triga.netl.Reactor.Specs]
         The specifications for building the MPACT reactor geometry. If None, default specs are used.
     filename : str
@@ -460,7 +475,7 @@ def write_mpact_input(reactor:             Reactor,
     assert excore_features in ["none", "beamports", "rsr"], \
         f"Invalid excore_features option: {excore_features}. Must be one of 'none', 'beamports', or 'rsr'."
 
-    geometry = _build_mpact_geometry(reactor, coolant, control_rod_specs, excore_features, specs)
+    geometry = _build_mpact_geometry(reactor, coolant, control_rod_specs, excore_features, pitch, specs)
     states = [dict(state) for state in (states or [DEFAULT_MPACT_SETTINGS["state"]])]
     xsec_settings = dict(xsec_settings or DEFAULT_MPACT_SETTINGS["xsec"])
     options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
@@ -477,12 +492,13 @@ def _build_mpact_geometry(reactor:             Reactor,
                           coolant:             openmc.Material,
                           control_rod_specs:   ControlRodSpecs,
                           excore_features:     str,
+                          pitch:               float,
                           reactor_build_specs: mpact_builder.triga.netl.Reactor.Specs) -> mpactpy.Core:
 
-    openmc_model    = build_openmc_model(reactor, coolant, control_rod_specs, excore_features)
+    openmc_model    = build_openmc_model(reactor, coolant, control_rod_specs, excore_features, pitch=pitch)
     openmc_universe = openmc_model.geometry.root_universe
 
-    lattice = build_core_lattice(reactor, coolant, control_rod_specs)
+    lattice = build_core_lattice(reactor, coolant, control_rod_specs, pitch)
 
     element_specs = {}
     for i, ring in enumerate(Core.RING_MAP):

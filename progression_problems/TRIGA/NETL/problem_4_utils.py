@@ -17,12 +17,12 @@ from progression_problems.TRIGA.NETL.utils import (build_generic_openmc_tallies,
 
 
 reactor          = NETL_DefaultGeometries.reactor()
-POOL_HEIGHT      = NETL_DefaultGeometries.pool().height
 
 
 def build_multicell_geometry(fuel:            FuelElement,
                              coolant:         openmc.Material,
-                             central_element: Optional[Core.Element]
+                             central_element: Optional[Core.Element],
+                             pitch:           float = NETL_DefaultGeometries.core().pitch,
     ) -> HexLattice:
     """ Build a multicell CoreForge geometry for a fuel design,
         central element, and coolant material.
@@ -35,6 +35,9 @@ def build_multicell_geometry(fuel:            FuelElement,
         The coolant material to use in the multicell geometry.
     central_element : Optional[Core.Element]
         The central element to include in the multicell geometry.
+    pitch : float
+        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
+        the NETL core pitch.
 
     Returns
     -------
@@ -55,7 +58,7 @@ def build_multicell_geometry(fuel:            FuelElement,
                 [         f,         ]]
 
     return HexLattice(
-        pitch          = NETL_DefaultGeometries.core().pitch,
+        pitch          = pitch,
         outer_material = Material(coolant),
         elements       = elements,
         orientation    = "y")
@@ -125,7 +128,9 @@ def build_openmc_model(fuel:                        FuelElement,
                        control_rod_bottom_position: float = 0.0,
                        upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
                        lower_grid_plate:            Reactor.GridPlate = reactor.lower_grid_plate,
-                       spectrum_group_structure:    str = "MPACT-51"
+                       spectrum_group_structure:    str = "MPACT-51",
+                       pitch:                       float = NETL_DefaultGeometries.core().pitch,
+                       pool_height:                 float = NETL_DefaultGeometries.pool().height,
 ) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
 
@@ -145,6 +150,12 @@ def build_openmc_model(fuel:                        FuelElement,
         The lower grid plate to use in the model.
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
+    pitch : float
+        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
+        the NETL core pitch.
+    pool_height : float
+        Axial pool height to use for the top and bottom vacuum boundaries.
+        Defaults to the NETL pool height.
 
     Returns
     -------
@@ -152,7 +163,8 @@ def build_openmc_model(fuel:                        FuelElement,
         The constructed OpenMC model.
     """
 
-    lattice        = build_multicell_geometry(fuel, coolant, central_element)
+    dims           = lattice_dims(pitch)
+    lattice        = build_multicell_geometry(fuel, coolant, central_element, pitch)
     outer_material = lattice.outer_material.openmc_material
     outer_universe = openmc.Universe(cells=[openmc.Cell(fill=outer_material)])
 
@@ -182,10 +194,10 @@ def build_openmc_model(fuel:                        FuelElement,
     openmc_lattice.universes = universes
     openmc_lattice.outer = outer_universe
 
-    top_boundary    = openmc.ZPlane(z0 =  0.5 * POOL_HEIGHT, boundary_type='vacuum')
-    bottom_boundary = openmc.ZPlane(z0 = -0.5 * POOL_HEIGHT, boundary_type='vacuum')
-    radial_boundary = openmc.model.RectangularPrism(width         = lattice_dims["width"] * 8,
-                                                    height        = lattice_dims["height"] * 6,
+    top_boundary    = openmc.ZPlane(z0 =  0.5 * pool_height, boundary_type='vacuum')
+    bottom_boundary = openmc.ZPlane(z0 = -0.5 * pool_height, boundary_type='vacuum')
+    radial_boundary = openmc.model.RectangularPrism(width         = dims["width"] * 8,
+                                                    height        = dims["height"] * 6,
                                                     boundary_type = 'reflective')
     lattice_cell    = openmc.Cell(fill   = openmc_lattice,
                                   region = -radial_boundary & +bottom_boundary & -top_boundary)
@@ -223,6 +235,8 @@ def write_mpact_input(fuel:                        FuelElement,
                       control_rod_bottom_position: float = 0.0,
                       upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
                       lower_grid_plate:            Reactor.GridPlate = reactor.lower_grid_plate,
+                      pitch:                       float = NETL_DefaultGeometries.core().pitch,
+                      pool_height:                 float = NETL_DefaultGeometries.pool().height,
                       fuel_build_specs:            Optional[mpact_builder.triga.FuelElement.Specs] = None,
                       element_build_specs:         Optional[mpact_builder.triga.netl.Reactor.CoreElementSpecs] = None,
                       outer_region_specs:          Optional[mpact_builder.triga.CoreElement.SegmentSpecs] = None,
@@ -246,6 +260,12 @@ def write_mpact_input(fuel:                        FuelElement,
         The upper grid plate to use in the model.
     lower_grid_plate : Core.GridPlate
         The lower grid plate to use in the model.
+    pitch : float
+        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
+        the NETL core pitch.
+    pool_height : float
+        Axial pool height to use for the outer axial bounds in the model.
+        Defaults to the NETL pool height.
     fuel_build_specs : Optional[mpact_builder.triga.FuelElement.Specs]
         The mpact_builder specifications to use when building the fuel elements.
     element_build_specs : Optional[mpact_builder.triga.netl.CoreElementSpecs]
@@ -263,11 +283,11 @@ def write_mpact_input(fuel:                        FuelElement,
         The options settings to use in the MPACT input.
     """
 
-    lattice = build_multicell_geometry(fuel, coolant, central_element)
+    lattice = build_multicell_geometry(fuel, coolant, central_element, pitch)
 
     stack_elements = []
     element_specs = {}
-    axial_bounds = (-0.5 * POOL_HEIGHT, 0.5 * POOL_HEIGHT)
+    axial_bounds = (-0.5 * pool_height, 0.5 * pool_height)
 
     for ring in lattice.elements:
         ring_stacks = []

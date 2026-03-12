@@ -139,7 +139,8 @@ def build_element_pincell_geometry(element: Optional[Core.Element],
 def build_multicell_geometry(fuel:                 FuelElement,
                              coolant:              openmc.Material,
                              central_element:      Optional[Core.Element],
-                             control_rod_inserted: bool
+                             control_rod_inserted: bool,
+                             pitch:                float = NETL_DefaultGeometries.core().pitch,
     ) -> HexLattice:
     """ Build a multicell CoreForge geometry for a fuel design,
         central element, and coolant material.
@@ -155,6 +156,9 @@ def build_multicell_geometry(fuel:                 FuelElement,
     control_rod_inserted : bool
         Whether the control rod is inserted or not (only applies to control rod models).
         Default is False.
+    pitch : float
+        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
+        the NETL core pitch.
 
     Returns
     -------
@@ -176,7 +180,7 @@ def build_multicell_geometry(fuel:                 FuelElement,
 
     elements = [[build_element_pincell_geometry(e, coolant, control_rod_inserted)
                  for e in row] for row in lattice]
-    return HexLattice(pitch          = NETL_DefaultGeometries.core().pitch,
+    return HexLattice(pitch          = pitch,
                       outer_material = Material(coolant),
                       elements       = elements,
                       orientation    = 'y')
@@ -186,7 +190,8 @@ def build_openmc_model(fuel: FuelElement,
                        coolant: openmc.Material,
                        central_element: Optional[Core.Element],
                        control_rod_inserted: bool = False,
-                       spectrum_group_structure: str = "MPACT-51"
+                       spectrum_group_structure: str = "MPACT-51",
+                       pitch: float = NETL_DefaultGeometries.core().pitch,
 ) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
 
@@ -203,6 +208,9 @@ def build_openmc_model(fuel: FuelElement,
         Default is False.
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
+    pitch : float
+        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
+        the NETL core pitch.
 
     Returns
     -------
@@ -210,10 +218,11 @@ def build_openmc_model(fuel: FuelElement,
         The constructed OpenMC model.
     """
 
-    lattice        = build_multicell_geometry(fuel, coolant, central_element, control_rod_inserted)
+    dims           = lattice_dims(pitch)
+    lattice        = build_multicell_geometry(fuel, coolant, central_element, control_rod_inserted, pitch)
     lattice        = openmc_builder.build(lattice)
-    outer_surface = openmc.model.RectangularPrism(width         = lattice_dims["width"] * 8,
-                                                  height        = lattice_dims["height"] * 6,
+    outer_surface = openmc.model.RectangularPrism(width         = dims["width"] * 8,
+                                                  height        = dims["height"] * 6,
                                                   boundary_type = 'reflective')
     lattice_cell = openmc.Cell(fill=lattice, region=-outer_surface)
 
@@ -237,6 +246,7 @@ def write_mpact_input(fuel: FuelElement,
                       coolant: openmc.Material,
                       central_element: Optional[Core.Element],
                       control_rod_inserted: bool = False,
+                      pitch: float = NETL_DefaultGeometries.core().pitch,
                       fuel_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       element_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       filename: str = "mpact.inp",
@@ -256,6 +266,9 @@ def write_mpact_input(fuel: FuelElement,
     control_rod_inserted : bool
         Whether the control rod is inserted or not (only applies to control rod models).
         Default is False.
+    pitch : float
+        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
+        the NETL core pitch.
     fuel_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
         The mpact_builder specifications to use when building the fuel pincell geometry.
     element_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
@@ -270,7 +283,7 @@ def write_mpact_input(fuel: FuelElement,
         The options settings to use in the MPACT input.
     """
 
-    lattice         = build_multicell_geometry(fuel, coolant, central_element, control_rod_inserted)
+    lattice         = build_multicell_geometry(fuel, coolant, central_element, control_rod_inserted, pitch)
     fuel            = lattice.elements[0][0]
     central_element = lattice.elements[-1][0]
 

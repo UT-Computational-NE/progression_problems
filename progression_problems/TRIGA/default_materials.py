@@ -303,3 +303,39 @@ class DefaultMaterials:
         material.add_nuclide('Mo98',  0.2419, percent_type='ao')
         material.add_nuclide('Mo100', 0.0967, percent_type='ao')
         return material
+
+    @staticmethod
+    def water(temperature: float = DEFAULT_TEMPERATURE,
+              density: float = 1.0,
+              density_units: str = 'g/cm3') -> openmc.Material:
+        """Creates and returns water material.
+
+        Compositions are from [1]_ pg 60 and density from pg 48
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature of the material in Kelvin.
+        density : float
+            Density of the material.
+        density_units : str
+            Units of density.
+
+        Returns
+        -------
+        openmc.Material
+            The water material.
+
+        See Also
+        --------
+        openmc.Material.set_density : For valid density units and constraints.
+        """
+        assert temperature >= 0.0, "Temperature must be positive in Kelvin."
+
+        material = openmc.Material(name='Water')
+        material.temperature = temperature
+        material.set_density(density_units, density)
+        material.add_nuclide('H1',  0.6667, percent_type='ao')
+        material.add_nuclide('O16', 0.3333, percent_type='ao')
+        material.add_s_alpha_beta('c_H_in_H2O')
+        return material

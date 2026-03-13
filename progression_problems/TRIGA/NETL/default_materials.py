@@ -19,39 +19,29 @@ class DefaultMaterials(TRIGADefaultMaterials):
     """
 
     @staticmethod
-    def water(temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
-              density: float = 1.0,
-              density_units: str = 'g/cm3') -> openmc.Material:
-        """Creates and returns water material.
+    def fuel_follower_fuel(temperature:   float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+                           density:       float = 6.0124,
+                           density_units: str = 'g/cm3') -> openmc.Material:
+        """Creates and returns the NETL fuel follower fuel material.
 
-        Compositions are from [1] pg 60 and density from pg 48
+        Compositions are from [1]_ pg 59-60 and density from pg 52
 
         Parameters
         ----------
         temperature : float
             Temperature of the material in Kelvin.
         density : float
-            Density of the material.
+            Density of the material. Default is 6.0124 g/cm3.
         density_units : str
-            Units of density.
+            Units of density. Default is 'g/cm3'.
 
         Returns
         -------
         openmc.Material
-            The water material.
-
-        See Also
-        --------
-        openmc.Material.set_density : For valid density units and constraints.
+            The NETL fuel follower fuel material.
         """
-        assert temperature >= 0.0, "Temperature must be positive in Kelvin."
-
-        material = openmc.Material(name='Water')
-        material.temperature = temperature
-        material.set_density(density_units, density)
-        material.add_nuclide('H1',  0.6667, percent_type='ao')
-        material.add_nuclide('O16', 0.3333, percent_type='ao')
-        material.add_s_alpha_beta('c_H_in_H2O')
+        material = TRIGADefaultMaterials.fresh_fuel(temperature, density, density_units)
+        material.name = 'Fuel_Follower_Fuel'
         return material
 
     @staticmethod
@@ -60,7 +50,7 @@ class DefaultMaterials(TRIGADefaultMaterials):
                              density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns fuel follower control rod absorber material.
 
-        Compositions are from [1] pg 60 and density from pg 51
+        Compositions are from [1]_ pg 60 and density from pg 51
 
         Parameters
         ----------
@@ -96,7 +86,7 @@ class DefaultMaterials(TRIGADefaultMaterials):
                 density_units: str = 'g/cm3') -> openmc.Material:
         """Creates and returns cadmium material.
 
-        Compositions are from [1] pg 60 and density from pg 53
+        Compositions are from [1]_ pg 60 and density from pg 53
 
         Parameters
         ----------

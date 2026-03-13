@@ -1,6 +1,7 @@
 from __future__ import annotations
-
 from math import cos, radians, sin
+
+import openmc
 
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
 from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder, FuelFollowerControlRod,
@@ -44,39 +45,60 @@ class DefaultGeometries:
                                                        FFCR_MAX_WITHDRAWAL_DISTANCE
 
     @staticmethod
-    def central_thimble() -> CentralThimble:
+    def central_thimble(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+                        coolant:     openmc.Material | None = None) -> CentralThimble:
         """Creates and returns the default central thimble.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the central thimble materials.
+        coolant : Optional[openmc.Material]
+            Coolant material used for both the fill and outer materials. If omitted,
+            water is used.
 
         Returns
         -------
         CentralThimble
             Default NETL TRIGA central thimble.
         """
+        coolant = coolant or NETLDefaultMaterials.water()
+
         cladding = CentralThimble.Cladding(
-            thickness    = (1.5 * 0.5 * CM_PER_INCH) - (1.33 * 0.5 * CM_PER_INCH),  # Ref. [1]_ Section 10.2.1.b
-            outer_radius = 1.5 * 0.5 * CM_PER_INCH,                                 # Ref. [1]_ Section 10.2.1.b
-            material     = Material(NETLDefaultMaterials.aluminum()),               # Ref. [2]_ pg. 51
+            thickness    = (1.5 * 0.5 * CM_PER_INCH) - (1.33 * 0.5 * CM_PER_INCH), # Ref. [1]_ Section 10.2.1.b
+            outer_radius = 1.5 * 0.5 * CM_PER_INCH,                                # Ref. [1]_ Section 10.2.1.b
+            material     = Material(NETLDefaultMaterials.aluminum(temperature))    # Ref. [2]_ pg. 51
         )
 
         pool = DefaultGeometries.pool()
+        coolant_material = Material(coolant)
 
         return CentralThimble(
             cladding       = cladding,
-            length         = pool.height,                                           # Pool height
-            fill_material  = Material(NETLDefaultMaterials.water()),                # Filled with coolant
-            outer_material = Material(NETLDefaultMaterials.water()),                # Coolant exterior
+            length         = pool.height,
+            fill_material  = coolant_material,
+            outer_material = coolant_material,
             name           = "central_thimble",
         )
 
     @staticmethod
-    def source_holder() -> SourceHolder:
+    def source_holder(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+                      coolant:     openmc.Material | None = None) -> SourceHolder:
         """Creates and returns the default source holder.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the source holder materials.
+        coolant : Optional[openmc.Material]
+            Coolant material used as the outer material. If omitted, water is used.
 
         Returns
         -------
         SourceHolder
             Default NETL TRIGA source holder.
         """
+        coolant = coolant or NETLDefaultMaterials.water()
 
         upper_grid_top  = DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
         lower_grid_top  = DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
@@ -88,91 +110,104 @@ class DefaultGeometries:
         axial_offset = -distance_from_lower_plate
 
         cavity = SourceHolder.Cavity(
-            radius       = 0.981 * 0.5 * CM_PER_INCH,                        # Ref. [1]_ Section 4.2.5
-            length       = 3.0 * CM_PER_INCH,                                # Ref. [1]_ Section 4.2.5
+            radius       = 0.981 * 0.5 * CM_PER_INCH,                           # Ref. [1]_ Section 4.2.5
+            length       = 3.0 * CM_PER_INCH,                                   # Ref. [1]_ Section 4.2.5
             axial_offset = axial_offset,
-            material     = Material(NETLDefaultMaterials.air()),             # Ref. [2]_ pg. 54
+            material     = Material(NETLDefaultMaterials.air(temperature))      # Ref. [2]_ pg. 54
         )
 
         cladding = SourceHolder.Cladding(
-            outer_radius = 1.435 * 0.5 * CM_PER_INCH,                        # Ref. [2]_ pg. 54 & 55
-            material     = Material(NETLDefaultMaterials.aluminum()),        # Ref. [2]_ pg. 54
+            outer_radius = 1.435 * 0.5 * CM_PER_INCH,                           # Ref. [2]_ pg. 54 & 55
+            material     = Material(NETLDefaultMaterials.aluminum(temperature)) # Ref. [2]_ pg. 54
         )
 
         return SourceHolder(
             length         = length,
             cavity         = cavity,
             cladding       = cladding,
-            outer_material = Material(NETLDefaultMaterials.water()),         # Coolant exterior
+            outer_material = Material(coolant),
             gap_tolerance  = None,
             name           = "source_holder",
         )
 
     @staticmethod
-    def fuel_follower_control_rod() -> FuelFollowerControlRod:
+    def fuel_follower_control_rod(fuel_temp:     float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+                                  non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+                                  coolant:       openmc.Material | None = None) -> FuelFollowerControlRod:
         """Creates and returns the default fuel follower control rod.
+
+        Parameters
+        ----------
+        fuel_temp : float
+            Temperature applied to the fuel follower and zirconium filler rod materials.
+        non_fuel_temp : float
+            Temperature applied to the non-fuel materials in the control rod.
+        coolant : Optional[openmc.Material]
+            Coolant material used as the outer material. If omitted, water is used.
 
         Returns
         -------
         FuelFollowerControlRod
             Default NETL TRIGA fuel follower control rod.
         """
+        coolant = coolant or NETLDefaultMaterials.water()
+
         cladding = FuelFollowerControlRod.Cladding(
-            outer_radius = 1.35 * 0.5 * CM_PER_INCH,                                               # Ref. [2]_ pg. 55
-            thickness    = 0.02 * CM_PER_INCH,                                                     # Ref. [2]_ pg. 55
-            material     = Material(NETLDefaultMaterials.stainless_steel()),                       # Ref. [2]_ pg. 52
+            outer_radius = 1.35 * 0.5 * CM_PER_INCH,                                              # Ref. [2]_ pg. 55
+            thickness    = 0.02 * CM_PER_INCH,                                                    # Ref. [2]_ pg. 55
+            material     = Material(NETLDefaultMaterials.stainless_steel(non_fuel_temp))          # Ref. [2]_ pg. 52
         )
 
         absorber = FuelFollowerControlRod.Absorber(
-            radius   = 1.3 * 0.5 * CM_PER_INCH,                                                    # Ref. [2]_ pg. 55
-            length   = 15.0 * CM_PER_INCH,                                                         # Ref. [2]_ pg. 58
-            material = Material(NETLDefaultMaterials.control_rod_absorber()),                      # Ref. [2]_ pg. 52
+            radius   = 1.3 * 0.5 * CM_PER_INCH,                                                   # Ref. [2]_ pg. 55
+            length   = 15.0 * CM_PER_INCH,                                                        # Ref. [2]_ pg. 58
+            material = Material(NETLDefaultMaterials.control_rod_absorber(non_fuel_temp))         # Ref. [2]_ pg. 52
         )
 
         fuel_follower_outer_radius = cladding.outer_radius - cladding.thickness
         fuel_follower = FuelFollowerControlRod.FuelFollower(
-            length       = 15.0 * CM_PER_INCH,                                                     # Ref. [2]_ pg. 58
-            inner_radius = 0.25 * 0.5 * CM_PER_INCH,                                               # Ref. [2]_ pg. 55
+            length       = 15.0 * CM_PER_INCH,                                                    # Ref. [2]_ pg. 58
+            inner_radius = 0.25 * 0.5 * CM_PER_INCH,                                              # Ref. [2]_ pg. 55
             outer_radius = fuel_follower_outer_radius,
-            material     = Material(TRIGADefaultMaterials.fresh_fuel(density=6.0124)),             # Ref. [2]_ pg. 52
+            material     = Material(NETLDefaultMaterials.fuel_follower_fuel(fuel_temp))           # Ref. [2]_ pg. 52
         )
 
         zr_fill_rod = FuelFollowerControlRod.ZrFillRod(
-            radius   = 0.25 * 0.5 * CM_PER_INCH,                                                   # Ref. [2]_ pg. 55
-            material = Material(NETLDefaultMaterials.zirc_filler()),                               # Ref. [2]_ pg. 52
+            radius   = 0.25 * 0.5 * CM_PER_INCH,                                                  # Ref. [2]_ pg. 55
+            material = Material(NETLDefaultMaterials.zirc_filler(fuel_temp))                      # Ref. [2]_ pg. 52
         )
 
         upper_element_plug = FuelFollowerControlRod.ElementPlug(
-            thickness = 1.5 * CM_PER_INCH,                                                         # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.stainless_steel()),                          # Ref. [2]_ pg. 51
+            thickness = 1.5 * CM_PER_INCH,                                                        # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.stainless_steel(non_fuel_temp))             # Ref. [2]_ pg. 51
         )
 
-        upper_air_gap = FuelFollowerControlRod.AirGap(thickness=3.5 * CM_PER_INCH)                 # Ref. [2]_ pg. 58
+        upper_air_gap = FuelFollowerControlRod.AirGap(thickness=3.5 * CM_PER_INCH)                # Ref. [2]_ pg. 58
 
         upper_magneform = FuelFollowerControlRod.MagneformFitting(
-            thickness = 0.5 * CM_PER_INCH,                                                         # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.stainless_steel()),                          # Ref. [2]_ pg. 51
+            thickness = 0.5 * CM_PER_INCH,                                                        # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.stainless_steel(non_fuel_temp))             # Ref. [2]_ pg. 51
         )
 
-        above_absorber_air_gap = FuelFollowerControlRod.AirGap(thickness=0.125 * CM_PER_INCH)      # Ref. [2]_ pg. 58
+        above_absorber_air_gap = FuelFollowerControlRod.AirGap(thickness=0.125 * CM_PER_INCH)     # Ref. [2]_ pg. 58
 
         middle_magneform = FuelFollowerControlRod.MagneformFitting(
-            thickness = 0.5 * CM_PER_INCH,                                                         # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.stainless_steel()),                          # Ref. [2]_ pg. 51
+            thickness = 0.5 * CM_PER_INCH,                                                        # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.stainless_steel(non_fuel_temp))             # Ref. [2]_ pg. 51
         )
 
-        above_fuel_follower_air_gap = FuelFollowerControlRod.AirGap(thickness=0.25 * CM_PER_INCH)  # Ref. [2]_ pg. 58
+        above_fuel_follower_air_gap = FuelFollowerControlRod.AirGap(thickness=0.25 * CM_PER_INCH) # Ref. [2]_ pg. 58
 
         lower_magneform = FuelFollowerControlRod.MagneformFitting(
-            thickness = 1.0 * CM_PER_INCH,                                                         # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.stainless_steel()),                          # Ref. [2]_ pg. 51
+            thickness = 1.0 * CM_PER_INCH,                                                        # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.stainless_steel(non_fuel_temp))             # Ref. [2]_ pg. 51
         )
 
-        lower_air_gap = FuelFollowerControlRod.AirGap(thickness=5.375 * CM_PER_INCH)               # Ref. [2]_ pg. 58
+        lower_air_gap = FuelFollowerControlRod.AirGap(thickness=5.375 * CM_PER_INCH)              # Ref. [2]_ pg. 58
 
         lower_element_plug = FuelFollowerControlRod.ElementPlug(
-            thickness = 0.5 * CM_PER_INCH,                                                         # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.stainless_steel()),                          # Ref. [2]_ pg. 51
+            thickness = 0.5 * CM_PER_INCH,                                                        # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.stainless_steel(non_fuel_temp))             # Ref. [2]_ pg. 51
         )
 
         return FuelFollowerControlRod(
@@ -189,62 +224,72 @@ class DefaultGeometries:
             lower_magneform_fitting     = lower_magneform,
             lower_air_gap               = lower_air_gap,
             lower_element_plug          = lower_element_plug,
-            fill_gas                    = Material(NETLDefaultMaterials.air()),     # Ref. [2]_ pg. 51
-            outer_material              = Material(NETLDefaultMaterials.water()),   # Coolant exterior
+            fill_gas                    = Material(NETLDefaultMaterials.air(non_fuel_temp)),      # Ref. [2]_ pg. 51
+            outer_material              = Material(coolant),
             gap_tolerance               = 1e-8,
             name                        = "fuel_follower_control_rod",
         )
 
     @staticmethod
-    def transient_rod() -> TransientRod:
+    def transient_rod(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+                      coolant:     openmc.Material | None = None) -> TransientRod:
         """Creates and returns the default transient control rod.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the transient rod materials.
+        coolant : Optional[openmc.Material]
+            Coolant material used as the outer material. If omitted, water is used.
 
         Returns
         -------
         TransientControlRod
             Default NETL TRIGA transient control rod.
         """
+        coolant = coolant or NETLDefaultMaterials.water()
+
         cladding = TransientRod.Cladding(
-            outer_radius = 1.25 * 0.5 * CM_PER_INCH,                           # Ref. [1]_ Table 4.2
-            thickness    = 0.028 * CM_PER_INCH,                                # Ref. [1]_ Table 4.2
-            material     = Material(NETLDefaultMaterials.aluminum()),          # Ref. [2]_ pg. 51
+            outer_radius = 1.25 * 0.5 * CM_PER_INCH,                                    # Ref. [1]_ Table 4.2
+            thickness    = 0.028 * CM_PER_INCH,                                         # Ref. [1]_ Table 4.2
+            material     = Material(NETLDefaultMaterials.aluminum(temperature))         # Ref. [2]_ pg. 51
         )
 
         absorber = TransientRod.Absorber(
-            radius   = 1.187 * 0.5 * CM_PER_INCH,                              # Ref. [2]_ pg. 55
-            length   = 15.0 * CM_PER_INCH,                                     # Ref. [1]_ Table 4.2
-            material = Material(NETLDefaultMaterials.control_rod_absorber()),  # Ref. [2]_ pg. 51
+            radius   = 1.187 * 0.5 * CM_PER_INCH,                                       # Ref. [2]_ pg. 55
+            length   = 15.0 * CM_PER_INCH,                                              # Ref. [1]_ Table 4.2
+            material = Material(NETLDefaultMaterials.control_rod_absorber(temperature)) # Ref. [2]_ pg. 51
         )
 
         upper_element_plug = TransientRod.ElementPlug(
-            thickness = 0.5 * CM_PER_INCH,                                     # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.aluminum()),             # Ref. [2]_ pg. 51
+            thickness = 0.5 * CM_PER_INCH,                                              # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.aluminum(temperature))            # Ref. [2]_ pg. 51
         )
 
         upper_magneform = TransientRod.MagneformFitting(
-            thickness = 1.0 * CM_PER_INCH,                                     # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.aluminum()),             # Ref. [2]_ pg. 51
+            thickness = 1.0 * CM_PER_INCH,                                              # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.aluminum(temperature))            # Ref. [2]_ pg. 51
         )
 
         lower_magneform = TransientRod.MagneformFitting(
-            thickness = 1.0 * CM_PER_INCH,                                     # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.aluminum()),             # Ref. [2]_ pg. 51
+            thickness = 1.0 * CM_PER_INCH,                                              # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.aluminum(temperature))            # Ref. [2]_ pg. 51
         )
 
         air_follower = TransientRod.AirFollower(
-            thickness = 19.75 * CM_PER_INCH                                    # Ref. [2]_ pg. 58
+            thickness = 19.75 * CM_PER_INCH                                             # Ref. [2]_ pg. 58
         )
 
         lower_element_plug = TransientRod.ElementPlug(
-            thickness = 0.5 * CM_PER_INCH,                                     # Ref. [2]_ pg. 58
-            material  = Material(NETLDefaultMaterials.aluminum()),             # Ref. [2]_ pg. 51
+            thickness = 0.5 * CM_PER_INCH,                                              # Ref. [2]_ pg. 58
+            material  = Material(NETLDefaultMaterials.aluminum(temperature))            # Ref. [2]_ pg. 51
         )
 
         return TransientRod(
             cladding                = cladding,
             absorber                = absorber,
-            fill_gas                = Material(NETLDefaultMaterials.air()),        # Ref. [2]_ pg. 51
-            outer_material          = Material(NETLDefaultMaterials.water()),      # Coolant exterior
+            fill_gas                = Material(NETLDefaultMaterials.air(temperature)),  # Ref. [2]_ pg. 51
+            outer_material          = Material(coolant),
             air_follower            = air_follower,
             upper_element_plug      = upper_element_plug,
             upper_magneform_fitting = upper_magneform,
@@ -255,8 +300,13 @@ class DefaultGeometries:
         )
 
     @staticmethod
-    def upper_grid_plate() -> GridPlate:
+    def upper_grid_plate(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE) -> GridPlate:
         """Creates and returns the default upper grid plate geometry.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the upper grid plate material.
 
         Returns
         -------
@@ -269,13 +319,19 @@ class DefaultGeometries:
                                                      control_radius,
                                                      DefaultGeometries.central_thimble().cladding.outer_radius)
         return GridPlate(penetration_map = penetration_map,
-                         thickness       = 0.62 * CM_PER_INCH,                         # Ref. [2]_ pg. 55
-                         material        = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 50
+                         thickness       = 0.62 * CM_PER_INCH,                                    # Ref. [2]_ pg. 55
+                         material        = Material(NETLDefaultMaterials.aluminum(temperature)),  # Ref. [2]_ pg. 50
                          name            = "upper_grid_plate")
 
     @staticmethod
-    def lower_grid_plate() -> GridPlate:
+    def lower_grid_plate(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE) -> GridPlate:
         """Creates and returns the default lower grid plate geometry.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the lower grid plate material.
+
         Returns
         -------
         GridPlate
@@ -288,30 +344,42 @@ class DefaultGeometries:
                                                      control_radius,
                                                      DefaultGeometries.central_thimble().cladding.outer_radius)
         return GridPlate(penetration_map = penetration_map,
-                         thickness       = 1.25 * CM_PER_INCH,                         # Ref. [2]_ pg. 55
-                         material        = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 50
+                         thickness       = 1.25 * CM_PER_INCH,                                   # Ref. [2]_ pg. 55
+                         material        = Material(NETLDefaultMaterials.aluminum(temperature)),  # Ref. [2]_ pg. 50
                          name            = "lower_grid_plate")
 
 
     @staticmethod
-    def pool() -> Pool:
+    def pool(coolant: openmc.Material | None = None) -> Pool:
         """Creates and returns the default pool.
+
+        Parameters
+        ----------
+        coolant : Optional[openmc.Material]
+            Coolant material used for the pool contents. If omitted, water is used.
 
         Returns
         -------
         Pool
             Default NETL TRIGA pool.
         """
+        coolant = coolant or NETLDefaultMaterials.water()
+
         return Pool(
-            radius   = 90.0,                                            # Ref. [2]_ pg. 54
-            height   = 160.0,                                           # Ref. [2]_ pg. 54
-            material = Material(NETLDefaultMaterials.water()),          # Ref. [2]_ pg. 48
+            radius   = 90.0,              # Ref. [2]_ pg. 54
+            height   = 160.0,             # Ref. [2]_ pg. 54
+            material = Material(coolant), # Ref. [2]_ pg. 48
             name     = "pool",
         )
 
     @staticmethod
-    def reflector() -> Reflector:
+    def reflector(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE) -> Reflector:
         """Creates and returns the default reflector.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the reflector material.
 
         Returns
         -------
@@ -319,15 +387,20 @@ class DefaultGeometries:
             Default NETL TRIGA reflector.
         """
         return Reflector(
-            radius   = 42.0 * 0.5 * CM_PER_INCH,                       # Ref. [2]_ pg. 54
-            height   = 23.13 * CM_PER_INCH,                            # Ref. [2]_ pg. 55
-            material = Material(NETLDefaultMaterials.graphite()),      # Ref. [2]_ pg. 48
+            radius   = 42.0 * 0.5 * CM_PER_INCH,                                  # Ref. [2]_ pg. 54
+            height   = 23.13 * CM_PER_INCH,                                       # Ref. [2]_ pg. 55
+            material = Material(NETLDefaultMaterials.graphite(temperature)),      # Ref. [2]_ pg. 48
             name     = "reflector",
         )
 
     @staticmethod
-    def shroud() -> Shroud:
+    def shroud(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE) -> Shroud:
         """Creates and returns the default shroud.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the shroud material.
 
         Returns
         -------
@@ -335,16 +408,21 @@ class DefaultGeometries:
             Default NETL TRIGA shroud.
         """
         return Shroud(
-            thickness                = 0.1875 * CM_PER_INCH,                      # Ref. [2]_ pg. 54 & 55
-            primary_hex_inner_radius = 10.21875 * CM_PER_INCH,                    # Ref. [2]_ pg. 55
-            rotated_hex_inner_radius = 10.75 * CM_PER_INCH,                       # Ref. [2]_ pg. 54
-            material                 = Material(NETLDefaultMaterials.aluminum()), # Ref. [2]_ pg. 48
+            thickness                = 0.1875 * CM_PER_INCH,                                 # Ref. [2]_ pg. 54 & 55
+            primary_hex_inner_radius = 10.21875 * CM_PER_INCH,                               # Ref. [2]_ pg. 55
+            rotated_hex_inner_radius = 10.75 * CM_PER_INCH,                                  # Ref. [2]_ pg. 54
+            material                 = Material(NETLDefaultMaterials.aluminum(temperature)), # Ref. [2]_ pg. 48
             name                     = "shroud",
         )
 
     @staticmethod
-    def rsr_cavity() -> RSRCavity:
+    def rsr_cavity(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE) -> RSRCavity:
         """Creates and returns the default rotary specimen rack cavity.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the specimen tube and cavity fill materials.
 
         Returns
         -------
@@ -352,23 +430,23 @@ class DefaultGeometries:
             Default NETL TRIGA rotary specimen rack cavity.
         """
         specimen_tube = RSRCavity.SpecimenTube(
-            outer_radius = 1.0 * 0.5 * CM_PER_INCH,                          # Ref. [2]_ pg. 56 & 57
-            thickness    = 0.058 * CM_PER_INCH,                              # Ref. [1]_ pg. 10-27
-            material     = Material(NETLDefaultMaterials.aluminum()),        # Assumed
+            outer_radius = 1.0 * 0.5 * CM_PER_INCH,                                     # Ref. [2]_ pg. 56 & 57
+            thickness    = 0.058 * CM_PER_INCH,                                         # Ref. [1]_ pg. 10-27
+            material     = Material(NETLDefaultMaterials.aluminum(temperature)),        # Assumed
         )
 
         return RSRCavity(
-            outer_radius            = 28.625 * 0.5 * CM_PER_INCH,            # Ref. [2]_ pg. 55
-            height                  = 10.8174 * CM_PER_INCH,                 # Ref. [2]_ pg. 55
-            number_of_tubes         = 40,                                    # Ref. [1]_ pg. 10-27
-            tube_to_center_distance = 26.312 * 0.5 * CM_PER_INCH,            # Ref. [1]_ pg. 10-27
+            outer_radius            = 28.625 * 0.5 * CM_PER_INCH,                       # Ref. [2]_ pg. 55
+            height                  = 10.8174 * CM_PER_INCH,                            # Ref. [2]_ pg. 55
+            number_of_tubes         = 40,                                               # Ref. [1]_ pg. 10-27
+            tube_to_center_distance = 26.312 * 0.5 * CM_PER_INCH,                       # Ref. [1]_ pg. 10-27
             tube_specs              = specimen_tube,
-            material                = Material(NETLDefaultMaterials.air()),  # Ref. [2]_ pg. 48
+            material                = Material(NETLDefaultMaterials.air(temperature)),  # Ref. [2]_ pg. 48
             name                    = "rsr_cavity",
         )
 
     @staticmethod
-    def beam_port() -> BeamPort:
+    def beam_port(temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE) -> BeamPort:
         """Creates and returns the default beam port geometry.
 
         Notes
@@ -376,6 +454,11 @@ class DefaultGeometries:
         The beam port length is set arbitrarily to the pool diameter to ensure sufficient length
         for penetration through pool / reflector and to provide some known length with which to work
         default transformations off of.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to the beam port tube and fill materials.
 
         Returns
         -------
@@ -385,30 +468,43 @@ class DefaultGeometries:
 
         return BeamPort(
             length        = DefaultGeometries.pool().radius * 2.0,
-            inner_radius  = 6.065 * 0.5 * CM_PER_INCH,                  # Ref. [2]_ Figures 4 & 5
-            outer_radius  = 6.625 * 0.5 * CM_PER_INCH,                  # Ref. [2]_ Figures 4 & 5
-            tube_material = Material(NETLDefaultMaterials.aluminum()),  # Ref. [2]_ pg. 48
-            fill_material = Material(NETLDefaultMaterials.air()),       # Ref. [2]_ pg. 48
+            inner_radius  = 6.065 * 0.5 * CM_PER_INCH,                             # Ref. [2]_ Figures 4 & 5
+            outer_radius  = 6.625 * 0.5 * CM_PER_INCH,                             # Ref. [2]_ Figures 4 & 5
+            tube_material = Material(NETLDefaultMaterials.aluminum(temperature)),  # Ref. [2]_ pg. 48
+            fill_material = Material(NETLDefaultMaterials.air(temperature)),       # Ref. [2]_ pg. 48
             name = "beam_port",
         )
 
     @staticmethod
-    def core() -> Core:
+    def core(fuel_temp:     float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+             non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+             coolant:       openmc.Material | None = None) -> Core:
         """Creates and returns a default core geometry.
+
+        Parameters
+        ----------
+        fuel_temp : float
+            Temperature applied to fuel-bearing materials in core elements.
+        non_fuel_temp : float
+            Temperature applied to non-fuel materials in core elements.
+        coolant : Optional[openmc.Material]
+            Coolant material passed to core element builders that use an outer or fill coolant.
 
         Returns
         -------
         Core
             Default NETL TRIGA core geometry.
         """
+        coolant = coolant or NETLDefaultMaterials.water()
+
         def fuel() -> FuelElement:
-            return TRIGADefaultGeometries.fuel_element()
+            return TRIGADefaultGeometries.fuel_element(fuel_temp, non_fuel_temp, coolant)
 
         def graphite() -> GraphiteElement:
-            return TRIGADefaultGeometries.graphite_element()
+            return TRIGADefaultGeometries.graphite_element(non_fuel_temp, coolant)
 
         def source_holder() -> SourceHolder:
-            return DefaultGeometries.source_holder()
+            return DefaultGeometries.source_holder(non_fuel_temp, coolant)
 
         def fill(locations, factory):
             return {loc: factory() for loc in locations}
@@ -448,73 +544,88 @@ class DefaultGeometries:
         loading["G-34"] = None
 
         return Core(
-            pitch           = 1.714 * CM_PER_INCH,          # Ref. [2]_ pg. 54
-            central_thimble = DefaultGeometries.central_thimble(),
-            transient_rod   = DefaultGeometries.transient_rod(),
-            regulating_rod  = DefaultGeometries.fuel_follower_control_rod(),
-            shim_1_rod      = DefaultGeometries.fuel_follower_control_rod(),
-            shim_2_rod      = DefaultGeometries.fuel_follower_control_rod(),
+            pitch           = 1.714 * CM_PER_INCH,  # Ref. [2]_ pg. 54
+            central_thimble = DefaultGeometries.central_thimble(non_fuel_temp, coolant),
+            transient_rod   = DefaultGeometries.transient_rod(non_fuel_temp, coolant),
+            regulating_rod  = DefaultGeometries.fuel_follower_control_rod(fuel_temp, non_fuel_temp, coolant),
+            shim_1_rod      = DefaultGeometries.fuel_follower_control_rod(fuel_temp, non_fuel_temp, coolant),
+            shim_2_rod      = DefaultGeometries.fuel_follower_control_rod(fuel_temp, non_fuel_temp, coolant),
             loading         = loading,
-            fill_material   = DefaultGeometries.pool().material,
+            fill_material   = DefaultGeometries.pool(coolant).material,
             name            = "core",
         )
 
     @staticmethod
-    def reactor() -> Reactor:
+    def reactor(fuel_temp:     float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+                non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+                coolant:       openmc.Material | None = None) -> Reactor:
         """Creates and returns a default reactor geometry.
+
+        Parameters
+        ----------
+        fuel_temp : float
+            Temperature applied to fuel-bearing materials in reactor subcomponents.
+        non_fuel_temp : float
+            Temperature applied to non-fuel materials in reactor subcomponents.
+        coolant : Optional[openmc.Material]
+            Coolant material passed to reactor subcomponents that use a coolant material.
 
         Returns
         -------
         Reactor
             Default NETL TRIGA reactor geometry.
         """
+        coolant = coolant or NETLDefaultMaterials.water()
 
-        bp_length       = DefaultGeometries.beam_port().length
+        beam_port_geometry = DefaultGeometries.beam_port(non_fuel_temp)
+        bp_length = beam_port_geometry.length
         bp_axial_offset = -6.985
 
         return Reactor(
             name                        = "reactor",
-            pool                        = DefaultGeometries.pool(),
-            shroud                      = DefaultGeometries.shroud(),
-            rotary_specimen_rack_cavity = DefaultGeometries.rsr_cavity(),
-            core                        = DefaultGeometries.core(),
+            pool                        = DefaultGeometries.pool(coolant),
+            shroud                      = DefaultGeometries.shroud(non_fuel_temp),
+            rotary_specimen_rack_cavity = DefaultGeometries.rsr_cavity(non_fuel_temp),
+            core                        = DefaultGeometries.core(fuel_temp, non_fuel_temp, coolant),
             transient_rod_position      = DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION,
             regulating_rod_position     = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
             shim_1_rod_position         = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
             shim_2_rod_position         = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
 
             # Beam port specifications from Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59
-            beam_port_1_5               = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+            beam_port_1_5               = Reactor.BeamPort(geometry    = beam_port_geometry,
                                                            rotation    = 90.0,
                                                            translation = (35.2425,
                                                                           0.0,
                                                                           bp_axial_offset)),
-            beam_port_2                 = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+            beam_port_2                 = Reactor.BeamPort(geometry    = beam_port_geometry,
                                                            rotation    = 150.0,
                                                            translation = ( 6.222 + cosd(150.0)*bp_length*0.5,
                                                                           35.255 + sind(150.0)*bp_length*0.5,
                                                                           bp_axial_offset)),
-            beam_port_3                 = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+            beam_port_3                 = Reactor.BeamPort(geometry    = beam_port_geometry,
                                                            rotation    = 0.0,
                                                            translation = (-bp_length*0.5 - 26.43188,
                                                                           0.0,
                                                                           bp_axial_offset)),
-            beam_port_4                 = Reactor.BeamPort(geometry    = DefaultGeometries.beam_port(),
+            beam_port_4                 = Reactor.BeamPort(geometry    = beam_port_geometry,
                                                            rotation    = 60.0,
                                                            translation = (-13.216 - cosd(60.0)*bp_length*0.5,
                                                                           -22.871 - sind(60.0)*bp_length*0.5,
                                                                           bp_axial_offset)),
 
-            reflector = Reactor.Reflector(geometry = DefaultGeometries.reflector(),
-                                          core_centerline_offset = 0.565 * CM_PER_INCH),  # Ref. [2]_ pg. 55
+            reflector = Reactor.Reflector(
+                geometry = DefaultGeometries.reflector(non_fuel_temp),
+                core_centerline_offset = 0.565 * CM_PER_INCH,
+            ),  # Ref. [2]_ pg. 55
 
             upper_grid_plate = Reactor.GridPlate(
-                geometry = DefaultGeometries.upper_grid_plate(),
+                geometry = DefaultGeometries.upper_grid_plate(non_fuel_temp),
                 top_to_core_centerline_distance = DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
             ),
 
             lower_grid_plate = Reactor.GridPlate(
-                geometry = DefaultGeometries.lower_grid_plate(),
+                geometry = DefaultGeometries.lower_grid_plate(non_fuel_temp),
                 top_to_core_centerline_distance = DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
             ),
         )

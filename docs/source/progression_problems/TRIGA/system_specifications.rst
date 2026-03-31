@@ -1,3 +1,4 @@
+
 .. _progression_problems_triga_system_specifications:
 
 =====================
@@ -13,35 +14,26 @@ in their respective sub-sections.
 Fuel Element
 ============
 
-The TRIGA fuel is composed of uranium uniformly dispersed within a zirconium-hydride matrix. Each Standard Fuel Element (SFE)
-consists of an annular section of this fuel-moderator material, with a central hole that accommodates a zirconium filler rod.
-The fuel region is encapsulated within a stainless-steel cladding tube, and the sealed volume surrounding the fuel contains a
-fill gas occupying both the radial and axial gaps to accommodate thermal expansion and fission gas release. The fuel is axially
-centered by graphite reflectors located at both the upper and lower ends. A gas gap is positioned above the upper reflector to
-allow for additional expansion, while a molybdenum disc is placed above the lower reflector to protect the lower graphite section
-from potential damage.
+Standard TRIGA fuel consists of uranium uniformly dispersed in a zirconium–hydride (ZrH) matrix. Each standard fuel element
+comprises an annular fuel–moderator region with a central hole containing a zirconium filler rod, encapsulated within a stainless-steel
+cladding tube. A sealed plenum volume with fill gas occupies the radial and axial gaps to accommodate thermal expansion and fission gas
+release, and the fuel is axially centered by graphite reflector sections at the upper and lower ends. A gas gap above the upper
+reflector provides additional expansion volume, while a molybdenum disk above the lower reflector protects the lower graphite section.
+Welded end fixtures provide structural support and establish coolant flow paths: the lower fixture seats the element on the lower grid
+plate, and the upper fixture centers the element in the upper grid plate, routes coolant through the top grid plate, and provides an
+attachment point for handling tools. For modeling simplicity, the end fittings are approximated using an equivalent cone-plus-cylinder
+representation. The conical section is defined with a base radius equal to the cladding outer radius and an assumed squared slope
+parameter of ``r2 = 0.25``; the remaining end-fitting length is treated as a solid cylinder of the same radius. General geometric
+specifications relevant to TRIGA progression problems are summarized in :numref:`table-fuel-element`, and the axial
+configuration of the fuel element is depicted in :numref:`figure-fuel-element-axial_profile`.
 
-End fixtures are welded to both ends of the cladding tube to provide structural support and facilitate coolant flow. Specifically,
-the lower end fixture supports the element on the lower grid plate, while the upper end fixture centers the element within the
-upper grid plate, provides a flow path for coolant through the top grid plate, and serves as an attachment point for fuel handling
-tools. In Instrumented Fuel Elements (IFEs), which contain thermocouples embedded within the fuel matrix, the upper end fixture
-also provides a conduit for thermocouple lead wires.
+.. _figure-fuel-element-axial_profile:
 
-Three distinct end fixture designs have been fabricated—referred to as original, integral, and streamlined—as illustrated in
-:numref:`figure-fuel-elements`. For the sake of simplicity, these end fittings are typically approximated using a conical geometry.
-As such, an conical equivalent estimate is provided for this specification assuming a cone with a base-radius equal to the cladding
-outer-radius and a cone slope squared of ``r2 = 0.25``, with the remaining length of the end-fixture treated as a solid cylinder.
-General geometric specifications relevant to the TRIGA progression problems are summarized in :numref:`table-fuel-element`, and the
-axial configuration of the fuel element is depicted in :numref:`figure-fuel-element-axial_profile`.
-
-.. _figure-fuel-elements:
-
-.. figure:: /_static/images/triga/fuel_element_variations.png
+.. figure:: /_static/images/triga/fuel_element_axial_diagram.png
    :align: center
    :width: 60%
 
-   Variations of TRIGA Fuel Elements (Ref. 1_).
-
+   Diagram of Fuel Element Axial Profile.
 
 .. table:: Mark III Fuel Element Geometry Specifications
    :name: table-fuel-element
@@ -96,26 +88,26 @@ axial configuration of the fuel element is depicted in :numref:`figure-fuel-elem
    |               | Material                       | Stainless-Steel  | Ref. 1_, Table 4.1 |
    +---------------+--------------------------------+------------------+--------------------+
 
-.. _figure-fuel-element-axial_profile:
-
-.. figure:: /_static/images/triga/fuel_element_axial_diagram.png
-   :align: center
-   :width: 60%
-
-   Diagram of Fuel Element Axial Profile.
 
 .. _progression_problems_triga_graphite_element:
 
 Graphite Element
 ================
 
-Graphite dummy elements are rods which may be used to core positions not occupied by fuel elements.
-They have the same general dimensions as the fuel elements, but are filled with graphite and clad
-in aluminum.
+Graphite dummy elements are rod-type inserts that may be placed in core lattice positions to help shape
+the radial flux distribution by altering local moderation conditions as compared to filling the location
+with a fuel element or leaving the location vacant. They are fabricated to the same general envelope
+dimensions as standard fuel elements, but contain a graphite body and are clad in aluminum. Key geometric
+specifications used in the TRIGA progression problems are summarized in :numref:`table-graphite-element`,
+and the axial configuration of the graphite element is shown in :numref:`figure-graphite-element-axial_profile`.
 
-General geometric specifications relevant to the TRIGA progression problems are summarized in
-:numref:`table-graphite-element`, and the axial configuration of the graphite element is depicted in
-:numref:`figure-graphite-element-axial_profile`.
+.. _figure-graphite-element-axial_profile:
+
+.. figure:: /_static/images/triga/graphite_element_axial_diagram.png
+   :align: center
+   :width: 60%
+
+   Diagram of Graphite Element Axial Profile.
 
 .. table:: Graphite Rod Geometry Specifications
    :name: table-graphite-element
@@ -145,14 +137,6 @@ General geometric specifications relevant to the TRIGA progression problems are 
    |               +--------------------------------+-----------------------------------------+----------------------------+
    |               | Material                       | Aluminum                                | Ref. 2_, pg. 50            |
    +---------------+--------------------------------+-----------------------------------------+----------------------------+
-
-.. _figure-graphite-element-axial_profile:
-
-.. figure:: /_static/images/triga/graphite_element_axial_diagram.png
-   :align: center
-   :width: 60%
-
-   Diagram of Graphite Element Axial Profile.
 
 .. _progression_problems_triga_material_compositions:
 

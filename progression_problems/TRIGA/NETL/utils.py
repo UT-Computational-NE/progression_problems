@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import mpactpy
 
@@ -11,7 +11,7 @@ from progression_problems.constants import THERMAL_ENERGY_CUTOFF
 
 
 def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
-                                 universes: List[int] = [],
+                                 universes: Optional[List[int]] = None,
                                  mesh: openmc.RegularMesh = None
 ) -> Dict[str, openmc.Tally]:
     """Build a set of generic OpenMC tallies for TRIGA problems.
@@ -20,8 +20,8 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
     ----------
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
-    universes : List[int]
-        A list of universe IDs to which the tallies should be applied.
+    universes : Optional[List[int]]
+        A list of universe IDs to which the tallies should be applied.  Defaults to None.
     mesh : openmc.RegularMesh
         An optional mesh to use for mesh tallies.
 
@@ -34,7 +34,17 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
     tallies: Dict[str, openmc.Tally] = {}
 
     TwoGroupFilter  = openmc.EnergyFilter([0., THERMAL_ENERGY_CUTOFF, 20.0e6])
-    MultiGroupFilter = openmc.EnergyFilter(openmc.mgxs.GROUP_STRUCTURES[spectrum_group_structure])
+
+    if spectrum_group_structure not in openmc.mgxs.GROUP_STRUCTURES:
+        available_group_structures = ", ".join(sorted(openmc.mgxs.GROUP_STRUCTURES))
+        raise ValueError(
+            f"Unsupported spectrum_group_structure {spectrum_group_structure!r}. "
+            f"Expected one of: {available_group_structures}."
+        )
+
+    MultiGroupFilter = openmc.EnergyFilter(
+        openmc.mgxs.GROUP_STRUCTURES[spectrum_group_structure]
+    )
 
     tallies['flux'] = openmc.Tally(name='total_flux')
     tallies['flux'].scores = ['flux']
@@ -63,7 +73,7 @@ def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
     if universes:
         tallies['mesh_tally'] = openmc.Tally(name='mesh_tally')
         tallies['mesh_tally'].scores = ['flux', 'absorption', 'scatter', 'fission', 'nu-fission', 'kappa-fission']
-        tallies['mesh_tally'].filters = [openmc.UniverseFilter(list(u for u in universes))]
+        tallies['mesh_tally'].filters = [openmc.UniverseFilter(universes)]
         if mesh:
             tallies['mesh_tally'].filters.append(openmc.MeshFilter(mesh))
 
@@ -104,12 +114,12 @@ DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, MaterialSpecs] = {
     "cadmium":              mpactpy.Material.MPACTSpecs({}, False, False, False, False),
     }
 
-def default_mpact_material_specs(materials: List[Material]) -> MaterialSpecs:
+def default_mpact_material_specs(materials_list: List[Material]) -> MaterialSpecs:
     """Get the default MPACT material specifications for a list of materials.
 
     Parameters
     ----------
-    materials : List[Material]
+    materials_list : List[Material]
         A list of materials for which to get the default MPACT specifications.
 
     Returns
@@ -119,7 +129,7 @@ def default_mpact_material_specs(materials: List[Material]) -> MaterialSpecs:
     """
 
     specs: MaterialSpecs = {}
-    for material in materials:
+    for material in materials_list:
         material_name = material.name.lower()
         if material_name in DEFAULT_MPACT_MATERIAL_SPECS_MAPPING:
             specs[material] = DEFAULT_MPACT_MATERIAL_SPECS_MAPPING[material_name]

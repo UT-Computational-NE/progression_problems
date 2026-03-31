@@ -3,7 +3,6 @@ from typing import Dict, List, Optional
 import openmc
 import mpactpy
 from coreforge.geometry_elements import HexLattice
-from coreforge.materials import Material
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
 from coreforge.geometry_elements.triga.netl import Core, CentralThimble, SourceHolder, Reactor
 from coreforge import openmc_builder
@@ -11,57 +10,13 @@ from coreforge import mpact_builder
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
+from progression_problems.TRIGA.NETL.problem_2_utils import build_multicell_geometry
 from progression_problems.TRIGA.NETL.utils import (build_generic_openmc_tallies,
                                                    DEFAULT_MPACT_SETTINGS,
                                                    default_mpact_material_specs)
 
 
 reactor          = NETL_DefaultGeometries.reactor()
-
-
-def build_multicell_geometry(fuel:            FuelElement,
-                             coolant:         openmc.Material,
-                             central_element: Optional[Core.Element],
-                             pitch:           float = NETL_DefaultGeometries.core().pitch,
-    ) -> HexLattice:
-    """ Build a multicell CoreForge geometry for a fuel design,
-        central element, and coolant material.
-
-    Parameters
-    ----------
-    fuel : FuelElement
-        The TRIGA fuel element to build the fuel cells with.
-    coolant : openmc.Material
-        The coolant material to use in the multicell geometry.
-    central_element : Optional[Core.Element]
-        The central element to include in the multicell geometry.
-    pitch : float
-        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
-        the NETL core pitch.
-
-    Returns
-    -------
-    HexLattice
-        The constructed multicell geometry.
-    """
-
-    f = fuel
-    c = central_element
-    elements = [[         f,         ],
-                [     f,      f,     ],
-                [ f,      f,      f, ],
-                [     f,      f,     ],
-                [ f,      c,      f, ],
-                [     f,      f,     ],
-                [ f,      f,      f, ],
-                [     f,      f,     ],
-                [         f,         ]]
-
-    return HexLattice(
-        pitch          = pitch,
-        outer_material = Material(coolant),
-        elements       = elements,
-        orientation    = "y")
 
 
 def core_location(element: Core.Element) -> str:
@@ -164,7 +119,11 @@ def build_openmc_model(fuel:                        FuelElement,
     """
 
     dims           = lattice_dims(pitch)
-    lattice        = build_multicell_geometry(fuel, coolant, central_element, pitch)
+    lattice        = build_multicell_geometry(fuel                   = fuel,
+                                              coolant                = coolant,
+                                              central_element        = central_element,
+                                              pitch                  = pitch,
+                                              build_2D_pincells     = False)
     outer_material = lattice.outer_material.openmc_material
     outer_universe = openmc.Universe(cells=[openmc.Cell(fill=outer_material)])
 
@@ -283,7 +242,11 @@ def write_mpact_input(fuel:                        FuelElement,
         The options settings to use in the MPACT input.
     """
 
-    lattice = build_multicell_geometry(fuel, coolant, central_element, pitch)
+    lattice = build_multicell_geometry(fuel                   = fuel,
+                                       coolant                = coolant,
+                                       central_element        = central_element,
+                                       pitch                  = pitch,
+                                       build_2D_pincells     = False)
 
     stack_elements = []
     element_specs = {}

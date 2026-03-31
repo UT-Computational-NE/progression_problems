@@ -142,9 +142,10 @@ def build_element_pincell_geometry(element: Optional[Core.Element],
 def build_multicell_geometry(fuel:                 FuelElement,
                              coolant:              openmc.Material,
                              central_element:      Optional[Core.Element],
-                             control_rod_inserted: bool,
-                             coolant_pincell_radii: Sequence[float],
+                             control_rod_inserted: bool = False,
+                             coolant_pincell_radii: Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                              pitch:                float = NETL_DefaultGeometries.core().pitch,
+                             build_2D_pincells: bool = True,
     ) -> HexLattice:
     """ Build a multicell CoreForge geometry for a fuel design,
         central element, and coolant material.
@@ -166,6 +167,9 @@ def build_multicell_geometry(fuel:                 FuelElement,
     pitch : float
         Hexagonal lattice pitch to use for the multicell geometry. Defaults to
         the NETL core pitch.
+    build_2D_pincells : bool
+        Whether to build 2-D pincell representations for the lattice elements.
+        Set to False to return the raw element lattice.
 
     Returns
     -------
@@ -185,8 +189,11 @@ def build_multicell_geometry(fuel:                 FuelElement,
                [     f,      f,     ],
                [         f,         ]]
 
-    elements = [[build_element_pincell_geometry(e, coolant, control_rod_inserted, coolant_pincell_radii)
-                 for e in row] for row in lattice]
+    elements = lattice
+    if build_2D_pincells:
+        elements = [[build_element_pincell_geometry(e, coolant, control_rod_inserted, coolant_pincell_radii)
+                     for e in row] for row in lattice]
+
     return HexLattice(pitch          = pitch,
                       outer_material = Material(coolant),
                       elements       = elements,

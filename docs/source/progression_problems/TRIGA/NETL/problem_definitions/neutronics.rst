@@ -23,31 +23,34 @@ NETL TRIGA
 Problem 1: 2D Pin Cell
 ======================
 
-
-The first problem is a 2D representation of the smallest repeating fuel unit cell of the NETL
-TRIGA core with reflecting boundary conditions. Given that the NETL TRIGA core is arranged in
-a hexagonal lattice, the smallest repeating unit cell is two quarter pins hexagonally pitched,
-forming a rectangular cell with the quarter pins centered on opposite corners from each other
-as illustrated in :numref:`figure-triga-netl-problem_1`.
-
-This unit cell problem allows for the assessment of basic geometric modeling, model mesh
-refinement, and isolating effects associated with cross-section libraries and cross-section
-calculations through reaction rate edits. This problem tests the fundamental capabilities of
-the codes while also highlighting any material or cross-section processing deficiencies.
+The first progression-problem set consists of a two-dimensional radial model of the smallest
+repeating fuel unit cell in the NETL TRIGA core, with reflective boundary conditions applied
+in both the radial and axial directions. Because the core is arranged on a hexagonal lattice,
+the smallest repeating unit is formed by two quarter-pin fuel regions on a hexagonal pitch,
+which together define a rectangular cell with the quarter pins located at opposite corners,
+as shown in :numref:`figure-triga-netl-problem_1`. This problem is intended to assess basic
+geometric & depletion capabilities, mesh refinement requirements, and the influence of cross-section
+libraries and cross-section processing via reaction-rate edits. As such, it provides a simple but
+useful test of fundamental code capabilities.
 
 :numref:`table-problem-1-definitions` provides the specifications for the various cases
 to be simulated for this problem.  In these cases, the fuel meat and Zr Filler rod are treated
 with the same temperature, and clad and coolant temperatures are treated with the same temperature.
-Fuel temperatures range from room temperature up to 1200K with several temperatures aligning with
+Fuel temperatures range from room temperature up to 900K with several temperatures aligning with
 cross-section library temperatures so as to allow for direct comparison to Monte Carlo without the
 need for interpolation.  823.15 K represents the peak allowed fuel temperature according to Table
-4.4 of Reference [1].  Coolant temperatures and densities are taken from Table 4.20 of Reference [1]
+4.4 of Reference 1_.  Coolant temperatures and densities are taken from Table 4.20 of Reference 1_
 so as to be representative of the range of anticipated operating conditions.
 
-Recommended outputs for this problem include:
-  - k-effective
-  - 1-2 Group Reaction Rates (Fission, Absorption, etc.)
-  - Flux Spectrum
+For depletion assessments, target burnups are defined ineffective full-power days (EFPD), based on a
+full-core power of 1 MW distributed across 110 fuel elements. Since this is a 2D single-element model,
+the applied model power should preserve the appropriate average power per element per unit height,
+(ex: :math:`1\,\mathrm{MW}\left(\frac{\text{model height}}{\text{fuel-meat height}}\right)\left(\frac{0.5\ \text{element in model}}{110\ \text{elements in core}}\right)`).
+The 2.0 EFPD and 20.0 EFPD targets were selected to represent the characteristic buildup periods of Xe-135
+and Sm-149, respectively. The 265.0 EFPD and 530.0 EFPD targets correspond approximately to
+middle-of-life (MOL) and end-of-life (EOL) element burnups, based on an estimated maximum fuel-element burnup
+of 6 g of U-235 (Ref. 1_, p. 3-2) and an estimated depletion rate of 1.25 g of U-235 per MWd (Ref. 2_, p. 4).
+
 
 .. _figure-triga-netl-problem_1:
 
@@ -57,54 +60,73 @@ Recommended outputs for this problem include:
 
    Problem 1 Geometry.
 
-
 .. table:: Problem 1 Definitions
    :name: table-problem-1-definitions
 
-   +---------+----------------------------------+--------------------------------+------------------------+
-   | Problem | Fuel / Zr Filler Temperature (K) | Clad / Coolant Temperature (K) | Coolant Density (g/cc) |
-   +=========+==================================+================================+========================+
-   | 1A      |   293.15                         | 293.15                         |  0.9970                |
-   +---------+----------------------------------+--------------------------------+------------------------+
-   | 1B      |   600.0                          | 322.15                         |  0.9885                |
-   +---------+----------------------------------+--------------------------------+------------------------+
-   | 1C      |   823.15                         | 322.15                         |  0.9885                |
-   +---------+----------------------------------+--------------------------------+------------------------+
-   | 1D      |   900.0                          |   ↓                            |   ↓                    |
-   +---------+----------------------------------+--------------------------------+------------------------+
-   | 1E      |  1200.0                          |   ↓                            |   ↓                    |
-   +---------+----------------------------------+--------------------------------+------------------------+
-   | 1F      |   600.0                          | 293.15                         |  0.9970                |
-   +---------+----------------------------------+--------------------------------+------------------------+
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | Problem | Fuel / Zr Filler Temp. (K) | Non-Fuel Temp. (K) | Coolant Dens. (g/cc) | Burnup (EFPD) |
+   +=========+============================+====================+======================+===============+
+   | 1A      |   293.15                   | 293.15             |  0.9970              | 0.0           |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1B      |   600.0                    | 322.15             |  0.9885              | 0.0           |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1C      |   823.15                   | 322.15             |  0.9885              | 0.0           |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1D      |   900.0                    | 322.15             |  0.9885              | 0.0           |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1E      |   600.0                    | 293.15             |  0.9970              | 0.0           |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1F      |   600.0                    | 293.15             |  0.9970              | 2.0           |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1G      |   600.0                    | 293.15             |  0.9970              | 20.0          |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1H      |   600.0                    | 293.15             |  0.9970              | 265.0         |
+   +---------+----------------------------+--------------------+----------------------+---------------+
+   | 1I      |   600.0                    | 293.15             |  0.9970              | 530.0         |
+   +---------+----------------------------+--------------------+----------------------+---------------+
 
+
+.. table:: Problem 1 Recommended Outputs
+
+   +--------------------+----------------------------+
+   | Output             | Subcategories              |
+   +====================+============================+
+   | k-eff              |   --                       |
+   +--------------------+----------------------------+
+   | Reaction Rates     |   One-Group / Multi-Group  |
+   |                    +----------------------------+
+   |                    |   Fission / Absorption     |
+   |                    +----------------------------+
+   |                    |   Macro / Micro            |
+   |                    +----------------------------+
+   |                    |   Global / Material-Wise   |
+   +--------------------+----------------------------+
+   | Flux Spectrum      |   Global / Material-Wise   |
+   +--------------------+----------------------------+
+   | Isotopic Inventory |   Fuel                     |
+   +--------------------+----------------------------+
 
 
 Problem 2: 2D Multi-Pin Cell
 ============================
 
-The second problem is a 2D representation of a multi-pin cell of the NETL TRIGA core
-with reflecting boundary conditions. This multi-pin cell consists of a central control
-rod cell surrounded by 2 rings of fuel pins in a hexagonal lattice as illustrated in
-:numref:`figure-triga-netl-problem_2`.  Since the boundary surface is a rectangular boundary,
-the outer ring of fuel pins is only partially represented.  With reflecting boundary conditions,
-this model roughly represents the interior region of the core around the control rods.
+The second progression-problem set consists of two-dimensional models of a multi-pin region of the
+NETL TRIGA core with reflective boundary conditions. In these models, the central lattice position
+is occupied either by a non-fuel element or by a vacant water hole and is surrounded by two rings of
+fuel pins arranged on a hexagonal lattice, as shown in :numref:`figure-triga-netl-problem_2`. With reflective
+boundary conditions, the model provides an approximate representation of an interior core region
+surrounding a non-fuel or vacant lattice position. Relative to the single-pin cell problem set, this
+progression-problem set introduces additional geometric complexity through increased radial
+heterogeneity and the inclusion of additional non-fuel materials. It therefore provides a more
+demanding test of geometric modeling, multi-pin depletion for fuel and control rod absorber, and cross-section
+treatment while also enabling evaluation of pin-wise quantities such as pin powers. In addition,
+it offers an opportunity to assess solver computational scalability in progressing from pin-cell
+models to multi-pin configurations. :numref:`table-problem-2-definitions` summarizes the cases
+considered in this progression-problem set.
 
-This problem introduces additional geometric complexity compared to the single pin cell problem
-through radial heterogeneity and introduces for the inclusion of non-fuel materials such
-as control elements (e.g., poisons). This problem tests the geometric and cross-section treatment
-capabilities with slightly increased model complexity while enabling the evaluation of cell-wise outputs,
-such as pin powers.  This also provides an opportunity for assessing solver scalability when going
-from pin-cell models to multi-pin models.
-
-:numref:`table-problem-2-definitions` provides the specifications for the various cases
-to be simulated for this problem.  For the TCR Air Follower case, temperatures and densities again
-range over representative values much like Problem 1.  The other cases introduce the presence of
-absorber and fuel follower materials in the control rod, testing the proper treatment of these materials.
-
-Recommended outputs for this problem include:
-  - k-effective
-  - Flux Spectrum
-  - Pin-wise Power Distributions
+For depletion cases, the target burnup is again specified in EFPD, assuming a full-core power of 1 MW
+distributed over 110 fuel elements. Since this is a 2D model representing only a portion of the core,
+the applied model power must be scaled to maintain the correct average power per fuel element per unit height.
 
 .. _figure-triga-netl-problem_2:
 
@@ -114,122 +136,129 @@ Recommended outputs for this problem include:
 
    Problem 2 Geometry.
 
-
 .. table:: Problem 2 Definitions
    :name: table-problem-2-definitions
 
 
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | Problem | Description           | Fuel / Zr Filler Temperature (K) | Clad / Coolant Temperature (K) | Coolant Density (g/cc) |
-   +=========+=======================+==================================+================================+========================+
-   | 2A      |   Water Hole          |  293.15                          |  293.15                        |  0.9970                |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2B      |   Water Hole          |  600.0                           |  322.15                        |  0.9885                |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2C      |   Water Hole          |  900.0                           |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2D      |   Water Hole          | 1200.0                           |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2E      |   Water Hole          |  600.0                           |  293.15                        |  0.9970                |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2F      |   Central Thimble     |   ↓                              |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2G      |   Graphite Element    |   ↓                              |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2H      |   Source Holder       |   ↓                              |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2I      |   TCR Air Follower    |   ↓                              |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2J      |   TCR Absorber        |   ↓                              |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2K      |   FCCR Fuel Follower  |   ↓                              |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
-   | 2L      |   FCCR Absorber       |   ↓                              |    ↓                           |    ↓                   |
-   +---------+-----------------------+----------------------------------+--------------------------------+------------------------+
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | Problem | Central Element       | Fuel / Zr Filler Temp. (K) | Non-Fuel Temp. (K) | Coolant Dens. (g/cc) | Burnup (EFPD) |
+   +=========+=======================+============================+====================+======================+===============+
+   | 2A      |   Water Hole          |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2B      |   Water Hole          |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2C      |   Water Hole          |  600.0                     |  293.15            |  0.9970              | 530.0         |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2D      |   Central Thimble     |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2E      |   Central Thimble     |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2F      |   Graphite Element    |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2G      |   Graphite Element    |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2H      |   TCR Air Follower    |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2I      |   TCR Air Follower    |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2J      |   TCR Absorber        |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2K      |   TCR Absorber        |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2L      |   TCR Absorber        |  600.0                     |  293.15            |  0.9970              | 530.0         |
+   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+
+
+.. table:: Problem 2 Recommended Outputs
+
+   +--------------------+----------------------------+
+   | Output             | Subcategories              |
+   +====================+============================+
+   | k-eff              |   --                       |
+   +--------------------+----------------------------+
+   | Reaction Rates     |   One-Group / Multi-Group  |
+   |                    +----------------------------+
+   |                    |   Fission / Absorption     |
+   |                    +----------------------------+
+   |                    |   Macro / Micro            |
+   |                    +----------------------------+
+   |                    |   Global / Material-Wise   |
+   +--------------------+----------------------------+
+   | Flux Spectrum      |   Global / Material-Wise   |
+   +--------------------+----------------------------+
+   | Isotopic Inventory |   Fuel / TCR Absorber      |
+   +--------------------+----------------------------+
+   | Pin Powers         |   Radial                   |
+   +--------------------+----------------------------+
 
 
 Problem 3: 2D Full Core
 =======================
 
-This problem introduces a full-core 2D representation of the NETL TRIGA reactor which increases
-radial geometric complexity and introduces non-reflective boundary conditions.  This problem has
-three primary variations: a non-excore model, an excore model with the rotary specimen rack (RSR)
-included, and an excore model with beam ports included.  The geometry for this problem is illustrated
-in :numref:`figure-triga-netl-problem_3`. The non-excore model is bounded by a circular region with a
-radius equal to seven times the core lattice pitch, while the excore models include the shroud,
-reflector, pool, and either the RSR cavity or the beam ports.  Axially, all models are assumed to have
-reflective boundary conditions, with the beam port model representing beam ports at their full
-widths (i.e. beam port radius at the centerline plane of the beam ports).
+The third progression-problem set introduces a full-core two-dimensional model of the NETL TRIGA reactor,
+thereby increasing radial geometric complexity and removing the reflective radial boundary conditions used
+in the earlier problems. This set includes three primary model variations: a non-excore model, an excore model
+with the rotary specimen rack (RSR), and an excore model with beam ports. The non-excore model is bounded by a
+circular outer surface with radius equal to seven times the core lattice pitch. The excore models, by contrast,
+include the core shroud, reflector, reactor pool, and either the RSR cavity or the beam ports. In all cases,
+reflective boundary conditions are applied axially. For the beam-port variant, the beam ports are represented
+at their full widths, corresponding to the beam-port radius at the beam-port centerline plane. For this
+progression-problem set, all core locations are loaded with fresh fuel elements except for the reserved positions
+identified in :numref:`reserved-core-locations`, which are occupied by the specified components. In
+addition, location G-32 is filled with a source holder, locations E-11, F-13, F-14, and G-34 are modeled as vacant
+water holes, and location D-03 contains a graphite element. :numref:`figure-reactor-radial-picture` illustrates the
+radial geometry of the two excore cases, while :numref:`table-problem-3-definitions` summarizes the remaining case specifications.
 
-For this problem, the core will be filled with fresh fuel rods in all core locations with the exceptions of
-the reserved locations specified in :ref:`reserved-core-locations` table which are filled with those elements
-specified in the table, as well as G-32 which will be filled with a source holder, E-11, F-13, F-14, and G-34
-which will be empty "water holes", and D-03 which will have a graphite element.  The geometry for this problem
-is illustrated in :numref:`figure-triga-netl-problem_3`.  :numref:`table-problem-3-definitions` provides the
-remaining specifications for the cases to be simulated for this problem.
-
-Recommended outputs for this problem include:
-  - k-effective
-  - Flux Spectrum
-  - Pin-wise Power Distributions
-  - Ex-core Detector Responses
-  - Flux at experiment locations
-
-.. _figure-triga-netl-problem_3:
-
-.. figure:: /_static/images/triga/netl/problem_3.png
-   :align: center
-   :width: 60%
-
-   Problem 3 Geometry.
 
 .. table:: Problem 3 Definitions
    :name: table-problem-3-definitions
 
    +---------+----------+----------+----------+------------------+-----------------+----------------+
    | Problem | Excore   | TCR      | FFCR     | Fuel / Zr Filler | Clad / Coolant  | Coolant        |
-   |         | Features?| Section  | Section  | Temperature (K)  | Temperature (K) | Density (g/cc) |
+   |         | Features | Section  | Section  | Temp. (K)        | Temp. (K)       | Dens. (g/cc)   |
    +=========+==========+==========+==========+==================+=================+================+
-   | 3A      |  None    | Air      | Fuel     |  293.15          |  293.15         |  0.9970        |
+   | 3A      |  None    | Air      | Fuel     |  600.0           |  293.15         |  0.9970        |
    |         |          | Follower | Follower |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3B      |  None    | Air      | Fuel     |  600.0           |  322.15         |  0.9885        |
+   | 3B      |  RSR     | Air      | Fuel     |  600.0           |  293.15         |  0.9970        |
    |         |          | Follower | Follower |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3C      |  None    | Air      | Fuel     |  600.0           |  293.15         |  0.9970        |
-   |         |          | Follower | Follower |                  |                 |                |
+   | 3C      |  RSR     | Absorber | Absorber |  600.0           |  293.15         |  0.9970        |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3D      |  RSR     | Air      | Fuel     |    ↓             |    ↓            |    ↓           |
-   |         |          | Follower | Follower |                  |                 |                |
-   +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3E      |  RSR     | Absorber | Absorber |    ↓             |    ↓            |    ↓           |
-   +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3F      |  Beam    | Air      | Fuel     |    ↓             |    ↓            |    ↓           |
+   | 3D      |  Beam    | Air      | Fuel     |  600.0           |  293.15         |  0.9970        |
    |         |  Ports   | Follower | Follower |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
-   | 3G      |  Beam    | Absorber | Absorber |    ↓             |    ↓            |    ↓           |
+   | 3E      |  Beam    | Absorber | Absorber |  600.0           |  293.15         |  0.9970        |
    |         |  Ports   |          |          |                  |                 |                |
    +---------+----------+----------+----------+------------------+-----------------+----------------+
 
+.. table:: Problem 3 Recommended Outputs
 
+   +--------------------+----------------------------+
+   | Output             | Subcategories              |
+   +====================+============================+
+   | k-eff              |   --                       |
+   +--------------------+----------------------------+
+   | Flux Spectrum      |   Global                   |
+   +--------------------+----------------------------+
+   | Pin Powers         |   Radial                   |
+   +--------------------+----------------------------+
 
 
 Problem 4: 3D Multi-Pin Cell
 ============================
 
-This problem is essentially an extension of 2D multi-pin cell problem into 3D space.  This model introduces
-axial heterogeneity through the full 3D representation of the core elements as well the us of axial vacuum
-boundary conditions.  This problems also tests the movement of control rods within the multi-pin cell
-geometry.  The geometry for this problem is illustrated in :numref:`figure-triga-netl-problem_4`.
+The fourth progression-problem set extends the two-dimensional multi-pin cell problems into three dimensions.
+In doing so, it introduces axial heterogeneity through full three-dimensional representation of the core elements
+and removes the axially reflective boundary conditions used in the earlier sets. This set also provides a basis
+for testing control-rod motion within the multi-pin geometry, as well as axial depletion of fuel and absorber materials.
+The corresponding geometry is shown in :numref:`figure-triga-netl-problem_4`, and the case specifications are summarized in
+:numref:`table-problem-4-definitions`. Axially, the models include the upper and lower grid plates together with
+pool-water regions extending to 80 cm above and below the fuel axial centerline.
 
-:numref:`table-problem-4-definitions` provides the specifications for the various cases
-to be simulated for this problem.  Axially, these models should include the upper and lower grid plates as
-well as upper and lower pool water regions extending as far as 80 cm above and below the fuel axial centerline.
-
-Recommended outputs for this problem include:
-  - k-effective
-  - Flux Spectrum
-  - Pin-wise Power Distributions
+For depletion cases, the target burnup is again specified in EFPD, based on a full-core power of 1 MW distributed across 110
+fuel elements. Because this model represents the full fuel height but not the full core, the applied model power should be
+scaled only as needed to preserve the appropriate average power per fuel element.
 
 .. _figure-triga-netl-problem_4:
 
@@ -244,92 +273,111 @@ Recommended outputs for this problem include:
    :name: table-problem-4-definitions
 
 
-   +---------+----------------------+------------------+-----------------+----------------+
-   | Problem | Description          | Fuel / Zr Filler | Clad / Coolant  | Coolant        |
-   |         |                      | Temperature (K)  | Temperature (K) | Density (g/cc) |
-   +=========+======================+==================+=================+================+
-   | 4A      |  Water Hole          |  293.15          |  293.15         |  0.9970        |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 4B      |  Water Hole          |  600.0           |  322.15         |  0.9885        |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 4C      |  Water Hole          |  600.0           |  293.15         |  0.9970        |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 4D      |  Central Thimble     |    ↓             |    ↓            |    ↓           |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 4E      |  Graphite Element    |    ↓             |    ↓            |    ↓           |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 4F      |  Source Holder       |    ↓             |    ↓            |    ↓           |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 4G      |  TCR                 |    ↓             |    ↓            |    ↓           |
-   |         |  (0%-100% Withdrawn) |                  |                 |                |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 4H      |  FCCR                |    ↓             |    ↓            |    ↓           |
-   |         |  (0%-100% Withdrawn) |                  |                 |                |
-   +---------+----------------------+------------------+-----------------+----------------+
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | Problem | Central Element      | Fuel / Zr Filler | Clad / Coolant  | Coolant        | Burnup  |
+   |         |                      | Temp. (K)        | Temp. (K)       | Dens. (g/cc)   | (EFPD)  |
+   +=========+======================+==================+=================+================+=========+
+   | 4A      |  Water Hole          |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4B      |  Central Thimble     |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4C      |  Graphite Element    |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4D      |  Source Holder       |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4E      |  TCR                 |  600.0           |  293.15         |  0.9970        |   0.0   |
+   |         |  (0%-100% Withdrawn) |                  |                 |                |         |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4F      |  FCCR                |  600.0           |  293.15         |  0.9970        |   0.0   |
+   |         |  (0%-100% Withdrawn) |                  |                 |                |         |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4G      |  FCCR                |  600.0           |  293.15         |  0.9970        |  350.0  |
+   |         |  (80% Withdrawn)     |                  |                 |                |         |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
 
+.. table:: Problem 4 Recommended Outputs
+
+   +--------------------+----------------------------+
+   | Output             | Subcategories              |
+   +====================+============================+
+   | k-eff              |   --                       |
+   +--------------------+----------------------------+
+   | Flux Spectrum      |   Global                   |
+   +--------------------+----------------------------+
+   | Isotopic Inventory |   Fuel / TCR Absorber      |
+   +--------------------+----------------------------+
+   | Pin Powers         |   Radial / Axial / 3D      |
+   +--------------------+----------------------------+
+   | Rod Worths         |   Differential / Integral  |
+   +--------------------+----------------------------+
 
 Problem 5: 3D Full Core
 =======================
 
-This progression problem is a 3D extension of Problem 3 with all ex-core features, introducing
-all axial heterogeneities of the full core (cylindrical beam ports, core element axial structures,
-rotary specimen rack, etc.) as well as both axial and radial vacuum boundary conditions.  The
-radial profiles of this geometry are the same as those illustrated in :numref:`figure-triga-netl-problem_3`
-while a Y-Z axial profile slicing through the center of the core is illustrated in :numref:`figure-triga-netl-problem_5`.
-
-:numref:`table-problem-5-definitions` provides the specifications for the various cases
-to be simulated for this problem.  Axially, these models should include upper and lower axial
-pool water regions extending as far as 80 cm above and below the fuel axial centerline.
-
-Recommended outputs for this problem include:
-  - k-effective
-  - Flux Spectrum
-  - Pin-wise Power Distributions
-  - In-core / Ex-core Detector Responses
-  - Flux at experiment locations
-
-
-.. _figure-triga-netl-problem_5:
-
-.. figure:: /_static/images/triga/netl/problem_5.png
-   :align: center
-   :width: 60%
-
-   Problem 5 Geometry.
-
+The fifth progression-problem set extends progression-problem set 3 to a full three-dimensional core model
+with all excore features included. As such, it introduces the full axial heterogeneity of the reactor, including
+cylindrical beam ports, axial core-element structures, and the rotary specimen rack, together with both axial and
+radial vacuum boundary conditions. The geometry for this set is shown in :numref:`figure-reactor-radial-picture`,
+and :numref:`figure-reactor-axial-picture`, and the corresponding case specifications are summarized in :numref:`table-problem-5-definitions`.
+Axially, the models include upper and lower pool-water regions extending to 80 cm above and below the fuel axial centerline.
 
 .. table:: Problem 5 Definitions
    :name: table-problem-5-definitions
 
-   +---------+----------------------+------------------+-----------------+----------------+
-   | Problem | Description          | Fuel / Zr Filler | Clad / Coolant  | Coolant        |
-   |         |                      | Temperature (K)  | Temperature (K) | Density (g/cc) |
-   +=========+======================+==================+=================+================+
-   | 5A      |  All Rods Out        |  293.15          |  293.15         |  0.9970        |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 5B      |  All Rods Out        |  600.0           |  322.15         |  0.9885        |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 5C      |  All Rods Out        |  600.0           |  293.15         |  0.9970        |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 5D      |  Transient Rod       |    ↓             |    ↓            |    ↓           |
-   |         |  (0%-100% Withdrawn) |                  |                 |                |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 5E      |  Regulating Rod      |    ↓             |    ↓            |    ↓           |
-   |         |  (0%-100% Withdrawn) |                  |                 |                |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 5F      |  Shim Rod 1          |    ↓             |    ↓            |    ↓           |
-   |         |  (0%-100% Withdrawn) |                  |                 |                |
-   +---------+----------------------+------------------+-----------------+----------------+
-   | 5G      |  Shim Rod 2          |    ↓             |    ↓            |    ↓           |
-   |         |  (0%-100% Withdrawn) |                  |                 |                |
-   +---------+----------------------+------------------+-----------------+----------------+
+   +---------+------------------------+------------------+-----------------+----------------+
+   | Problem | Description            | Fuel / Zr Filler | Clad / Coolant  | Coolant        |
+   |         |                        | Temperature (K)  | Temperature (K) | Density (g/cc) |
+   +=========+========================+==================+=================+================+
+   | 5A      | All Rods Out           | 600.0            | 293.15          | 0.9970         |
+   +---------+------------------------+------------------+-----------------+----------------+
+   | 5B      | All Rods In            | 600.0            | 293.15          | 0.9970         |
+   +---------+------------------------+------------------+-----------------+----------------+
+   | 5C      | Transient Rod          | 600.0            | 293.15          | 0.9970         |
+   |         | (0%-100% Withdrawn)    |                  |                 |                |
+   +---------+------------------------+------------------+-----------------+----------------+
+   | 5D      | Regulating Rod         | 600.0            | 293.15          | 0.9970         |
+   |         | (0%-100% Withdrawn)    |                  |                 |                |
+   +---------+------------------------+------------------+-----------------+----------------+
+   | 5E      | Shim Rod 1             | 600.0            | 293.15          | 0.9970         |
+   |         | (0%-100% Withdrawn)    |                  |                 |                |
+   +---------+------------------------+------------------+-----------------+----------------+
+   | 5F      | Shim Rod 2             | 600.0            | 293.15          | 0.9970         |
+   |         | (0%-100% Withdrawn)    |                  |                 |                |
+   +---------+------------------------+------------------+-----------------+----------------+
+
+.. note::
+   For Cases 5C through 5F, all other rods are fully withdrawn.
+
+.. table:: Problem 5 Recommended Outputs
+
+   +--------------------+----------------------------+
+   | Output             | Subcategories              |
+   +====================+============================+
+   | k-eff              |   --                       |
+   +--------------------+----------------------------+
+   | Flux Spectrum      |   Global                   |
+   +--------------------+----------------------------+
+   | Pin Powers         |   Radial / Axial / 3D      |
+   +--------------------+----------------------------+
+   | Rod Worths         |   Differential / Integral  |
+   +--------------------+----------------------------+
+   | PKE Parameters     |   Beta-effective /         |
+   |                    |   Prompt Neutron           |
+   |                    |   Generation Time          |
+   +--------------------+----------------------------+
+
 
 References
 ==========
 
 .. [1] "University of Texas at Austin Nuclear Engineering Teaching Laboratory
-   TRIGA Research Reactor", August 2023,
-   https://www.nrc.gov/docs/ML2327/ML23279A146.pdf
+       TRIGA Research Reactor", August 2023,
+       https://www.nrc.gov/docs/ML2327/ML23279A146.pdf
+
+.. [2] Boeck, H., M. Villa, and Vienna University of Technology,
+       Atomic Institute of the Austrian Universities, Vienna (Austria).
+       “TRIGA Reactor Characteristics”. 2007.
+
 
 See Also
 ========

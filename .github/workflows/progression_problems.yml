@@ -47,5 +47,5 @@ jobs:
       run: |
         source $(conda info --base)/etc/profile.d/conda.sh && conda activate openmc-env
         python -m pip install .
-        pytest test/unit/ || [ $? -eq 5 ] || exit $?
+        pytest test/unit/ --num-procs=$(nproc) || [ $? -eq 5 ] || exit $?
         python -m pylint ./progression_problems

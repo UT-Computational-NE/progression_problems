@@ -15,6 +15,13 @@ Consequently, the progression problems defined here are not intended as exhausti
 actual systems, but rather as simplified models to support benchmarking and validation of computational
 methods.
 
+For the progression problems, a range of outputs may be examined to assess code performance with respect
+to both predictive accuracy and computational resource requirements. In general, all problems should be
+evaluated in terms of compute time, scaling for parallel calculations, and memory usage. For each
+problem set, a recommended set of outputs will be provided based on subject-matter expertise. However,
+users are encouraged to consider any other outputs relevant to their particular applications, including
+outputs not specified in the recommended set.
+
 .. toctree::
    :maxdepth: 2
 

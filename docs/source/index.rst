@@ -10,7 +10,7 @@ Welcome to the UT Austin Nuclear Engineering Progression Problems. This reposito
 
 These problems serve several key purposes:
 
-- **Assessment:** Provide structured benchmarks for assessing the suitability of modeling and simulation tools.
+- **Assessment:** Provide structured benchmarks for assessing the suitability of modeling and simulation tools, both in terms of accuracy and compute requirements.
 - **Prioritization:** Help guide and prioritize code development efforts.
 - **Transparency:** Offer clear, measurable metrics for evaluating progress and communicating development status to stakeholders and users.
 - **Guidance:** Define how specific modeling features should be applied and interpreted to ensure proper use and reproducibility.

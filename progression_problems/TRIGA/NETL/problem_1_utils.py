@@ -95,7 +95,6 @@ def build_openmc_model(fuel:                     FuelElement,
 
 def write_mpact_input(fuel:                     FuelElement,
                       coolant:                  openmc.Material,
-                      xslib:                    str,
                       pitch:                    float = DefaultGeometries.core().pitch,
                       build_specs:              Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       filename:                 str = "mpact.inp",
@@ -111,8 +110,6 @@ def write_mpact_input(fuel:                     FuelElement,
         CoreForge TRIGA fuel element to model.
     coolant : openmc.Material
         The coolant material to use in the pincell geometry.
-    xslib : str
-        The cross section library file to use in the MPACT input.
     pitch : float
         Hexagonal lattice pitch to use when constructing the repeated pincell
         geometry. Defaults to the NETL core pitch.
@@ -138,7 +135,7 @@ def write_mpact_input(fuel:                     FuelElement,
                                                   gap_tolerance  = fuel.gap_tolerance,
                                                   name           = fuel.name + "_fuel_meat_pincell")
 
-    build_specs = apply_default_mpact_material_specs(build_specs, fuel.get_materials())
+    build_specs = apply_default_mpact_material_specs(build_specs, pincell.get_materials())
 
     bounds = {"SW": mpact_builder.Bounds(
                   X=mpact_builder.AxisBounds(min=-dims["width"], max=0.0),
@@ -158,10 +155,6 @@ def write_mpact_input(fuel:                     FuelElement,
 
     for state in states:
         state["tinlet"] = state.get("tinlet", f"{coolant.temperature}")
-
-    xsec_settings["xslib"] = xsec_settings.get("xslib", xslib)
-
-    options["rr_edits"] = options.get("rr_edits", "HDF5")
 
     mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
     with open(filename, "w") as file:

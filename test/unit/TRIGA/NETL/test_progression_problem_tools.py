@@ -44,7 +44,7 @@ def test_problem_1_openmc_tools(fuel_element, coolant):
 
 
 def test_problem_1_mpact_tools(fuel_element, coolant):
-    problem_1_utils.write_mpact_input(fuel_element, coolant, "xs_library.txt")
+    problem_1_utils.write_mpact_input(fuel_element, coolant)
     assert os.path.exists("mpact.inp")
     os.remove("mpact.inp")
 

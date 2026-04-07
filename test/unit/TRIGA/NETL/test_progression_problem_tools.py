@@ -188,8 +188,9 @@ def test_problem_5_openmc_tools():
 
 
 def test_problem_5_mpact_tools(num_procs):
+    """Excluding excore build for the sake of expediency. It's already being tested in CoreForge."""
     reactor = NETL.DefaultGeometries.reactor()
-    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(num_procs=num_procs)
+    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(exclude_excore=True, num_procs=num_procs)
     problem_5_utils.write_mpact_input(reactor, reactor_build_specs=reactor_build_specs)
     assert os.path.exists("mpact.inp")
     os.remove("mpact.inp")

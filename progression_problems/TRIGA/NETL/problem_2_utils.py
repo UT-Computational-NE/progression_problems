@@ -12,10 +12,10 @@ from coreforge import openmc_builder
 from coreforge import mpact_builder
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
-from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
+from progression_problems.TRIGA.NETL.problem_1_utils import (apply_default_mpact_material_specs,
+                                                             lattice_dims)
 from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS,
-                                                   build_generic_openmc_tallies,
-                                                   default_mpact_material_specs)
+                                                   build_generic_openmc_tallies)
 
 
 DEFAULT_COOLANT_PINCELL_RADII: Tuple[float, ...] = tuple(sorted({
@@ -345,28 +345,3 @@ def write_mpact_input(fuel: FuelElement,
     mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
     with open(filename, 'w') as file:
         file.write(mpact_model.write_to_string("TRIGA", indent=4))
-
-
-def apply_default_mpact_material_specs(
-    build_specs: Optional[mpact_builder.CylindricalPinCell.Specs],
-    materials: List[Material],
-) -> mpact_builder.CylindricalPinCell.Specs:
-    """Return build specs with default material specs applied.
-
-    Parameters
-    ----------
-    build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
-        Build specs to update or create if None.
-    materials : List[Material]
-        Materials to use for default material specs.
-
-    Returns
-    -------
-    mpact_builder.CylindricalPinCell.Specs
-        Build specs with merged material specs.
-    """
-    defaults = default_mpact_material_specs(materials)
-    if build_specs is None:
-        return mpact_builder.CylindricalPinCell.Specs(material_specs=defaults)
-    build_specs.material_specs = defaults | build_specs.material_specs
-    return build_specs

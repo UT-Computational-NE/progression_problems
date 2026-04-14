@@ -216,7 +216,8 @@ def plot_model_2D(model:            openmc.Model,
 
 
     lower, upper = model.geometry.bounding_box
-    origin       = [(lo + hi) * 0.5 for lo, hi in zip(lower, upper)]
+    origin       = [0.5 * (lo + hi) if math.isfinite(lo) and math.isfinite(hi) else 0.0
+                    for lo, hi in zip(lower, upper)]
     span         = [hi - lo for lo, hi in zip(lower, upper)]
 
     out_of_plane_axis = {"xy": 2, "xz": 1, "yz": 0}.get(basis)

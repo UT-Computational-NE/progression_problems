@@ -5,6 +5,7 @@ import progression_problems.TRIGA as TRIGA
 import progression_problems.TRIGA.NETL as NETL
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, problem_3_utils, problem_4_utils, problem_5_utils
+from progression_problems.TRIGA.NETL.utils import plot_model_2D
 from coreforge import mpact_builder
 
 
@@ -38,9 +39,17 @@ def coolant():
     return NETLDefaultMaterials.water()
 
 
-def test_problem_1_openmc_tools(fuel_element, coolant):
+def test_problem_1_openmc_tools(fuel_element, coolant, tmp_path):
     model = problem_1_utils.build_openmc_model(fuel_element, coolant)
     assert model is not None
+
+    plot_path = tmp_path / "problem_1_plot.png"
+    try:
+        plot_model_2D(model, basis="xy", filename=str(plot_path), pixels=(200, 200))
+        assert plot_path.exists()
+    finally:
+        if plot_path.exists():
+            plot_path.unlink()
 
 
 def test_problem_1_mpact_tools(fuel_element, coolant):

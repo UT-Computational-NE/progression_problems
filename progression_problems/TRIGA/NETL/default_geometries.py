@@ -556,9 +556,13 @@ class DefaultGeometries:
         )
 
     @staticmethod
-    def reactor(fuel_temp:     float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
-                non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
-                coolant:       openmc.Material | None = None) -> Reactor:
+    def reactor(fuel_temp:               float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+                non_fuel_temp:           float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+                coolant:                 openmc.Material | None = None,
+                transient_rod_position:  float = TRANSIENT_ROD_FULLY_INSERTED_POSITION,
+                regulating_rod_position: float = FFCR_FULLY_INSERTED_POSITION,
+                shim_1_rod_position:     float = FFCR_FULLY_INSERTED_POSITION,
+                shim_2_rod_position:     float = FFCR_FULLY_INSERTED_POSITION,) -> Reactor:
         """Creates and returns a default reactor geometry.
 
         Parameters
@@ -569,6 +573,19 @@ class DefaultGeometries:
             Temperature applied to non-fuel materials in reactor subcomponents.
         coolant : Optional[openmc.Material]
             Coolant material passed to reactor subcomponents that use a coolant material.
+            If omitted, water is used.
+        transient_rod_position : float
+            Axial position of the transient rod relative to the reactor reference
+            frame. Defaults to the fully inserted position.
+        regulating_rod_position : float
+            Axial position of the regulating rod relative to the reactor reference
+            frame. Defaults to the fully inserted position.
+        shim_1_rod_position : float
+            Axial position of shim rod 1 relative to the reactor reference frame.
+            Defaults to the fully inserted position.
+        shim_2_rod_position : float
+            Axial position of shim rod 2 relative to the reactor reference frame.
+            Defaults to the fully inserted position.
 
         Returns
         -------
@@ -587,10 +604,10 @@ class DefaultGeometries:
             shroud                      = DefaultGeometries.shroud(non_fuel_temp),
             rotary_specimen_rack_cavity = DefaultGeometries.rsr_cavity(non_fuel_temp),
             core                        = DefaultGeometries.core(fuel_temp, non_fuel_temp, coolant),
-            transient_rod_position      = DefaultGeometries.TRANSIENT_ROD_FULLY_INSERTED_POSITION,
-            regulating_rod_position     = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            shim_1_rod_position         = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
-            shim_2_rod_position         = DefaultGeometries.FFCR_FULLY_INSERTED_POSITION,
+            transient_rod_position      = transient_rod_position,
+            regulating_rod_position     = regulating_rod_position,
+            shim_1_rod_position         = shim_1_rod_position,
+            shim_2_rod_position         = shim_2_rod_position,
 
             # Beam port specifications from Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59
             beam_port_1_5               = Reactor.BeamPort(geometry    = beam_port_geometry,

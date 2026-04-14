@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 import math
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 import mpactpy
 import openmc
@@ -241,21 +242,27 @@ def plot_model_2D(model:            openmc.Model,
 
     colors = _build_plot_material_colors(model.materials)
 
-    effective_legend_kwargs = {"loc":            "center right",
+    effective_legend_kwargs = {"loc":            "center left",
                                "bbox_to_anchor": (1.02, 0.5),
                                "frameon":        False}
     if legend_kwargs:
         effective_legend_kwargs.update(legend_kwargs)
 
-    axes = model.geometry.plot(origin        = origin,
-                               width         = width,
-                               pixels        = pixels,
-                               basis         = basis,
-                               color_by      = "material",
-                               colors        = colors,
-                               legend        = with_legend,
-                               legend_kwargs = effective_legend_kwargs if with_legend else None,
-                               axis_units    = axis_units)
+    axes = model.geometry.plot(origin     = origin,
+                               width      = width,
+                               pixels     = pixels,
+                               basis      = basis,
+                               color_by   = "material",
+                               colors     = colors,
+                               legend     = False,
+                               axis_units = axis_units)
+
+    if with_legend:
+        handles = []
+        for material in unique_materials(model.materials):
+            label = material.name or f"Material {material.id}"
+            handles.append(Patch(facecolor=colors[material], edgecolor="black", label=label))
+        axes.legend(handles=handles, **effective_legend_kwargs)
 
     output_path = Path(filename)
     if output_path.suffix == "":

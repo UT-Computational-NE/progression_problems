@@ -138,8 +138,8 @@ def write_mpact_input(fuel:                     FuelElement,
     build_specs = apply_default_mpact_material_specs(build_specs, pincell.get_materials())
 
     bounds = {"SW": mpact_builder.Bounds(
-                  X=mpact_builder.AxisBounds(min=-dims["width"] * 0.5, max=0.0),
-                  Y=mpact_builder.AxisBounds(min=-dims["height"] * 0.5, max=0.0)),
+                  X=mpact_builder.AxisBounds(min=-dims["width"], max=0.0),
+                  Y=mpact_builder.AxisBounds(min=-dims["height"], max=0.0)),
               "NE": mpact_builder.Bounds(
                   X=mpact_builder.AxisBounds(min=0.0, max=dims["width"] * 0.5),
                   Y=mpact_builder.AxisBounds(min=0.0, max=dims["height"] * 0.5))}

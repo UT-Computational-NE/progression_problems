@@ -501,6 +501,7 @@ def write_mpact_input(reactor:             Reactor,
     options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
     for state in states:
         state["tinlet"] = state.get("tinlet", f"{reactor.pool.material.temperature}")
+    options["bound_cond"] = "0 0 0 0 1 1"
 
     mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
     with open(filename, "w") as file:

@@ -303,6 +303,8 @@ def write_mpact_input(fuel:                        FuelElement,
     for state in states:
         state["tinlet"] = state.get("tinlet", f"{coolant.temperature}")
 
+    options["bound_cond"] = "1 1 1 1 0 0"
+
     mpact_model = mpactpy.Model(geometry, states, xsec_settings, options)
     with open(filename, "w") as file:
         file.write(mpact_model.write_to_string("TRIGA", indent=4))

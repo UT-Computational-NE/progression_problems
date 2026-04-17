@@ -331,8 +331,8 @@ def write_mpact_input(fuel: FuelElement,
 
     # Build the full hex lattice and then trim to the progression problem domain
     # (i.e. remove top and bottom 3 rows and leftmost and rightmost 2 columns)
-    core_map = [list(row[1:-2]) \
-                for row in mpact_builder.build(lattice, specs).assembly_map[3:-4]]
+    core_map = [list(row[1:-1]) \
+                for row in mpact_builder.build(lattice, specs).assembly_map[2:-2]]
     geometry = mpactpy.Core(core_map)
 
     states = [dict(state) for state in (states or [DEFAULT_MPACT_SETTINGS["state"]])]

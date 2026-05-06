@@ -184,5 +184,8 @@ def apply_default_mpact_material_specs(
     defaults = default_mpact_material_specs(materials)
     if build_specs is None:
         return mpact_builder.CylindricalPinCell.Specs(material_specs=defaults)
-    build_specs.material_specs = defaults | build_specs.material_specs
-    return build_specs
+    return mpact_builder.CylindricalPinCell.Specs(
+        target_cell_thicknesses = dict(build_specs.target_cell_thicknesses),
+        divide_into_quadrants   = build_specs.divide_into_quadrants,
+        material_specs          = defaults | build_specs.material_specs
+    )

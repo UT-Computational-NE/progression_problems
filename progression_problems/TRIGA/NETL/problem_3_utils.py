@@ -570,8 +570,8 @@ def _build_mpact_geometry(reactor:             Reactor,
                                     specs.fuel_follower.builder_specs
                 else:
                     outer_region_specs = specs.outer_region_specs
-                    assert (isinstance(outer_region_specs, mpact_builder.triga.CoreElement.SegmentSpecs) or
-                            isinstance(outer_region_specs, mpact_builder.triga.netl.Reactor.VoxelizedSegmentSpecs))
+                    assert (isinstance(outer_region_specs, (mpact_builder.triga.CoreElement.SegmentSpecs,
+                                                            mpact_builder.triga.netl.Reactor.VoxelizedSegmentSpecs)))
                     specs = outer_region_specs.builder_specs
 
             lattice_element = lattice.elements[i][j]

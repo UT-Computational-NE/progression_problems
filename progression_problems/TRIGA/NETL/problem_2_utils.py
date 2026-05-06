@@ -301,7 +301,9 @@ def write_mpact_input(fuel: FuelElement,
     fuel_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
         The mpact_builder specifications to use when building the fuel pincell geometry.
     element_build_specs : Optional[mpact_builder.CylindricalPinCell.Specs]
-        The mpact_builder specifications to use when building the central element pincell geometry.
+        The mpact_builder specifications to use when building the central pincell geometry.
+        If ``central_element`` is ``None``, these specs are applied to the coolant-only
+        water-hole pincell.
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
     states : List[Dict[str, str]]

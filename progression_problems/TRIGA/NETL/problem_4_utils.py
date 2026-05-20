@@ -293,7 +293,7 @@ def write_mpact_input(fuel:                        FuelElement,
     specs = mpact_builder.HexLattice.Specs(element_specs=element_specs)
 
     core = mpact_builder.build(stack_lattice, specs)
-    core_map = [list(row[1:-2]) for row in core.assembly_map[3:-4]]
+    core_map = [list(row[1:-1]) for row in core.assembly_map[2:-2]]
     geometry = mpactpy.Core(core_map)
 
     states = [dict(state) for state in (states or [DEFAULT_MPACT_SETTINGS["state"]])]

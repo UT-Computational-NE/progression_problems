@@ -698,21 +698,21 @@ def _set_cell(assembly:            Optional[mpactpy.Assembly],
     if not Circle(outer_boundary_radius).contains(rect, other_center=radial_location):
         return None
 
-    voxel_specs = reactor_build_specs.voxelation_specs
+    excore_specs = reactor_build_specs.excore_specs
 
     target_thicknesses: List[float] = []
     if excore_features in ["rsr", "beamports"]:
         if reactor.shroud_intersects(rect, radial_location):
-            target_thicknesses.append(voxel_specs.shroud_target_thicknesses)
+            target_thicknesses.append(excore_specs.shroud.radial)
         if excore_features == "rsr" and reactor.rsr_intersects(rect, radial_location):
-            target_thicknesses.append(voxel_specs.rsr_target_thicknesses)
+            target_thicknesses.append(excore_specs.rsr.radial)
         if reactor.reflector_intersects(rect, radial_location):
-            target_thicknesses.append(voxel_specs.reflector_target_thicknesses)
+            target_thicknesses.append(excore_specs.reflector.radial)
         if excore_features == "beamports" and reactor.any_beamport_intersects(rect, radial_location):
-            target_thicknesses.append(voxel_specs.beamport_target_thicknesses)
+            target_thicknesses.append(excore_specs.beamport.radial)
 
     if not target_thicknesses:
-        target_thicknesses.append(voxel_specs.pool_target_thicknesses)
+        target_thicknesses.append(excore_specs.pool.radial)
 
     target_thickness = min(target_thicknesses)
     voxel_build_specs = mpact_builder.InfiniteMedium.Specs(

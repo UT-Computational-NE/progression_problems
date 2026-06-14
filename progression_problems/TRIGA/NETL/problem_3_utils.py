@@ -110,8 +110,8 @@ def build_beamport_excore(reactor:      Reactor,
         return inner_region, outer_region
 
     cells = []
-    for beamport in [reactor.beam_port_1_5, reactor.beam_port_2,
-                     reactor.beam_port_3,   reactor.beam_port_4]:
+    for beamport_id in (1, 2, 3, 4):
+        beamport = reactor.beam_port[beamport_id]
         inner_region, outer_region = build_beam_port_regions(beamport)
 
         cells.append(openmc.Cell(fill   = beamport.geometry.fill_material.openmc_material,
@@ -526,14 +526,12 @@ def _build_mpact_geometry(reactor:             Reactor,
                           pitch:               float,
                           reactor_build_specs: mpact_builder.triga.netl.Reactor.Specs) -> mpactpy.Core:
 
-    openmc_model    = build_openmc_model(
-        reactor,
-        coolant,
-        control_rod_specs,
-        excore_features,
-        coolant_pincell_radii,
-        pitch=pitch,
-    )
+    openmc_model = build_openmc_model(reactor,
+                                      coolant,
+                                      control_rod_specs,
+                                      excore_features,
+                                      coolant_pincell_radii,
+                                      pitch=pitch)
     openmc_universe = openmc_model.geometry.root_universe
 
     lattice = build_core_lattice(reactor, coolant, control_rod_specs, coolant_pincell_radii, pitch)
@@ -692,7 +690,7 @@ def _set_cell(assembly:            Optional[mpactpy.Assembly],
     ) -> Optional[mpactpy.Assembly]:
 
     rect = Rectangle(w=side_lengths[0], h=side_lengths[1])
-    if reactor.shroud_inner_contains(rect, radial_location) and assembly is not None:
+    if reactor.shroud.contains(rect, radial_location) and assembly is not None:
         return assembly
 
     if not Circle(outer_boundary_radius).contains(rect, other_center=radial_location):
@@ -702,14 +700,21 @@ def _set_cell(assembly:            Optional[mpactpy.Assembly],
 
     target_thicknesses: List[float] = []
     if excore_features in ["rsr", "beamports"]:
-        if reactor.shroud_intersects(rect, radial_location):
+        if reactor.shroud.intersects(rect, radial_location):
             target_thicknesses.append(excore_specs.shroud.radial)
-        if excore_features == "rsr" and reactor.rsr_intersects(rect, radial_location):
-            target_thicknesses.append(excore_specs.rsr.radial)
+        if excore_features == "rsr" and reactor.rsr_cavity_intersects(rect, radial_location):
+            target_thicknesses.append(excore_specs.rsr_cavity.radial)
+        if excore_features == "rsr" and reactor.rsr_tube_intersects(rect, radial_location):
+            target_thicknesses.append(excore_specs.rsr_tube.radial)
         if reactor.reflector_intersects(rect, radial_location):
             target_thicknesses.append(excore_specs.reflector.radial)
-        if excore_features == "beamports" and reactor.any_beamport_intersects(rect, radial_location):
-            target_thicknesses.append(excore_specs.beamport.radial)
+        if excore_features == "beamports":
+            for bp in (1, 2, 3, 4):
+                if reactor.beam_port[bp].intersects(rect, radial_location):
+                    if reactor.beam_port[bp].contains(rect, radial_location):
+                        target_thicknesses.append(excore_specs.beamport_interior.radial)
+                    else:
+                        target_thicknesses.append(excore_specs.beamport_exterior.radial)
 
     if not target_thicknesses:
         target_thicknesses.append(excore_specs.pool.radial)

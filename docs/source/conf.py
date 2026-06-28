@@ -23,6 +23,7 @@ exclude_patterns = []
 
 # Enable numbered figures, tables, and code-blocks
 numfig = True
+numfig_secnum_depth = 1
 numfig_format = {
     'figure': 'Figure %s',
     'table': 'Table %s',
@@ -33,6 +34,7 @@ numfig_format = {
 # Math equation numbering
 math_numfig = True
 math_eqref_format = "Eq. {number}"
+math_numfig_format = "({number})"
 
 
 

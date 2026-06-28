@@ -1,6 +1,5 @@
 .. _progression_problems_triga_netl_problem_definitions_neutronics:
 
-
 ==========
 Neutronics
 ==========
@@ -31,25 +30,9 @@ which together define a rectangular cell with the quarter pins located at opposi
 as shown in :numref:`figure-triga-netl-problem_1`. This problem is intended to assess basic
 geometric & depletion capabilities, mesh refinement requirements, and the influence of cross-section
 libraries and cross-section processing via reaction-rate edits. As such, it provides a simple but
-useful test of fundamental code capabilities.
+useful test of fundamental code capabilities. :numref:`table-problem-1-definitions` provides the
+specifications for the various cases to be simulated for this problem.
 
-:numref:`table-problem-1-definitions` provides the specifications for the various cases
-to be simulated for this problem.  In these cases, the fuel meat and Zr Filler rod are treated
-with the same temperature, and clad and coolant temperatures are treated with the same temperature.
-Fuel temperatures range from room temperature up to 900K with several temperatures aligning with
-cross-section library temperatures so as to allow for direct comparison to Monte Carlo without the
-need for interpolation.  823.15 K represents the peak allowed fuel temperature according to Table
-4.4 of Reference 1_.  Coolant temperatures and densities are taken from Table 4.20 of Reference 1_
-so as to be representative of the range of anticipated operating conditions.
-
-For depletion assessments, target burnups are defined ineffective full-power days (EFPD), based on a
-full-core power of 1 MW distributed across 110 fuel elements. Since this is a 2D single-element model,
-the applied model power should preserve the appropriate average power per element per unit height,
-(ex: :math:`1\,\mathrm{MW}\left(\frac{\text{model height}}{\text{fuel-meat height}}\right)\left(\frac{0.5\ \text{element in model}}{110\ \text{elements in core}}\right)`).
-The 2.0 EFPD and 20.0 EFPD targets were selected to represent the characteristic buildup periods of Xe-135
-and Sm-149, respectively. The 265.0 EFPD and 530.0 EFPD targets correspond approximately to
-middle-of-life (MOL) and end-of-life (EOL) element burnups, based on an estimated maximum fuel-element burnup
-of 6 g of U-235 (Ref. 1_, p. 3-2) and an estimated depletion rate of 1.25 g of U-235 per MWd (Ref. 2_, p. 4).
 
 
 .. _figure-triga-netl-problem_1:
@@ -63,27 +46,31 @@ of 6 g of U-235 (Ref. 1_, p. 3-2) and an estimated depletion rate of 1.25 g of U
 .. table:: Problem 1 Definitions
    :name: table-problem-1-definitions
 
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | Problem | Fuel / Zr Filler Temp. (K) | Non-Fuel Temp. (K) | Coolant Dens. (g/cc) | Burnup (EFPD) |
-   +=========+============================+====================+======================+===============+
-   | 1A      |   293.15                   | 293.15             |  0.9970              | 0.0           |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1B      |   600.0                    | 322.15             |  0.9885              | 0.0           |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1C      |   823.15                   | 322.15             |  0.9885              | 0.0           |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1D      |   900.0                    | 322.15             |  0.9885              | 0.0           |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1E      |   600.0                    | 293.15             |  0.9970              | 0.0           |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1F      |   600.0                    | 293.15             |  0.9970              | 2.0           |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1G      |   600.0                    | 293.15             |  0.9970              | 20.0          |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1H      |   600.0                    | 293.15             |  0.9970              | 265.0         |
-   +---------+----------------------------+--------------------+----------------------+---------------+
-   | 1I      |   600.0                    | 293.15             |  0.9970              | 530.0         |
-   +---------+----------------------------+--------------------+----------------------+---------------+
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | Problem | Fuel / Zr Filler Temp. (K)                 | Non-Fuel Temp. (K) | Coolant Dens. (g/cc) | Burnup (EFPD) | H/Zr Ratio                             |
+   +=========+============================================+====================+======================+===============+========================================+
+   | 1A      |   293.15                                   | 293.15             |  0.9970              | 0.0           | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1B      |   600.0                                    | 322.15             |  0.9885              | 0.0           | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1C      |   823.15                                   | 322.15             |  0.9885              | 0.0           | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1D      |   900.0                                    | 322.15             |  0.9885              | 0.0           | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1E      |   600.0                                    | 293.15             |  0.9970              | 0.0           | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1F      |   600.0                                    | 293.15             |  0.9970              | 2.0           | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1G      |   600.0                                    | 293.15             |  0.9970              | 20.0          | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1H      |   600.0                                    | 293.15             |  0.9970              | 265.0         | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1I      |   600.0                                    | 293.15             |  0.9970              | 530.0         | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1J      |  :eq:`eq-triga-radial-temperature-profile` | 293.15             |  0.9970              | 0.0           | 1.6                                    |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
+   | 1K      |  :eq:`eq-triga-radial-temperature-profile` | 293.15             |  0.9970              | 0.0           | :eq:`eq-triga-radial-hydrogen-profile` |
+   +---------+--------------------------------------------+--------------------+----------------------+---------------+----------------------------------------+
 
 
 .. table:: Problem 1 Recommended Outputs
@@ -105,6 +92,112 @@ of 6 g of U-235 (Ref. 1_, p. 3-2) and an estimated depletion rate of 1.25 g of U
    +--------------------+----------------------------+
    | Isotopic Inventory |   Fuel                     |
    +--------------------+----------------------------+
+
+In the initial cases, the fuel meat and Zr Filler rod are treated with the same temperature, and
+clad and coolant temperatures are treated with the same temperature. Fuel temperatures range from
+room temperature up to 900K with several temperatures aligning with cross-section library temperatures
+so as to allow for direct comparison to Monte Carlo without the need for interpolation.  823.15 K
+represents the peak allowed fuel temperature according to Table 4.4 of Reference 1_.  Coolant
+temperatures and densities are taken from Table 4.20 of Reference 1_ so as to be representative of
+the range of anticipated operating conditions.
+
+For depletion assessments, target burnups are defined ineffective full-power days (EFPD), based on a
+full-core power of 1 MW distributed across 110 fuel elements. Since this is a 2D single-element model,
+the applied model power should preserve the appropriate average power per element per unit height,
+(ex: :math:`1\,\mathrm{MW}\left(\frac{\text{model height}}{\text{fuel-meat height}}\right)\left(\frac{0.5\ \text{element in model}}{110\ \text{elements in core}}\right)`).
+The 2.0 EFPD and 20.0 EFPD targets were selected to represent the characteristic buildup periods of Xe-135
+and Sm-149, respectively. The 265.0 EFPD and 530.0 EFPD targets correspond approximately to
+middle-of-life (MOL) and end-of-life (EOL) element burnups, based on an estimated maximum fuel-element burnup
+of 6 g of U-235 (Ref. 1_, p. 3-2) and an estimated depletion rate of 1.25 g of U-235 per MWd (Ref. 2_, p. 4).
+
+For the radial temperature distribution assessment, a representative target
+radial temperature profile is defined below, with details on the derivation
+provided :ref:`here <progression_problems_triga_netl_temperature_profile_derivation>`.
+
+.. math::
+   :label: eq-triga-radial-temperature-profile
+
+   T(r) =
+   \begin{cases}
+   T_{\max}, & 0 \le r \le R_{\mathrm{Zr}} \\
+   \displaystyle
+   T_b + \left(T_{\max} - T_b\right)
+   \dfrac{
+   \left(R_f^2-r^2\right)
+   +2R_{\mathrm{Zr}}^2\ln\left(r/R_f\right)
+   }{
+   \left(R_f^2-R_{\mathrm{Zr}}^2\right)
+   +2R_{\mathrm{Zr}}^2\ln\left(R_{\mathrm{Zr}}/R_f\right)
+   },
+   & R_{\mathrm{Zr}} < r \le R_f .
+   \end{cases}
+
+where:
+
+* :math:`R_{\mathrm{Zr}}` is the radius of the central zirconium filler rod,
+* :math:`R_f` is the outer fuel radius,
+* :math:`T_{\max}` is the imposed maximum fuel temperature,
+* :math:`T_b` is the imposed fuel-boundary temperature, and
+* :math:`r` is the radial position.
+
+The imposed temperature bounds are chosen to produce a relatively steep radial gradient with the
+maximum fuel temperature set to the peak allowable fuel temperature, and the fuel-boundary temperature
+conservatively set to room temperature.
+
+* :math:`T_{\max} = 823.15\ \mathrm{K}`, and
+* :math:`T_b = 293.6\ \mathrm{K}`.
+
+Guidance on how to discretize the temperature profile over discrete radial rings is provided
+:ref:`here <progression_problems_triga_netl_hydrogen_profile_discretization>`.
+
+For the radial hydrogen distribution assessment, a representative target H/Zr profile is defined using the temperature-dependent hydrogen
+redistribution model described in :ref:`here <progression_problems_triga_netl_hydrogen_profile_derivation>`. The local H/Zr ratio is modeled as
+
+.. math::
+    :label: eq-triga-radial-hydrogen-profile
+
+    x(r) =
+    \bar{x}
+    \frac{
+    \exp\left(
+    \dfrac{Q^\ast}{R_g T(r)}
+    \right)
+    }{
+    \left\langle
+    \exp\left(
+    \dfrac{Q^\ast}{R_g T(r)}
+    \right)
+    \right\rangle_A
+    }.
+
+where:
+
+* :math:`x(r)` is the local H/Zr ratio,
+* :math:`\bar{x} = 1.6` is the nominal area-averaged H/Zr ratio for U-ZrH :sub:`1.6` fuel,
+* :math:`Q^\ast = 5.3 \times 10^3\ \mathrm{J/mol}` is the heat of transport for hydrogen in zirconium hydride,
+* :math:`R_g = 8.314\ \mathrm{J/(mol\cdot K)}` is the universal gas constant,
+* :math:`T(r)` is the radial temperature profile from :eq:`eq-triga-radial-temperature-profile`, and
+* :math:`\langle \cdot \rangle_A` denotes an area average over the U-ZrH fuel meat (see: :eq:`eq-triga-hydrogen-area-average`).
+
+The area average is evaluated only over the U-ZrH fuel meat,
+
+.. math::
+    :label: eq-triga-hydrogen-area-average
+
+    \left\langle u(r) \right\rangle_A =
+    \frac{
+    \int_{R_{\mathrm{Zr}}}^{R_f} u(r)\,2\pi r,dr
+    }{
+    \int_{R_{\mathrm{Zr}}}^{R_f} 2\pi r,dr
+    }.
+
+The central zirconium filler region is not included in the H/Zr normalization because it is not part of the U-ZrH fuel meat.
+With the sign convention used in :eq:`eq-triga-radial-hydrogen-profile`, hydrogen is depleted in the hotter fuel region and
+enriched toward the colder fuel boundary.
+
+Guidance on how to discretize the hydrogen profile over discrete radial rings is provided
+:ref:`here <progression_problems_triga_netl_hydrogen_profile_discretization>`.
+
 
 
 Problem 2: 2D Multi-Pin Cell
@@ -385,3 +478,10 @@ See Also
 * :ref:`TRIGA General Specifications <progression_problems_triga_system_specifications>`
 * :ref:`NETL TRIGA System Specifications <progression_problems_triga_netl_system_specifications>`
 * :ref:`Python Tools for NETL TRIGA <python_tools_triga_netl>`
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   distribution_derivation
+

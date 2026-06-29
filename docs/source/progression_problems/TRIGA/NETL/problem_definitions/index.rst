@@ -11,3 +11,4 @@ at the University of Texas at Austin's Nuclear Engineering Teaching and Research
    :maxdepth: 1
 
    neutronics
+   distribution_derivation

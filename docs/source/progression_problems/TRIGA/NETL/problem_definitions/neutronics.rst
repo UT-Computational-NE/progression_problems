@@ -479,9 +479,3 @@ See Also
 * :ref:`NETL TRIGA System Specifications <progression_problems_triga_netl_system_specifications>`
 * :ref:`Python Tools for NETL TRIGA <python_tools_triga_netl>`
 
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   distribution_derivation
-

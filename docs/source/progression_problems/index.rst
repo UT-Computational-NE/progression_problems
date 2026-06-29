@@ -23,6 +23,7 @@ users are encouraged to consider any other outputs relevant to their particular 
 outputs not specified in the recommended set.
 
 .. toctree::
-   :maxdepth: 2
+   :numbered:
+   :maxdepth: 3
 
    TRIGA/index

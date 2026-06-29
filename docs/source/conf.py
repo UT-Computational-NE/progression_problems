@@ -23,7 +23,7 @@ exclude_patterns = []
 
 # Enable numbered figures, tables, and code-blocks
 numfig = True
-numfig_secnum_depth = 1
+numfig_secnum_depth = 0
 numfig_format = {
     'figure': 'Figure %s',
     'table': 'Table %s',
@@ -31,10 +31,9 @@ numfig_format = {
     'section': 'Section %s'
 }
 
-# Math equation numbering
-math_numfig = True
-math_eqref_format = "Eq. {number}"
-math_numfig_format = "({number})"
+# Keep equation numbering local to each page, matching Sphinx's default math behavior.
+math_numfig = False
+math_eqref_format = "({number})"
 
 
 

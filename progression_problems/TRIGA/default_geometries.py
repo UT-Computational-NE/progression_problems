@@ -20,9 +20,12 @@ class DefaultGeometries:
     """
 
     @staticmethod
-    def fuel_element(fuel_temp:     float = DefaultMaterials.DEFAULT_TEMPERATURE,
-                     non_fuel_temp: float = DefaultMaterials.DEFAULT_TEMPERATURE,
-                     coolant:       openmc.Material | None = None) -> FuelElement:
+    def fuel_element(
+        fuel_temp: float = DefaultMaterials.DEFAULT_TEMPERATURE,
+        non_fuel_temp: float = DefaultMaterials.DEFAULT_TEMPERATURE,
+        coolant: openmc.Material | None = None,
+        fuel_material: openmc.Material | None = None,
+    ) -> FuelElement:
         """Creates and returns the default fuel element geometry.
 
         Parameters
@@ -33,6 +36,13 @@ class DefaultGeometries:
             Temperature applied to the non-fuel materials in the element.
         coolant : Optional[openmc.Material]
             Coolant material used as the outer material. If omitted, DefaultMaterials.water is used.
+        fuel_material : Optional[openmc.Material]
+            Fuel meat material. If omitted, ``DefaultMaterials.fresh_fuel(fuel_temp)`` is used.
+            When supplied, the material is used as-is -- including its own ``name`` and
+            ``temperature`` (``fuel_temp`` is NOT applied to it; it still drives the Zr fill
+            rod). This allows distinct fuel definitions to be placed at different core
+            locations. Give each distinct fuel composition a unique ``name`` so that
+            CoreForge does not merge or reject them.
 
         Returns
         -------
@@ -40,6 +50,7 @@ class DefaultGeometries:
             Default CoreForge fuel element.
         """
         coolant = coolant or DefaultMaterials.water()
+        fuel_material = fuel_material or DefaultMaterials.fresh_fuel(fuel_temp)
 
         cladding = FuelElement.Cladding(
             thickness    = 0.020 * CM_PER_INCH,                                      # Ref. [1]_ Table 4.1
@@ -72,10 +83,10 @@ class DefaultGeometries:
         )
 
         fuel_meat = FuelElement.FuelMeat(
-            inner_radius = 0.25  * 0.5 * CM_PER_INCH,                                # Ref. [1]_ pg. 4-2
-            outer_radius = 1.435 * 0.5 * CM_PER_INCH,                                # Ref. [1]_ Table 4.1
-            length       = 15.0 * CM_PER_INCH,                                       # Ref. [1]_ Table 4.1
-            material     = Material(DefaultMaterials.fresh_fuel(fuel_temp))          # Ref. [2]_ pg. 51
+            inner_radius=0.25 * 0.5 * CM_PER_INCH,  # Ref. [1]_ pg. 4-2
+            outer_radius=1.435 * 0.5 * CM_PER_INCH,  # Ref. [1]_ Table 4.1
+            length=15.0 * CM_PER_INCH,  # Ref. [1]_ Table 4.1
+            material=Material(fuel_material),  # Ref. [2]_ pg. 51
         )
 
         moly_disc = FuelElement.MolyDisc(

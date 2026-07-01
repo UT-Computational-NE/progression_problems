@@ -476,9 +476,12 @@ class DefaultGeometries:
         )
 
     @staticmethod
-    def core(fuel_temp:     float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
-             non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
-             coolant:       openmc.Material | None = None) -> Core:
+    def core(
+        fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+        non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+        coolant: openmc.Material | None = None,
+        fuel_materials: dict[str, openmc.Material] | None = None,
+    ) -> Core:
         """Creates and returns a default core geometry.
 
         Parameters
@@ -489,6 +492,12 @@ class DefaultGeometries:
             Temperature applied to non-fuel materials in core elements.
         coolant : Optional[openmc.Material]
             Coolant material passed to core element builders that use an outer or fill coolant.
+        fuel_materials : Optional[dict[str, openmc.Material]]
+            Map of core location (e.g. ``"B-01"``) to the fuel meat material to place there.
+            Locations not listed use the default fuel. Each distinct fuel composition should
+            have a unique ``name``. A supplied material is used as-is (including its own
+            temperature); see ``TRIGADefaultGeometries.fuel_element``. Keys must be fuel
+            locations; supplying a non-fuel location raises ``ValueError``.
 
         Returns
         -------
@@ -497,17 +506,18 @@ class DefaultGeometries:
         """
         coolant = coolant or NETLDefaultMaterials.water()
 
-        def fuel() -> FuelElement:
-            return TRIGADefaultGeometries.fuel_element(fuel_temp, non_fuel_temp, coolant)
+        def fuel(location: str) -> FuelElement:
+            fuel_material = fuel_materials.get(location) if fuel_materials else None
+            return TRIGADefaultGeometries.fuel_element(fuel_temp, non_fuel_temp, coolant, fuel_material=fuel_material)
 
-        def graphite() -> GraphiteElement:
+        def graphite(_location: str | None = None) -> GraphiteElement:
             return TRIGADefaultGeometries.graphite_element(non_fuel_temp, coolant)
 
-        def source_holder() -> SourceHolder:
+        def source_holder(_location: str | None = None) -> SourceHolder:
             return DefaultGeometries.source_holder(non_fuel_temp, coolant)
 
         def fill(locations, factory):
-            return {loc: factory() for loc in locations}
+            return {loc: factory(loc) for loc in locations}
 
         loading = {}
         loading |= fill(["B-01", "B-02", "B-03", "B-04", "B-05", "B-06"], fuel)
@@ -543,6 +553,15 @@ class DefaultGeometries:
         loading["G-32"] = source_holder()
         loading["G-34"] = None
 
+        if fuel_materials:
+            fuel_locations = {loc for loc, element in loading.items() if isinstance(element, FuelElement)}
+            unknown = sorted(set(fuel_materials) - fuel_locations)
+            if unknown:
+                raise ValueError(
+                    f"fuel_materials contains locations that are not fuel positions: {unknown}. "
+                    f"Valid fuel locations are: {sorted(fuel_locations)}"
+                )
+
         return Core(
             pitch           = 1.714 * CM_PER_INCH,  # Ref. [2]_ pg. 54
             central_thimble = DefaultGeometries.central_thimble(non_fuel_temp, coolant),
@@ -556,13 +575,16 @@ class DefaultGeometries:
         )
 
     @staticmethod
-    def reactor(fuel_temp:               float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
-                non_fuel_temp:           float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
-                coolant:                 openmc.Material | None = None,
-                transient_rod_position:  float = TRANSIENT_ROD_FULLY_INSERTED_POSITION,
-                regulating_rod_position: float = FFCR_FULLY_INSERTED_POSITION,
-                shim_1_rod_position:     float = FFCR_FULLY_INSERTED_POSITION,
-                shim_2_rod_position:     float = FFCR_FULLY_INSERTED_POSITION,) -> Reactor:
+    def reactor(
+        fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+        non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+        coolant: openmc.Material | None = None,
+        transient_rod_position: float = TRANSIENT_ROD_FULLY_INSERTED_POSITION,
+        regulating_rod_position: float = FFCR_FULLY_INSERTED_POSITION,
+        shim_1_rod_position: float = FFCR_FULLY_INSERTED_POSITION,
+        shim_2_rod_position: float = FFCR_FULLY_INSERTED_POSITION,
+        fuel_materials: dict[str, openmc.Material] | None = None,
+    ) -> Reactor:
         """Creates and returns a default reactor geometry.
 
         Parameters
@@ -586,6 +608,9 @@ class DefaultGeometries:
         shim_2_rod_position : float
             Axial position of shim rod 2 relative to the reactor reference frame.
             Defaults to the fully inserted position.
+        fuel_materials : Optional[dict[str, openmc.Material]]
+            Map of core location to fuel meat material, forwarded to ``core``. Locations
+            not listed use the default fuel. See ``DefaultGeometries.core`` for details.
 
         Returns
         -------
@@ -599,16 +624,15 @@ class DefaultGeometries:
         bp_axial_offset = -6.985
 
         return Reactor(
-            name                        = "reactor",
-            pool                        = DefaultGeometries.pool(coolant),
-            shroud                      = DefaultGeometries.shroud(non_fuel_temp),
-            rotary_specimen_rack_cavity = DefaultGeometries.rsr_cavity(non_fuel_temp),
-            core                        = DefaultGeometries.core(fuel_temp, non_fuel_temp, coolant),
-            transient_rod_position      = transient_rod_position,
-            regulating_rod_position     = regulating_rod_position,
-            shim_1_rod_position         = shim_1_rod_position,
-            shim_2_rod_position         = shim_2_rod_position,
-
+            name="reactor",
+            pool=DefaultGeometries.pool(coolant),
+            shroud=DefaultGeometries.shroud(non_fuel_temp),
+            rotary_specimen_rack_cavity=DefaultGeometries.rsr_cavity(non_fuel_temp),
+            core=DefaultGeometries.core(fuel_temp, non_fuel_temp, coolant, fuel_materials=fuel_materials),
+            transient_rod_position=transient_rod_position,
+            regulating_rod_position=regulating_rod_position,
+            shim_1_rod_position=shim_1_rod_position,
+            shim_2_rod_position=shim_2_rod_position,
             # Beam port specifications from Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59
             beam_port_1_5               = Reactor.BeamPort(geometry    = beam_port_geometry,
                                                            rotation    = 90.0,

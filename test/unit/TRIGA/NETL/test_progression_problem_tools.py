@@ -4,10 +4,13 @@ import pytest
 import progression_problems.TRIGA as TRIGA
 import progression_problems.TRIGA.NETL as NETL
 from progression_problems.TRIGA.default_geometries import FuelSpec
+from progression_problems.TRIGA.NETL.default_geometries import cosd, sind
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, problem_3_utils, problem_4_utils, problem_5_utils
 from progression_problems.TRIGA.NETL.utils import plot_model_2D, default_mpact_material_specs
+from progression_problems.constants import CM_PER_INCH
 from coreforge import mpact_builder, materials
+from coreforge.geometry_elements.triga.netl import Reactor as NETLReactor
 from coreforge.mpact_builder.builder_specs import DEFAULT_MPACT_MATERIAL_SPECS
 
 
@@ -39,6 +42,60 @@ def fuel_follower_control_rod():
 @pytest.fixture
 def coolant():
     return NETLDefaultMaterials.water()
+
+
+def test_default_reactor_beam_port_placements():
+    geometry = NETL.DefaultGeometries.beam_port(length=100.0)
+    beam_ports = [
+        NETL.DefaultGeometries.Reactor.beam_port_1_5(geometry=geometry),
+        NETL.DefaultGeometries.Reactor.beam_port_2(geometry=geometry),
+        NETL.DefaultGeometries.Reactor.beam_port_3(geometry=geometry),
+        NETL.DefaultGeometries.Reactor.beam_port_4(geometry=geometry),
+    ]
+    expected_translations = [
+        (35.2425, 0.0, -6.985),
+        (6.222 + cosd(150.0) * 50.0,
+         35.255 + sind(150.0) * 50.0,
+         -6.985),
+        (-50.0 - 26.43188, 0.0, -6.985),
+        (-13.216 - cosd(60.0) * 50.0,
+         -22.871 - sind(60.0) * 50.0,
+         -6.985),
+    ]
+
+    for beam_port, expected_rotation, expected_translation in zip(
+        beam_ports,
+        (90.0, 150.0, 0.0, 60.0),
+        expected_translations,
+    ):
+        assert isinstance(beam_port, NETLReactor.BeamPort)
+        assert beam_port.geometry is geometry
+        assert beam_port.rotation == pytest.approx(expected_rotation)
+        assert beam_port.translation == pytest.approx(expected_translation)
+
+
+def test_default_reactor_reflector_and_grid_plate_placements():
+    reflector_geometry = NETL.DefaultGeometries.reflector()
+    upper_grid_geometry = NETL.DefaultGeometries.upper_grid_plate()
+    lower_grid_geometry = NETL.DefaultGeometries.lower_grid_plate()
+
+    reflector = NETL.DefaultGeometries.Reactor.reflector(geometry=reflector_geometry)
+    upper_grid = NETL.DefaultGeometries.Reactor.upper_grid_plate(geometry=upper_grid_geometry)
+    lower_grid = NETL.DefaultGeometries.Reactor.lower_grid_plate(geometry=lower_grid_geometry)
+
+    assert isinstance(reflector, NETLReactor.Reflector)
+    assert reflector.geometry is reflector_geometry
+    assert reflector.core_centerline_offset == pytest.approx(0.565 * CM_PER_INCH)
+    assert isinstance(upper_grid, NETLReactor.GridPlate)
+    assert upper_grid.geometry is upper_grid_geometry
+    assert upper_grid.top_to_core_centerline_distance == pytest.approx(
+        NETL.DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+    )
+    assert isinstance(lower_grid, NETLReactor.GridPlate)
+    assert lower_grid.geometry is lower_grid_geometry
+    assert lower_grid.top_to_core_centerline_distance == pytest.approx(
+        NETL.DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+    )
 
 
 def test_problem_1_openmc_tools(fuel_element, coolant, tmp_path):

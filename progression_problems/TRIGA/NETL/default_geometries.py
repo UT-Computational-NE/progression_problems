@@ -9,7 +9,7 @@ from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder
                                                     FuelFollowerControlRod as NETLFuelFollowerControlRod,
                                                     TransientRod as NETLTransientRod, GridPlate, BeamPort, Pool,
                                                     RSRCavity as NETLRSRCavity,
-                                                    Reflector, Shroud, Core, Reactor)
+                                                    Reflector, Shroud, Core, Reactor as NETLReactor)
 from coreforge.geometry_elements.triga.netl.grid_plate import grid_plate_penetration_map
 from coreforge.materials import Material
 from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGADefaultGeometries
@@ -52,8 +52,8 @@ class DefaultGeometries:
     def central_thimble(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         coolant: openmc.Material | None = None,
-        thickness: float | None = None,
-        outer_radius: float | None = None,
+        thickness: float = (1.5 - 1.33) * 0.5 * CM_PER_INCH,
+        outer_radius: float = 1.5 * 0.5 * CM_PER_INCH,
         material: openmc.Material | None = None,
         length: float | None = None,
     ) -> CentralThimble:
@@ -66,13 +66,14 @@ class DefaultGeometries:
         coolant : Optional[openmc.Material]
             Coolant material used for both the fill and outer materials. If omitted,
             water is used.
-        thickness : Optional[float]
-            Cladding thickness in cm. If omitted, the reference value is used.
-        outer_radius : Optional[float]
-            Cladding outer radius in cm. If omitted, the reference value is used.
+        thickness : float
+            Cladding thickness in cm. Defaults to ``(1.5-in - 1.33-in) * 0.5``, per
+            Ref. [1]_ Section 10.2.1.b.
+        outer_radius : float
+            Cladding outer radius in cm. Defaults to half the 1.5-in diameter, per Ref. [1]_ Section 10.2.1.b.
         material : Optional[openmc.Material]
-            Cladding material. If omitted, ``NETLDefaultMaterials.aluminum`` is used
-            at ``temperature``. The temperature is ignored when a material is supplied.
+            Cladding material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per
+            Ref. [2]_ pg. 51. The temperature is ignored when a material is supplied.
         length : Optional[float]
             Central-thimble length in cm. If omitted, the default pool height is used.
 
@@ -82,12 +83,7 @@ class DefaultGeometries:
             Default NETL TRIGA central thimble.
         """
         coolant = coolant or NETLDefaultMaterials.water()
-        thickness = (thickness if thickness is not None else
-                     (1.5 * 0.5 * CM_PER_INCH) - (1.33 * 0.5 * CM_PER_INCH))  # Ref. [1]_ Section 10.2.1.b
-        outer_radius = (outer_radius if outer_radius is not None else
-                        1.5 * 0.5 * CM_PER_INCH)  # Ref. [1]_ Section 10.2.1.b
-        material = (material if material is not None else
-                    NETLDefaultMaterials.aluminum(temperature))  # Ref. [2]_ pg. 51
+        material = (material if material is not None else NETLDefaultMaterials.aluminum(temperature))
         length = length if length is not None else DefaultGeometries.pool().height
 
         cladding = CentralThimble.Cladding(
@@ -123,7 +119,9 @@ class DefaultGeometries:
         coolant : Optional[openmc.Material]
             Coolant material used as the outer material. If omitted, water is used.
         length : Optional[float]
-            Source-holder length in cm. If omitted, the reference value is used.
+            Source-holder length in cm. If omitted, it is derived from the default
+            upper- and lower-grid-plate positions and the source-holder offset, per
+            Ref. [2]_ pg. 55.
         cavity : Optional[NETLSourceHolder.Cavity]
             Cavity override. If omitted, ``DefaultGeometries.SourceHolder.cavity`` is used.
         cladding : Optional[NETLSourceHolder.Cladding]
@@ -161,29 +159,30 @@ class DefaultGeometries:
 
         @staticmethod
         def cavity(
-            radius: float | None = None,
-            length: float | None = None,
-            axial_offset: float | None = None,
+            radius: float = 0.981 * 0.5 * CM_PER_INCH,
+            length: float = 3.0 * CM_PER_INCH,
+            axial_offset: float = -DISTANCE_FROM_LOWER_GRID_PLATE,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLSourceHolder.Cavity:
             """Creates and returns the default source-holder cavity.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Cavity radius in cm. If omitted, the reference value is used.
-            length : Optional[float]
-                Cavity length in cm. If omitted, the reference value is used.
-            axial_offset : Optional[float]
-                Offset of the cavity center from the holder center in cm. If omitted,
-                the cavity center is placed at the reactor core centerline.
+            radius : float
+                Cavity radius in cm. Defaults to half the 0.981-in diameter, per Ref. [1]_ Section 4.2.5.
+            length : float
+                Cavity length in cm. Defaults to 3.0 in, per Ref. [1]_ Section 4.2.5.
+            axial_offset : float
+                Offset of the cavity center from the holder center in cm. Defaults to
+                ``-DISTANCE_FROM_LOWER_GRID_PLATE`` (-1.1934 cm), placing the cavity
+                center at the reactor core centerline, per Ref. [2]_ pg. 55.
             material : Optional[openmc.Material]
-                Cavity material. If omitted, ``NETLDefaultMaterials.air`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Cavity material. If omitted, ``NETLDefaultMaterials.air`` is used at ``temperature``, per Ref. [2]_
+                pg. 54.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -191,33 +190,28 @@ class DefaultGeometries:
             NETLSourceHolder.Cavity
                 CoreForge NETL source-holder cavity.
             """
-            radius = radius if radius is not None else 0.981 * 0.5 * CM_PER_INCH  # Ref. [1]_ Section 4.2.5
-            length = length if length is not None else 3.0 * CM_PER_INCH  # Ref. [1]_ Section 4.2.5
-            axial_offset = (axial_offset if axial_offset is not None else
-                            -DefaultGeometries.SourceHolder.DISTANCE_FROM_LOWER_GRID_PLATE)  # Ref. [2]_ pg. 55
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.air(temperature)  # Ref. [2]_ pg. 54
+            material = material if material is not None else NETLDefaultMaterials.air(temperature)
 
             return NETLSourceHolder.Cavity(radius, length, axial_offset, Material(material))
 
         @staticmethod
         def cladding(
-            outer_radius: float | None = None,
+            outer_radius: float = 1.435 * 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLSourceHolder.Cladding:
             """Creates and returns the default source-holder cladding.
 
             Parameters
             ----------
-            outer_radius : Optional[float]
-                Cladding outer radius in cm. If omitted, the reference value is used.
+            outer_radius : float
+                Cladding outer radius in cm. Defaults to half the 1.435-in diameter, per Ref. [2]_ pg. 54 & 55.
             material : Optional[openmc.Material]
-                Cladding material. If omitted, ``NETLDefaultMaterials.aluminum`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Cladding material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per
+                Ref. [2]_ pg. 54.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -225,9 +219,7 @@ class DefaultGeometries:
             NETLSourceHolder.Cladding
                 CoreForge NETL source-holder cladding.
             """
-            outer_radius = outer_radius if outer_radius is not None else 1.435 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 54 & 55
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 54
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
             return NETLSourceHolder.Cladding(outer_radius, Material(material))
 
@@ -360,25 +352,25 @@ class DefaultGeometries:
 
         @staticmethod
         def cladding(
-            thickness: float | None = None,
-            outer_radius: float | None = None,
+            thickness: float = 0.02 * CM_PER_INCH,
+            outer_radius: float = 1.35 * 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.Cladding:
             """Creates and returns the default control-rod cladding.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Cladding thickness in cm. If omitted, the reference value is used.
-            outer_radius : Optional[float]
-                Cladding outer radius in cm. If omitted, the reference value is used.
+            thickness : float
+                Cladding thickness in cm. Defaults to 0.02 in, per Ref. [2]_ pg. 55.
+            outer_radius : float
+                Cladding outer radius in cm. Defaults to half the 1.35-in diameter, per Ref. [2]_ pg. 55.
             material : Optional[openmc.Material]
-                Cladding material. If omitted, ``NETLDefaultMaterials.stainless_steel``
-                is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Cladding material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is used at ``temperature``,
+                per Ref. [2]_ pg. 52.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -386,35 +378,31 @@ class DefaultGeometries:
             NETLFuelFollowerControlRod.Cladding
                 CoreForge fuel-follower-control-rod cladding.
             """
-            thickness = thickness if thickness is not None else 0.02 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            outer_radius = outer_radius if outer_radius is not None else 1.35 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.stainless_steel(temperature))  # Ref. [2]_ pg. 52
+            material = (material if material is not None else NETLDefaultMaterials.stainless_steel(temperature))
 
             return NETLFuelFollowerControlRod.Cladding(thickness, outer_radius, Material(material))
 
         @staticmethod
         def absorber(
-            radius: float | None = None,
-            length: float | None = None,
+            radius: float = 1.3 * 0.5 * CM_PER_INCH,
+            length: float = 15.0 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.Absorber:
             """Creates and returns the default control-rod absorber.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Absorber radius in cm. If omitted, the reference value is used.
-            length : Optional[float]
-                Absorber length in cm. If omitted, the reference value is used.
+            radius : float
+                Absorber radius in cm. Defaults to half the 1.3-in diameter, per Ref. [2]_ pg. 55.
+            length : float
+                Absorber length in cm. Defaults to 15.0 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Absorber material. If omitted,
-                ``NETLDefaultMaterials.control_rod_absorber`` is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Absorber material. If omitted, ``NETLDefaultMaterials.control_rod_absorber`` is used at
+                ``temperature``, per Ref. [2]_ pg. 52.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -422,45 +410,41 @@ class DefaultGeometries:
             NETLFuelFollowerControlRod.Absorber
                 CoreForge fuel-follower-control-rod absorber.
             """
-            radius = radius if radius is not None else 1.3 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            length = length if length is not None else 15.0 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.control_rod_absorber(temperature))  # Ref. [2]_ pg. 52
+            material = (material if material is not None else NETLDefaultMaterials.control_rod_absorber(temperature))
 
             return NETLFuelFollowerControlRod.Absorber(radius, length, Material(material))
 
         @staticmethod
         def fuel_follower(
-            length: float | None = None,
-            inner_radius: float | None = None,
+            length: float = 15.0 * CM_PER_INCH,
+            inner_radius: float = 0.25 * 0.5 * CM_PER_INCH,
             outer_radius: float | None = None,
             material: openmc.Material | Sequence[openmc.Material] | None = None,
-            num_radial_regions: int | None = None,
-            num_axial_regions: int | None = None,
-            temperature: float | None = None,
+            num_radial_regions: int = 1,
+            num_axial_regions: int = 1,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.FuelFollower:
             """Creates and returns the default fuel follower.
 
             Parameters
             ----------
-            length : Optional[float]
-                Fuel-follower length in cm. If omitted, the reference value is used.
-            inner_radius : Optional[float]
-                Fuel-follower inner radius in cm. If omitted, the reference value is used.
+            length : float
+                Fuel-follower length in cm. Defaults to 15.0 in, per Ref. [2]_ pg. 58.
+            inner_radius : float
+                Fuel-follower inner radius in cm. Defaults to half the 0.25-in diameter, per Ref. [2]_ pg. 55.
             outer_radius : Optional[float]
                 Fuel-follower outer radius in cm. If omitted, the default cladding inner
                 radius is used.
             material : Optional[openmc.Material | Sequence[openmc.Material]]
                 Fuel material or one material per region in axial-major order. If omitted,
-                ``NETLDefaultMaterials.fuel_follower_fuel`` is used at ``temperature``.
-            num_radial_regions : Optional[int]
-                Number of equal-volume radial regions. If omitted, one region is used.
-            num_axial_regions : Optional[int]
-                Number of equal-length axial regions. If omitted, one region is used.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                ``NETLDefaultMaterials.fuel_follower_fuel`` is used at ``temperature``, per Ref. [2]_ pg. 52.
+            num_radial_regions : int
+                Number of equal-volume radial regions. Defaults to 1.
+            num_axial_regions : int
+                Number of equal-length axial regions. Defaults to 1.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -468,15 +452,9 @@ class DefaultGeometries:
             NETLFuelFollowerControlRod.FuelFollower
                 CoreForge control-rod fuel follower.
             """
-            length = length if length is not None else 15.0 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            inner_radius = inner_radius if inner_radius is not None else 0.25 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 55
             if outer_radius is None:
                 outer_radius = DefaultGeometries.FuelFollowerControlRod.cladding().inner_radius
-            num_radial_regions = num_radial_regions if num_radial_regions is not None else 1
-            num_axial_regions = num_axial_regions if num_axial_regions is not None else 1
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.fuel_follower_fuel(temperature))  # Ref. [2]_ pg. 52
+            material = (material if material is not None else NETLDefaultMaterials.fuel_follower_fuel(temperature))
 
             if isinstance(material, openmc.Material):
                 fuel_material = Material(material)
@@ -494,22 +472,22 @@ class DefaultGeometries:
 
         @staticmethod
         def zr_fill_rod(
-            radius: float | None = None,
+            radius: float = 0.25 * 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.ZrFillRod:
             """Creates and returns the default zirconium fill rod.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Fill-rod radius in cm. If omitted, the reference value is used.
+            radius : float
+                Fill-rod radius in cm. Defaults to half the 0.25-in diameter, per Ref. [2]_ pg. 55.
             material : Optional[openmc.Material]
-                Fill-rod material. If omitted, ``NETLDefaultMaterials.zirc_filler`` is
-                used at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Fill-rod material. If omitted, ``NETLDefaultMaterials.zirc_filler`` is used at ``temperature``, per
+                Ref. [2]_ pg. 52.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -517,254 +495,238 @@ class DefaultGeometries:
             NETLFuelFollowerControlRod.ZrFillRod
                 CoreForge control-rod zirconium fill rod.
             """
-            radius = radius if radius is not None else 0.25 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.zirc_filler(temperature)  # Ref. [2]_ pg. 52
+            material = material if material is not None else NETLDefaultMaterials.zirc_filler(temperature)
 
             return NETLFuelFollowerControlRod.ZrFillRod(radius, Material(material))
 
         @staticmethod
         def upper_element_plug(
-            thickness: float | None = None,
+            thickness: float = 1.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.ElementPlug:
             """Creates and returns the default upper element plug.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Plug thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Plug thickness in cm. Defaults to 1.5 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Plug material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is
-                used at ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Plug material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is used at ``temperature``, per
+                Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLFuelFollowerControlRod.ElementPlug
                 CoreForge upper element plug.
             """
-            thickness = thickness if thickness is not None else 1.5 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.stainless_steel(temperature))  # Ref. [2]_ pg. 51
+            material = (material if material is not None else NETLDefaultMaterials.stainless_steel(temperature))
             return NETLFuelFollowerControlRod.ElementPlug(thickness, Material(material))
 
         @staticmethod
-        def upper_air_gap(thickness: float | None = None) -> NETLFuelFollowerControlRod.AirGap:
+        def upper_air_gap(thickness: float = 3.5 * CM_PER_INCH) -> NETLFuelFollowerControlRod.AirGap:
             """Creates and returns the default upper air gap.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Air-gap thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Air-gap thickness in cm. Defaults to 3.5 in, per Ref. [2]_ pg. 58.
 
             Returns
             -------
             NETLFuelFollowerControlRod.AirGap
                 CoreForge upper air gap.
             """
-            thickness = thickness if thickness is not None else 3.5 * CM_PER_INCH  # Ref. [2]_ pg. 58
             return NETLFuelFollowerControlRod.AirGap(thickness)
 
         @staticmethod
         def upper_magneform_fitting(
-            thickness: float | None = None,
+            thickness: float = 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.MagneformFitting:
             """Creates and returns the default upper Magneform fitting.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Fitting thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Fitting thickness in cm. Defaults to 0.5 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Fitting material. If omitted, ``NETLDefaultMaterials.stainless_steel``
-                is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Fitting material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is used at ``temperature``,
+                per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLFuelFollowerControlRod.MagneformFitting
                 CoreForge upper Magneform fitting.
             """
-            thickness = thickness if thickness is not None else 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.stainless_steel(temperature))  # Ref. [2]_ pg. 51
+            material = (material if material is not None else NETLDefaultMaterials.stainless_steel(temperature))
             return NETLFuelFollowerControlRod.MagneformFitting(thickness, Material(material))
 
         @staticmethod
-        def above_absorber_air_gap(thickness: float | None = None) -> NETLFuelFollowerControlRod.AirGap:
+        def above_absorber_air_gap(thickness: float = 0.125 * CM_PER_INCH) -> NETLFuelFollowerControlRod.AirGap:
             """Creates and returns the default air gap above the absorber.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Air-gap thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Air-gap thickness in cm. Defaults to 0.125 in, per Ref. [2]_ pg. 58.
 
             Returns
             -------
             NETLFuelFollowerControlRod.AirGap
                 CoreForge air gap above the absorber.
             """
-            thickness = thickness if thickness is not None else 0.125 * CM_PER_INCH  # Ref. [2]_ pg. 58
             return NETLFuelFollowerControlRod.AirGap(thickness)
 
         @staticmethod
         def middle_magneform_fitting(
-            thickness: float | None = None,
+            thickness: float = 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.MagneformFitting:
             """Creates and returns the default middle Magneform fitting.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Fitting thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Fitting thickness in cm. Defaults to 0.5 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Fitting material. If omitted, ``NETLDefaultMaterials.stainless_steel``
-                is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Fitting material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is used at ``temperature``,
+                per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLFuelFollowerControlRod.MagneformFitting
                 CoreForge middle Magneform fitting.
             """
-            thickness = thickness if thickness is not None else 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.stainless_steel(temperature))  # Ref. [2]_ pg. 51
+            material = (material if material is not None else NETLDefaultMaterials.stainless_steel(temperature))
             return NETLFuelFollowerControlRod.MagneformFitting(thickness, Material(material))
 
         @staticmethod
         def above_fuel_follower_air_gap(
-            thickness: float | None = None,
+            thickness: float = 0.25 * CM_PER_INCH,
         ) -> NETLFuelFollowerControlRod.AirGap:
             """Creates and returns the default air gap above the fuel follower.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Air-gap thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Air-gap thickness in cm. Defaults to 0.25 in, per Ref. [2]_ pg. 58.
 
             Returns
             -------
             NETLFuelFollowerControlRod.AirGap
                 CoreForge air gap above the fuel follower.
             """
-            thickness = thickness if thickness is not None else 0.25 * CM_PER_INCH  # Ref. [2]_ pg. 58
             return NETLFuelFollowerControlRod.AirGap(thickness)
 
         @staticmethod
         def lower_magneform_fitting(
-            thickness: float | None = None,
+            thickness: float = 1.0 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.MagneformFitting:
             """Creates and returns the default lower Magneform fitting.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Fitting thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Fitting thickness in cm. Defaults to 1.0 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Fitting material. If omitted, ``NETLDefaultMaterials.stainless_steel``
-                is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Fitting material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is used at ``temperature``,
+                per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLFuelFollowerControlRod.MagneformFitting
                 CoreForge lower Magneform fitting.
             """
-            thickness = thickness if thickness is not None else 1.0 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.stainless_steel(temperature))  # Ref. [2]_ pg. 51
+            material = (material if material is not None else NETLDefaultMaterials.stainless_steel(temperature))
             return NETLFuelFollowerControlRod.MagneformFitting(thickness, Material(material))
 
         @staticmethod
-        def lower_air_gap(thickness: float | None = None) -> NETLFuelFollowerControlRod.AirGap:
+        def lower_air_gap(thickness: float = 5.375 * CM_PER_INCH) -> NETLFuelFollowerControlRod.AirGap:
             """Creates and returns the default lower air gap.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Air-gap thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Air-gap thickness in cm. Defaults to 5.375 in, per Ref. [2]_ pg. 58.
 
             Returns
             -------
             NETLFuelFollowerControlRod.AirGap
                 CoreForge lower air gap.
             """
-            thickness = thickness if thickness is not None else 5.375 * CM_PER_INCH  # Ref. [2]_ pg. 58
             return NETLFuelFollowerControlRod.AirGap(thickness)
 
         @staticmethod
         def lower_element_plug(
-            thickness: float | None = None,
+            thickness: float = 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLFuelFollowerControlRod.ElementPlug:
             """Creates and returns the default lower element plug.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Plug thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Plug thickness in cm. Defaults to 0.5 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Plug material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is
-                used at ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Plug material. If omitted, ``NETLDefaultMaterials.stainless_steel`` is used at ``temperature``, per
+                Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLFuelFollowerControlRod.ElementPlug
                 CoreForge lower element plug.
             """
-            thickness = thickness if thickness is not None else 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = (material if material is not None else
-                        NETLDefaultMaterials.stainless_steel(temperature))  # Ref. [2]_ pg. 51
+            material = (material if material is not None else NETLDefaultMaterials.stainless_steel(temperature))
             return NETLFuelFollowerControlRod.ElementPlug(thickness, Material(material))
 
         @staticmethod
         def fill_gas(
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> Material:
             """Creates and returns the default control-rod fill gas.
 
             Parameters
             ----------
             material : Optional[openmc.Material]
-                Fill-gas material. If omitted, ``NETLDefaultMaterials.air`` is used.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Fill-gas material. If omitted, ``NETLDefaultMaterials.air`` is used, per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             Material
                 CoreForge fill-gas material.
             """
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.air(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else NETLDefaultMaterials.air(temperature)
             return Material(material)
 
     @staticmethod
@@ -847,25 +809,25 @@ class DefaultGeometries:
 
         @staticmethod
         def cladding(
-            thickness: float | None = None,
-            outer_radius: float | None = None,
+            thickness: float = 0.028 * CM_PER_INCH,
+            outer_radius: float = 1.25 * 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLTransientRod.Cladding:
             """Creates and returns the default transient-rod cladding.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Cladding thickness in cm. If omitted, the reference value is used.
-            outer_radius : Optional[float]
-                Cladding outer radius in cm. If omitted, the reference value is used.
+            thickness : float
+                Cladding thickness in cm. Defaults to 0.028 in, per Ref. [1]_ Table 4.2.
+            outer_radius : float
+                Cladding outer radius in cm. Defaults to half the 1.25-in diameter, per Ref. [1]_ Table 4.2.
             material : Optional[openmc.Material]
-                Cladding material. If omitted, ``NETLDefaultMaterials.aluminum`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Cladding material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per
+                Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -873,34 +835,31 @@ class DefaultGeometries:
             NETLTransientRod.Cladding
                 CoreForge NETL transient-rod cladding.
             """
-            thickness = thickness if thickness is not None else 0.028 * CM_PER_INCH  # Ref. [1]_ Table 4.2
-            outer_radius = outer_radius if outer_radius is not None else 1.25 * 0.5 * CM_PER_INCH  # Ref. [1]_ Table 4.2
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
             return NETLTransientRod.Cladding(thickness, outer_radius, Material(material))
 
         @staticmethod
         def absorber(
-            radius: float | None = None,
-            length: float | None = None,
+            radius: float = 1.187 * 0.5 * CM_PER_INCH,
+            length: float = 15.0 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLTransientRod.Absorber:
             """Creates and returns the default transient-rod absorber.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Absorber radius in cm. If omitted, the reference value is used.
-            length : Optional[float]
-                Absorber length in cm. If omitted, the reference value is used.
+            radius : float
+                Absorber radius in cm. Defaults to half the 1.187-in diameter, per Ref. [2]_ pg. 55.
+            length : float
+                Absorber length in cm. Defaults to 15.0 in, per Ref. [1]_ Table 4.2.
             material : Optional[openmc.Material]
-                Absorber material. If omitted,
-                ``NETLDefaultMaterials.control_rod_absorber`` is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Absorber material. If omitted, ``NETLDefaultMaterials.control_rod_absorber`` is used at
+                ``temperature``, per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -908,179 +867,171 @@ class DefaultGeometries:
             NETLTransientRod.Absorber
                 CoreForge NETL transient-rod absorber.
             """
-            radius = radius if radius is not None else 1.187 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            length = length if length is not None else 15.0 * CM_PER_INCH  # Ref. [1]_ Table 4.2
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
             material = (material if material is not None else
-                        NETLDefaultMaterials.control_rod_absorber(temperature))  # Ref. [2]_ pg. 51
+                        NETLDefaultMaterials.control_rod_absorber(temperature))
 
             return NETLTransientRod.Absorber(radius, length, Material(material))
 
         @staticmethod
-        def air_follower(thickness: float | None = None) -> NETLTransientRod.AirFollower:
+        def air_follower(thickness: float = 19.75 * CM_PER_INCH) -> NETLTransientRod.AirFollower:
             """Creates and returns the default transient-rod air follower.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Air-follower thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Air-follower thickness in cm. Defaults to 19.75 in, per Ref. [2]_ pg. 58.
 
             Returns
             -------
             NETLTransientRod.AirFollower
                 CoreForge NETL transient-rod air follower.
             """
-            thickness = thickness if thickness is not None else 19.75 * CM_PER_INCH  # Ref. [2]_ pg. 58
             return NETLTransientRod.AirFollower(thickness)
 
         @staticmethod
         def upper_element_plug(
-            thickness: float | None = None,
+            thickness: float = 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLTransientRod.ElementPlug:
             """Creates and returns the default upper transient-rod element plug.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Plug thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Plug thickness in cm. Defaults to 0.5 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Plug material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Plug material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+                [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLTransientRod.ElementPlug
                 CoreForge upper transient-rod element plug.
             """
-            thickness = thickness if thickness is not None else 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
             return NETLTransientRod.ElementPlug(thickness, Material(material))
 
         @staticmethod
         def upper_magneform_fitting(
-            thickness: float | None = None,
+            thickness: float = 1.0 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLTransientRod.MagneformFitting:
             """Creates and returns the default upper transient-rod Magneform fitting.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Fitting thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Fitting thickness in cm. Defaults to 1.0 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Fitting material. If omitted, ``NETLDefaultMaterials.aluminum`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Fitting material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+                [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLTransientRod.MagneformFitting
                 CoreForge upper transient-rod Magneform fitting.
             """
-            thickness = thickness if thickness is not None else 1.0 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
             return NETLTransientRod.MagneformFitting(thickness, Material(material))
 
         @staticmethod
         def lower_magneform_fitting(
-            thickness: float | None = None,
+            thickness: float = 1.0 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLTransientRod.MagneformFitting:
             """Creates and returns the default lower transient-rod Magneform fitting.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Fitting thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Fitting thickness in cm. Defaults to 1.0 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Fitting material. If omitted, ``NETLDefaultMaterials.aluminum`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Fitting material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+                [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLTransientRod.MagneformFitting
                 CoreForge lower transient-rod Magneform fitting.
             """
-            thickness = thickness if thickness is not None else 1.0 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
             return NETLTransientRod.MagneformFitting(thickness, Material(material))
 
         @staticmethod
         def lower_element_plug(
-            thickness: float | None = None,
+            thickness: float = 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLTransientRod.ElementPlug:
             """Creates and returns the default lower transient-rod element plug.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Plug thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Plug thickness in cm. Defaults to 0.5 in, per Ref. [2]_ pg. 58.
             material : Optional[openmc.Material]
-                Plug material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Plug material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+                [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             NETLTransientRod.ElementPlug
                 CoreForge lower transient-rod element plug.
             """
-            thickness = thickness if thickness is not None else 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 58
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
             return NETLTransientRod.ElementPlug(thickness, Material(material))
 
         @staticmethod
         def fill_gas(
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> Material:
             """Creates and returns the default transient-rod fill gas.
 
             Parameters
             ----------
             material : Optional[openmc.Material]
-                Fill-gas material. If omitted, ``NETLDefaultMaterials.air`` is used.
-            temperature : Optional[float]
-                Temperature used for the default material. Ignored when ``material``
-                is supplied; if omitted, the default temperature is used.
+                Fill-gas material. If omitted, ``NETLDefaultMaterials.air`` is used, per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature used for the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored when
+                ``material`` is supplied.
 
             Returns
             -------
             Material
                 CoreForge fill-gas material.
             """
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.air(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else NETLDefaultMaterials.air(temperature)
             return Material(material)
 
     @staticmethod
     def upper_grid_plate(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
-        fuel_location_radius: float | None = None,
-        control_rod_location_radius: float | None = None,
+        fuel_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
+        control_rod_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         central_thimble_radius: float | None = None,
         penetration_map: dict[str, float | None] | None = None,
-        thickness: float | None = None,
+        thickness: float = 0.62 * CM_PER_INCH,
         material: openmc.Material | None = None,
     ) -> GridPlate:
         """Creates and returns the default upper grid plate geometry.
@@ -1089,23 +1040,23 @@ class DefaultGeometries:
         ----------
         temperature : float
             Temperature applied to the default upper-grid-plate material.
-        fuel_location_radius : Optional[float]
-            Fuel-location penetration radius in cm. If omitted, the reference value
-            is used. Ignored when ``penetration_map`` is supplied.
-        control_rod_location_radius : Optional[float]
-            Control-rod-location penetration radius in cm. If omitted, the reference
-            value is used. Ignored when ``penetration_map`` is supplied.
+        fuel_location_radius : float
+            Fuel-location penetration radius in cm. Defaults to half the 1.505-in diameter, per Ref. [1]_
+            Section 4.2.4.a. Ignored when ``penetration_map`` is supplied.
+        control_rod_location_radius : float
+            Control-rod-location penetration radius in cm. Defaults to half the 1.505-in diameter, per Ref. [1]_
+            Section 4.2.4.a. Ignored when ``penetration_map`` is supplied.
         central_thimble_radius : Optional[float]
             Central-thimble penetration radius in cm. If omitted, the default central
             thimble outer radius is used. Ignored when ``penetration_map`` is supplied.
         penetration_map : Optional[dict[str, float | None]]
             Complete map of core locations to penetration radii. If omitted, the
             standard map is generated from the three radius parameters.
-        thickness : Optional[float]
-            Grid-plate thickness in cm. If omitted, the reference value is used.
+        thickness : float
+            Grid-plate thickness in cm. Defaults to 0.62 in, per Ref. [2]_ pg. 55.
         material : Optional[openmc.Material]
-            Grid-plate material. If omitted, ``NETLDefaultMaterials.aluminum`` is used
-            at ``temperature``. The temperature is ignored when a material is supplied.
+            Grid-plate material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per
+            Ref. [2]_ pg. 50. The temperature is ignored when a material is supplied.
 
         Returns
         -------
@@ -1113,12 +1064,6 @@ class DefaultGeometries:
             Default NETL TRIGA upper grid plate.
         """
         if penetration_map is None:
-            fuel_location_radius = (fuel_location_radius if fuel_location_radius is not None else
-                                    1.505 * 0.5 * CM_PER_INCH)  # Ref. [1]_ Section 4.2.4.a
-            control_rod_location_radius = (
-                control_rod_location_radius if control_rod_location_radius is not None else
-                1.505 * 0.5 * CM_PER_INCH  # Ref. [1]_ Section 4.2.4.a
-            )
             central_thimble_radius = (
                 central_thimble_radius if central_thimble_radius is not None else
                 DefaultGeometries.central_thimble().cladding.outer_radius
@@ -1129,8 +1074,7 @@ class DefaultGeometries:
                 central_thimble_radius,
             )
 
-        thickness = thickness if thickness is not None else 0.62 * CM_PER_INCH  # Ref. [2]_ pg. 55
-        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 50
+        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
         return GridPlate(
             penetration_map=penetration_map,
@@ -1142,11 +1086,11 @@ class DefaultGeometries:
     @staticmethod
     def lower_grid_plate(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
-        fuel_location_radius: float | None = None,
-        control_rod_location_radius: float | None = None,
+        fuel_location_radius: float = 1.25 * 0.5 * CM_PER_INCH,
+        control_rod_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         central_thimble_radius: float | None = None,
         penetration_map: dict[str, float | None] | None = None,
-        thickness: float | None = None,
+        thickness: float = 1.25 * CM_PER_INCH,
         material: openmc.Material | None = None,
     ) -> GridPlate:
         """Creates and returns the default lower grid plate geometry.
@@ -1155,23 +1099,23 @@ class DefaultGeometries:
         ----------
         temperature : float
             Temperature applied to the default lower-grid-plate material.
-        fuel_location_radius : Optional[float]
-            Fuel-location penetration radius in cm. If omitted, the reference value
-            is used. Ignored when ``penetration_map`` is supplied.
-        control_rod_location_radius : Optional[float]
-            Control-rod-location penetration radius in cm. If omitted, the reference
-            value is used. Ignored when ``penetration_map`` is supplied.
+        fuel_location_radius : float
+            Fuel-location penetration radius in cm. Defaults to half the 1.25-in diameter, per Ref. [1]_ Section
+            4.2.4.b. Ignored when ``penetration_map`` is supplied.
+        control_rod_location_radius : float
+            Control-rod-location penetration radius in cm. Defaults to half the 1.505-in diameter, per Ref. [1]_
+            Section 4.2.4.b. Ignored when ``penetration_map`` is supplied.
         central_thimble_radius : Optional[float]
             Central-thimble penetration radius in cm. If omitted, the default central
             thimble outer radius is used. Ignored when ``penetration_map`` is supplied.
         penetration_map : Optional[dict[str, float | None]]
             Complete map of core locations to penetration radii. If omitted, the
             standard map is generated from the three radius parameters.
-        thickness : Optional[float]
-            Grid-plate thickness in cm. If omitted, the reference value is used.
+        thickness : float
+            Grid-plate thickness in cm. Defaults to 1.25 in, per Ref. [2]_ pg. 55.
         material : Optional[openmc.Material]
-            Grid-plate material. If omitted, ``NETLDefaultMaterials.aluminum`` is used
-            at ``temperature``. The temperature is ignored when a material is supplied.
+            Grid-plate material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per
+            Ref. [2]_ pg. 50. The temperature is ignored when a material is supplied.
 
         Returns
         -------
@@ -1180,12 +1124,6 @@ class DefaultGeometries:
         """
 
         if penetration_map is None:
-            fuel_location_radius = (fuel_location_radius if fuel_location_radius is not None else
-                                    1.25 * 0.5 * CM_PER_INCH)  # Ref. [1]_ Section 4.2.4.b
-            control_rod_location_radius = (
-                control_rod_location_radius if control_rod_location_radius is not None else
-                1.505 * 0.5 * CM_PER_INCH  # Ref. [1]_ Section 4.2.4.b
-            )
             central_thimble_radius = (
                 central_thimble_radius if central_thimble_radius is not None else
                 DefaultGeometries.central_thimble().cladding.outer_radius
@@ -1196,8 +1134,7 @@ class DefaultGeometries:
                 central_thimble_radius,
             )
 
-        thickness = thickness if thickness is not None else 1.25 * CM_PER_INCH  # Ref. [2]_ pg. 55
-        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 50
+        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
         return GridPlate(
             penetration_map=penetration_map,
@@ -1210,19 +1147,20 @@ class DefaultGeometries:
     @staticmethod
     def pool(
         coolant: openmc.Material | None = None,
-        radius: float | None = None,
-        height: float | None = None,
+        radius: float = 90.0,
+        height: float = 160.0,
     ) -> Pool:
         """Creates and returns the default pool.
 
         Parameters
         ----------
         coolant : Optional[openmc.Material]
-            Coolant material used for the pool contents. If omitted, water is used.
-        radius : Optional[float]
-            Pool radius in cm. If omitted, the reference value is used.
-        height : Optional[float]
-            Pool height in cm. If omitted, the reference value is used.
+            Coolant material used for the pool contents. If omitted, water is used,
+            per Ref. [2]_ pg. 48.
+        radius : float
+            Pool radius in cm. Defaults to 90.0 cm, per Ref. [2]_ pg. 54.
+        height : float
+            Pool height in cm. Defaults to 160.0 cm, per Ref. [2]_ pg. 54.
 
         Returns
         -------
@@ -1230,21 +1168,19 @@ class DefaultGeometries:
             Default NETL TRIGA pool.
         """
         coolant = coolant or NETLDefaultMaterials.water()
-        radius = radius if radius is not None else 90.0  # Ref. [2]_ pg. 54
-        height = height if height is not None else 160.0  # Ref. [2]_ pg. 54
 
         return Pool(
             radius=radius,
             height=height,
-            material=Material(coolant),  # Ref. [2]_ pg. 48
+            material=Material(coolant),
             name="pool",
         )
 
     @staticmethod
     def reflector(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
-        radius: float | None = None,
-        height: float | None = None,
+        radius: float = 42.0 * 0.5 * CM_PER_INCH,
+        height: float = 23.13 * CM_PER_INCH,
         material: openmc.Material | None = None,
     ) -> Reflector:
         """Creates and returns the default reflector.
@@ -1253,22 +1189,20 @@ class DefaultGeometries:
         ----------
         temperature : float
             Temperature applied to the default reflector material.
-        radius : Optional[float]
-            Reflector radius in cm. If omitted, the reference value is used.
-        height : Optional[float]
-            Reflector height in cm. If omitted, the reference value is used.
+        radius : float
+            Reflector radius in cm. Defaults to half the 42.0-in diameter, per Ref. [2]_ pg. 54.
+        height : float
+            Reflector height in cm. Defaults to 23.13 in, per Ref. [2]_ pg. 55.
         material : Optional[openmc.Material]
-            Reflector material. If omitted, ``NETLDefaultMaterials.graphite`` is used
-            at ``temperature``. The temperature is ignored when a material is supplied.
+            Reflector material. If omitted, ``NETLDefaultMaterials.graphite`` is used at ``temperature``, per
+            Ref. [2]_ pg. 48. The temperature is ignored when a material is supplied.
 
         Returns
         -------
         Reflector
             Default NETL TRIGA reflector.
         """
-        radius = radius if radius is not None else 42.0 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 54
-        height = height if height is not None else 23.13 * CM_PER_INCH  # Ref. [2]_ pg. 55
-        material = material if material is not None else NETLDefaultMaterials.graphite(temperature)  # Ref. [2]_ pg. 48
+        material = material if material is not None else NETLDefaultMaterials.graphite(temperature)
 
         return Reflector(
             radius=radius,
@@ -1280,9 +1214,9 @@ class DefaultGeometries:
     @staticmethod
     def shroud(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
-        thickness: float | None = None,
-        primary_hex_inner_radius: float | None = None,
-        rotated_hex_inner_radius: float | None = None,
+        thickness: float = 0.1875 * CM_PER_INCH,
+        primary_hex_inner_radius: float = 10.21875 * CM_PER_INCH,
+        rotated_hex_inner_radius: float = 10.75 * CM_PER_INCH,
         material: openmc.Material | None = None,
     ) -> Shroud:
         """Creates and returns the default shroud.
@@ -1291,27 +1225,22 @@ class DefaultGeometries:
         ----------
         temperature : float
             Temperature applied to the default shroud material.
-        thickness : Optional[float]
-            Shroud-wall thickness in cm. If omitted, the reference value is used.
-        primary_hex_inner_radius : Optional[float]
-            Primary-hex inradius in cm. If omitted, the reference value is used.
-        rotated_hex_inner_radius : Optional[float]
-            Rotated-hex inradius in cm. If omitted, the reference value is used.
+        thickness : float
+            Shroud-wall thickness in cm. Defaults to 0.1875 in, per Ref. [2]_ pg. 54 & 55.
+        primary_hex_inner_radius : float
+            Primary-hex inradius in cm. Defaults to 10.21875 in, per Ref. [2]_ pg. 55.
+        rotated_hex_inner_radius : float
+            Rotated-hex inradius in cm. Defaults to 10.75 in, per Ref. [2]_ pg. 54.
         material : Optional[openmc.Material]
-            Shroud material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at
-            ``temperature``. The temperature is ignored when a material is supplied.
+            Shroud material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+            [2]_ pg. 48. The temperature is ignored when a material is supplied.
 
         Returns
         -------
         Shroud
             Default NETL TRIGA shroud.
         """
-        thickness = thickness if thickness is not None else 0.1875 * CM_PER_INCH  # Ref. [2]_ pg. 54 & 55
-        primary_hex_inner_radius = (primary_hex_inner_radius if primary_hex_inner_radius is not None else
-                                    10.21875 * CM_PER_INCH)  # Ref. [2]_ pg. 55
-        rotated_hex_inner_radius = (rotated_hex_inner_radius if rotated_hex_inner_radius is not None else
-                                    10.75 * CM_PER_INCH)  # Ref. [2]_ pg. 54
-        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 48
+        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
         return Shroud(
             thickness=thickness,
@@ -1324,10 +1253,10 @@ class DefaultGeometries:
     @staticmethod
     def rsr_cavity(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
-        outer_radius: float | None = None,
-        height: float | None = None,
-        number_of_tubes: int | None = None,
-        tube_to_center_distance: float | None = None,
+        outer_radius: float = 28.625 * 0.5 * CM_PER_INCH,
+        height: float = 10.8174 * CM_PER_INCH,
+        number_of_tubes: int = 40,
+        tube_to_center_distance: float = 26.312 * 0.5 * CM_PER_INCH,
         tube_specs: NETLRSRCavity.SpecimenTube | None = None,
         material: openmc.Material | None = None,
     ) -> NETLRSRCavity:
@@ -1337,35 +1266,30 @@ class DefaultGeometries:
         ----------
         temperature : float
             Temperature applied to default specimen-tube and cavity-fill materials.
-        outer_radius : Optional[float]
-            RSR cavity outer radius in cm. If omitted, the reference value is used.
-        height : Optional[float]
-            RSR cavity height in cm. If omitted, the reference value is used.
-        number_of_tubes : Optional[int]
-            Number of specimen tubes. If omitted, the reference value is used.
-        tube_to_center_distance : Optional[float]
-            Distance from the rack center to each tube centerline in cm. If omitted,
-            the reference value is used.
+        outer_radius : float
+            RSR cavity outer radius in cm. Defaults to half the 28.625-in diameter, per Ref. [2]_ pg. 55.
+        height : float
+            RSR cavity height in cm. Defaults to 10.8174 in, per Ref. [2]_ pg. 55.
+        number_of_tubes : int
+            Number of specimen tubes. Defaults to 40, per Ref. [1]_ pg. 10-27.
+        tube_to_center_distance : float
+            Distance from the rack center to each tube centerline in cm. Defaults to half the 26.312-in
+            diameter, per Ref. [1]_ pg. 10-27.
         tube_specs : Optional[NETLRSRCavity.SpecimenTube]
             Specimen-tube override. If omitted,
             ``DefaultGeometries.RSRCavity.specimen_tube`` is used.
         material : Optional[openmc.Material]
-            Cavity fill material. If omitted, ``NETLDefaultMaterials.air`` is used at
-            ``temperature``. The temperature is ignored when a material is supplied.
+            Cavity fill material. If omitted, ``NETLDefaultMaterials.air`` is used at ``temperature``, per Ref.
+            [2]_ pg. 48. The temperature is ignored when a material is supplied.
 
         Returns
         -------
         NETLRSRCavity
             Default NETL TRIGA rotary specimen rack cavity.
         """
-        outer_radius = outer_radius if outer_radius is not None else 28.625 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 55
-        height = height if height is not None else 10.8174 * CM_PER_INCH  # Ref. [2]_ pg. 55
-        number_of_tubes = number_of_tubes if number_of_tubes is not None else 40  # Ref. [1]_ pg. 10-27
-        tube_to_center_distance = (tube_to_center_distance if tube_to_center_distance is not None else
-                                   26.312 * 0.5 * CM_PER_INCH)  # Ref. [1]_ pg. 10-27
         tube_specs = (tube_specs if tube_specs is not None else
                       DefaultGeometries.RSRCavity.specimen_tube(temperature=temperature))
-        material = material if material is not None else NETLDefaultMaterials.air(temperature)  # Ref. [2]_ pg. 48
+        material = material if material is not None else NETLDefaultMaterials.air(temperature)
 
         return NETLRSRCavity(
             outer_radius=outer_radius,
@@ -1382,25 +1306,24 @@ class DefaultGeometries:
 
         @staticmethod
         def specimen_tube(
-            outer_radius: float | None = None,
-            thickness: float | None = None,
+            outer_radius: float = 1.0 * 0.5 * CM_PER_INCH,
+            thickness: float = 0.058 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLRSRCavity.SpecimenTube:
             """Creates and returns the default RSR specimen tube.
 
             Parameters
             ----------
-            outer_radius : Optional[float]
-                Specimen-tube outer radius in cm. If omitted, the reference value is used.
-            thickness : Optional[float]
-                Specimen-tube wall thickness in cm. If omitted, the reference value is used.
+            outer_radius : float
+                Specimen-tube outer radius in cm. Defaults to half the 1.0-in diameter, per Ref. [2]_ pg. 56 & 57.
+            thickness : float
+                Specimen-tube wall thickness in cm. Defaults to 0.058 in, per Ref. [1]_ pg. 10-27.
             material : Optional[openmc.Material]
-                Tube material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Tube material. If omitted, ``NETLDefaultMaterials.aluminum`` is assumed at ``temperature``.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -1408,10 +1331,7 @@ class DefaultGeometries:
             NETLRSRCavity.SpecimenTube
                 CoreForge NETL RSR specimen tube.
             """
-            outer_radius = outer_radius if outer_radius is not None else 1.0 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 56 & 57
-            thickness = thickness if thickness is not None else 0.058 * CM_PER_INCH  # Ref. [1]_ pg. 10-27
-            temperature = temperature if temperature is not None else NETLDefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)  # Assumed
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
             return NETLRSRCavity.SpecimenTube(outer_radius, thickness, Material(material))
 
@@ -1419,8 +1339,8 @@ class DefaultGeometries:
     def beam_port(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         length: float | None = None,
-        inner_radius: float | None = None,
-        outer_radius: float | None = None,
+        inner_radius: float = 6.065 * 0.5 * CM_PER_INCH,
+        outer_radius: float = 6.625 * 0.5 * CM_PER_INCH,
         tube_material: openmc.Material | None = None,
         fill_material: openmc.Material | None = None,
     ) -> BeamPort:
@@ -1438,16 +1358,16 @@ class DefaultGeometries:
             Temperature applied to the default beam port tube and fill materials.
         length : Optional[float]
             Beam port length in cm. If omitted, the default pool diameter is used.
-        inner_radius : Optional[float]
-            Beam port inner radius in cm. If omitted, the reference value is used.
-        outer_radius : Optional[float]
-            Beam port outer radius in cm. If omitted, the reference value is used.
+        inner_radius : float
+            Beam port inner radius in cm. Defaults to half the 6.065-in diameter, per Ref. [2]_ Figures 4 & 5.
+        outer_radius : float
+            Beam port outer radius in cm. Defaults to half the 6.625-in diameter, per Ref. [2]_ Figures 4 & 5.
         tube_material : Optional[openmc.Material]
-            Beam port tube material. If omitted, ``NETLDefaultMaterials.aluminum``
-            is used at ``temperature``.
+            Beam port tube material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``,
+            per Ref. [2]_ pg. 48.
         fill_material : Optional[openmc.Material]
-            Beam port fill material. If omitted, ``NETLDefaultMaterials.air`` is
-            used at ``temperature``.
+            Beam port fill material. If omitted, ``NETLDefaultMaterials.air`` is used at ``temperature``, per
+            Ref. [2]_ pg. 48.
 
         Returns
         -------
@@ -1456,12 +1376,10 @@ class DefaultGeometries:
         """
 
         length = length if length is not None else DefaultGeometries.pool().radius * 2.0
-        inner_radius = inner_radius if inner_radius is not None else 6.065 * 0.5 * CM_PER_INCH  # Ref. [2]_ Figures 4 & 5
-        outer_radius = outer_radius if outer_radius is not None else 6.625 * 0.5 * CM_PER_INCH  # Ref. [2]_ Figures 4 & 5
         tube_material = (tube_material if tube_material is not None else
-                         NETLDefaultMaterials.aluminum(temperature))  # Ref. [2]_ pg. 48
+                         NETLDefaultMaterials.aluminum(temperature))
         fill_material = (fill_material if fill_material is not None else
-                         NETLDefaultMaterials.air(temperature))  # Ref. [2]_ pg. 48
+                         NETLDefaultMaterials.air(temperature))
 
         return BeamPort(
             length=length,
@@ -1478,7 +1396,7 @@ class DefaultGeometries:
         non_fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
         coolant: openmc.Material | None = None,
         fuel_materials: dict[str, FuelSpec] | None = None,
-        pitch: float | None = None,
+        pitch: float = 1.714 * CM_PER_INCH,
         central_thimble: CentralThimble | None = None,
         transient_rod: NETLTransientRod | None = None,
         regulating_rod: NETLFuelFollowerControlRod | None = None,
@@ -1505,8 +1423,8 @@ class DefaultGeometries:
             temperature); see ``TRIGADefaultGeometries.fuel_element``. Keys must be fuel
             locations; supplying a non-fuel location raises ``ValueError``. Ignored when
             ``loading`` is supplied.
-        pitch : Optional[float]
-            Hexagonal lattice pitch in cm. If omitted, the reference value is used.
+        pitch : float
+            Hexagonal lattice pitch in cm. Defaults to 1.714 in, per Ref. [2]_ pg. 54.
         central_thimble : Optional[CentralThimble]
             Central-thimble override. If omitted, ``DefaultGeometries.central_thimble``
             is used.
@@ -1535,7 +1453,6 @@ class DefaultGeometries:
         """
         coolant = coolant or NETLDefaultMaterials.water()
 
-        pitch = pitch if pitch is not None else 1.714 * CM_PER_INCH  # Ref. [2]_ pg. 54
         central_thimble = (central_thimble if central_thimble is not None else
                            DefaultGeometries.central_thimble(non_fuel_temp, coolant))
         transient_rod = (transient_rod if transient_rod is not None else
@@ -1623,6 +1540,8 @@ class DefaultGeometries:
             name="core",
         )
 
+
+
     @staticmethod
     def reactor(
         fuel_temp: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
@@ -1637,14 +1556,14 @@ class DefaultGeometries:
         shroud: Shroud | None = None,
         rsr_cavity: NETLRSRCavity | None = None,
         core: Core | None = None,
-        beam_port_1_5: Reactor.BeamPort | None = None,
-        beam_port_2: Reactor.BeamPort | None = None,
-        beam_port_3: Reactor.BeamPort | None = None,
-        beam_port_4: Reactor.BeamPort | None = None,
-        reflector: Reactor.Reflector | None = None,
-        upper_grid_plate: Reactor.GridPlate | None = None,
-        lower_grid_plate: Reactor.GridPlate | None = None,
-    ) -> Reactor:
+        beam_port_1_5: NETLReactor.BeamPort | None = None,
+        beam_port_2: NETLReactor.BeamPort | None = None,
+        beam_port_3: NETLReactor.BeamPort | None = None,
+        beam_port_4: NETLReactor.BeamPort | None = None,
+        reflector: NETLReactor.Reflector | None = None,
+        upper_grid_plate: NETLReactor.GridPlate | None = None,
+        lower_grid_plate: NETLReactor.GridPlate | None = None,
+    ) -> NETLReactor:
         """Creates and returns a default reactor geometry.
 
         Parameters
@@ -1681,31 +1600,31 @@ class DefaultGeometries:
             ``DefaultGeometries.rsr_cavity`` is used.
         core : Optional[Core]
             Core override. If omitted, ``DefaultGeometries.core`` is used.
-        beam_port_1_5 : Optional[Reactor.BeamPort]
+        beam_port_1_5 : Optional[NETLReactor.BeamPort]
             Shared beam-port 1/5 geometry and placement override. If omitted, the
             reference geometry and placement are used.
-        beam_port_2 : Optional[Reactor.BeamPort]
+        beam_port_2 : Optional[NETLReactor.BeamPort]
             Beam-port 2 geometry and placement override. If omitted, the reference
             geometry and placement are used.
-        beam_port_3 : Optional[Reactor.BeamPort]
+        beam_port_3 : Optional[NETLReactor.BeamPort]
             Beam-port 3 geometry and placement override. If omitted, the reference
             geometry and placement are used.
-        beam_port_4 : Optional[Reactor.BeamPort]
+        beam_port_4 : Optional[NETLReactor.BeamPort]
             Beam-port 4 geometry and placement override. If omitted, the reference
             geometry and placement are used.
-        reflector : Optional[Reactor.Reflector]
+        reflector : Optional[NETLReactor.Reflector]
             Reflector geometry and placement override. If omitted, the reference
             geometry and placement are used.
-        upper_grid_plate : Optional[Reactor.GridPlate]
+        upper_grid_plate : Optional[NETLReactor.GridPlate]
             Upper-grid-plate geometry and placement override. If omitted, the
             reference geometry and placement are used.
-        lower_grid_plate : Optional[Reactor.GridPlate]
+        lower_grid_plate : Optional[NETLReactor.GridPlate]
             Lower-grid-plate geometry and placement override. If omitted, the
             reference geometry and placement are used.
 
         Returns
         -------
-        Reactor
+        NETLReactor
             Default NETL TRIGA reactor geometry.
         """
         coolant = coolant or NETLDefaultMaterials.water()
@@ -1717,67 +1636,27 @@ class DefaultGeometries:
         core = (core if core is not None else
                 DefaultGeometries.core(fuel_temp, non_fuel_temp, coolant, fuel_materials=fuel_materials))
 
-        # Beam port default specifications from Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59
         if any(beam_port is None for beam_port in
                (beam_port_1_5, beam_port_2, beam_port_3, beam_port_4)):
             beam_port_geometry = DefaultGeometries.beam_port(non_fuel_temp)
-            bp_length = beam_port_geometry.length
-            bp_axial_offset = -6.985
 
             beam_port_1_5 = (beam_port_1_5 if beam_port_1_5 is not None else
-                             Reactor.BeamPort(
-                                 geometry=beam_port_geometry,
-                                 rotation=90.0,
-                                 translation=(35.2425, 0.0, bp_axial_offset),
-                             ))
+                             DefaultGeometries.Reactor.beam_port_1_5(geometry=beam_port_geometry))
             beam_port_2 = (beam_port_2 if beam_port_2 is not None else
-                           Reactor.BeamPort(
-                               geometry=beam_port_geometry,
-                               rotation=150.0,
-                               translation=(
-                                   6.222 + cosd(150.0) * bp_length * 0.5,
-                                   35.255 + sind(150.0) * bp_length * 0.5,
-                                   bp_axial_offset,
-                               ),
-                           ))
+                           DefaultGeometries.Reactor.beam_port_2(geometry=beam_port_geometry))
             beam_port_3 = (beam_port_3 if beam_port_3 is not None else
-                           Reactor.BeamPort(
-                               geometry=beam_port_geometry,
-                               rotation=0.0,
-                               translation=(-bp_length * 0.5 - 26.43188, 0.0, bp_axial_offset),
-                           ))
+                           DefaultGeometries.Reactor.beam_port_3(geometry=beam_port_geometry))
             beam_port_4 = (beam_port_4 if beam_port_4 is not None else
-                           Reactor.BeamPort(
-                               geometry=beam_port_geometry,
-                               rotation=60.0,
-                               translation=(
-                                   -13.216 - cosd(60.0) * bp_length * 0.5,
-                                   -22.871 - sind(60.0) * bp_length * 0.5,
-                                   bp_axial_offset,
-                               ),
-                           ))
+                           DefaultGeometries.Reactor.beam_port_4(geometry=beam_port_geometry))
 
         reflector = (reflector if reflector is not None else
-                     Reactor.Reflector(
-                         geometry=DefaultGeometries.reflector(non_fuel_temp),
-                         core_centerline_offset=0.565 * CM_PER_INCH,
-                     ))  # Ref. [2]_ pg. 55
+                     DefaultGeometries.Reactor.reflector(non_fuel_temp))
         upper_grid_plate = (upper_grid_plate if upper_grid_plate is not None else
-                            Reactor.GridPlate(
-                                geometry=DefaultGeometries.upper_grid_plate(non_fuel_temp),
-                                top_to_core_centerline_distance=(
-                                    DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
-                                ),
-                            ))
+                            DefaultGeometries.Reactor.upper_grid_plate(non_fuel_temp))
         lower_grid_plate = (lower_grid_plate if lower_grid_plate is not None else
-                            Reactor.GridPlate(
-                                geometry=DefaultGeometries.lower_grid_plate(non_fuel_temp),
-                                top_to_core_centerline_distance=(
-                                    DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
-                                ),
-                            ))
+                            DefaultGeometries.Reactor.lower_grid_plate(non_fuel_temp))
 
-        return Reactor(
+        return NETLReactor(
             name="reactor",
             pool=pool,
             shroud=shroud,
@@ -1795,3 +1674,275 @@ class DefaultGeometries:
             upper_grid_plate=upper_grid_plate,
             lower_grid_plate=lower_grid_plate,
         )
+
+
+    class Reactor:
+        """Namespace for default reactor-context component placements."""
+
+        @staticmethod
+        def beam_port_1_5(
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+            geometry: BeamPort | None = None,
+            translation: tuple[float, float, float] = (35.2425, 0.0, -6.985),
+            rotation: float = 90.0,
+        ) -> NETLReactor.BeamPort:
+            """Creates and returns the default shared beam-port 1/5 placement.
+
+            Parameters
+            ----------
+            temperature : float
+                Temperature applied when constructing the default beam-port geometry.
+                Ignored when ``geometry`` is supplied.
+            geometry : Optional[BeamPort]
+                Beam-port geometry override. If omitted,
+                ``DefaultGeometries.beam_port`` is used.
+            translation : tuple[float, float, float]
+                XYZ translation in cm. Defaults to the reference beam-port 1/5
+                placement per Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59.
+            rotation : float
+                Rotation about the +z axis in degrees. Defaults to 90 degrees.
+
+            Returns
+            -------
+            NETLReactor.BeamPort
+                Default beam-port 1/5 geometry and placement.
+            """
+            geometry = (geometry if geometry is not None else
+                        DefaultGeometries.beam_port(temperature))
+            return NETLReactor.BeamPort(
+                geometry=geometry,
+                translation=translation,
+                rotation=rotation,
+            )
+
+        @staticmethod
+        def beam_port_2(
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+            geometry: BeamPort | None = None,
+            translation: tuple[float, float, float] | None = None,
+            rotation: float = 150.0,
+        ) -> NETLReactor.BeamPort:
+            """Creates and returns the default beam-port 2 placement.
+
+            Parameters
+            ----------
+            temperature : float
+                Temperature applied when constructing the default beam-port geometry.
+                Ignored when ``geometry`` is supplied.
+            geometry : Optional[BeamPort]
+                Beam-port geometry override. If omitted,
+                ``DefaultGeometries.beam_port`` is used.
+            translation : Optional[tuple[float, float, float]]
+                XYZ translation in cm. If omitted, the reference beam-port 2
+                placement per Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59.
+            rotation : float
+                Rotation about the +z axis in degrees. Defaults to 150 degrees.
+
+            Returns
+            -------
+            NETLReactor.BeamPort
+                Default beam-port 2 geometry and placement.
+            """
+            geometry = (geometry if geometry is not None else
+                        DefaultGeometries.beam_port(temperature))
+            translation = (translation if translation is not None else
+                           (
+                               6.222 + cosd(150.0) * geometry.length * 0.5,
+                               35.255 + sind(150.0) * geometry.length * 0.5,
+                               -6.985,
+                           ))
+            return NETLReactor.BeamPort(
+                geometry=geometry,
+                translation=translation,
+                rotation=rotation,
+            )
+
+        @staticmethod
+        def beam_port_3(
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+            geometry: BeamPort | None = None,
+            translation: tuple[float, float, float] | None = None,
+            rotation: float = 0.0,
+        ) -> NETLReactor.BeamPort:
+            """Creates and returns the default beam-port 3 placement.
+
+            Parameters
+            ----------
+            temperature : float
+                Temperature applied when constructing the default beam-port geometry.
+                Ignored when ``geometry`` is supplied.
+            geometry : Optional[BeamPort]
+                Beam-port geometry override. If omitted,
+                ``DefaultGeometries.beam_port`` is used.
+            translation : Optional[tuple[float, float, float]]
+                XYZ translation in cm. If omitted, the reference beam-port 3
+                placement per Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59.
+            rotation : float
+                Rotation about the +z axis in degrees. Defaults to zero degrees.
+
+            Returns
+            -------
+            NETLReactor.BeamPort
+                Default beam-port 3 geometry and placement.
+            """
+            geometry = (geometry if geometry is not None else
+                        DefaultGeometries.beam_port(temperature))
+            translation = (translation if translation is not None else
+                           (-geometry.length * 0.5 - 26.43188, 0.0, -6.985))
+            return NETLReactor.BeamPort(
+                geometry=geometry,
+                translation=translation,
+                rotation=rotation,
+            )
+
+        @staticmethod
+        def beam_port_4(
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+            geometry: BeamPort | None = None,
+            translation: tuple[float, float, float] | None = None,
+            rotation: float = 60.0,
+        ) -> NETLReactor.BeamPort:
+            """Creates and returns the default beam-port 4 placement.
+
+            Parameters
+            ----------
+            temperature : float
+                Temperature applied when constructing the default beam-port geometry.
+                Ignored when ``geometry`` is supplied.
+            geometry : Optional[BeamPort]
+                Beam-port geometry override. If omitted,
+                ``DefaultGeometries.beam_port`` is used.
+            translation : Optional[tuple[float, float, float]]
+                XYZ translation in cm. If omitted, the reference beam-port 4
+                placement per Ref. [1]_ page 4-24 & Ref. [2]_ pages 48, 56, 59.
+            rotation : float
+                Rotation about the +z axis in degrees. Defaults to 60 degrees.
+
+            Returns
+            -------
+            NETLReactor.BeamPort
+                Default beam-port 4 geometry and placement.
+            """
+            geometry = (geometry if geometry is not None else
+                        DefaultGeometries.beam_port(temperature))
+            translation = (translation if translation is not None else
+                           (
+                               -13.216 - cosd(60.0) * geometry.length * 0.5,
+                               -22.871 - sind(60.0) * geometry.length * 0.5,
+                               -6.985,
+                           ))
+            return NETLReactor.BeamPort(
+                geometry=geometry,
+                translation=translation,
+                rotation=rotation,
+            )
+
+        @staticmethod
+        def reflector(
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+            geometry: Reflector | None = None,
+            core_centerline_offset: float = 0.565 * CM_PER_INCH,
+        ) -> NETLReactor.Reflector:
+            """Creates and returns the default reflector placement.
+
+            Parameters
+            ----------
+            temperature : float
+                Temperature applied when constructing the default reflector geometry.
+                Ignored when ``geometry`` is supplied.
+            geometry : Optional[Reflector]
+                Reflector geometry override. If omitted,
+                ``DefaultGeometries.reflector`` is used.
+            core_centerline_offset : float
+                Axial offset of the reflector centerline from the core centerline
+                in cm. Defaults to 0.565 in, per Ref. [2]_ pg. 55.
+
+            Returns
+            -------
+            NETLReactor.Reflector
+                Default reflector geometry and placement.
+            """
+            geometry = (geometry if geometry is not None else
+                        DefaultGeometries.reflector(temperature))
+            return NETLReactor.Reflector(
+                geometry=geometry,
+                core_centerline_offset=core_centerline_offset,
+            )
+
+        @staticmethod
+        def upper_grid_plate(
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+            geometry: GridPlate | None = None,
+            top_to_core_centerline_distance: float | None = None,
+        ) -> NETLReactor.GridPlate:
+            """Creates and returns the default upper-grid-plate placement.
+
+            Parameters
+            ----------
+            temperature : float
+                Temperature applied when constructing the default grid-plate
+                geometry. Ignored when ``geometry`` is supplied.
+            geometry : Optional[GridPlate]
+                Upper-grid-plate geometry override. If omitted,
+                ``DefaultGeometries.upper_grid_plate`` is used.
+            top_to_core_centerline_distance : Optional[float]
+                Distance from the core centerline to the plate's top surface in
+                cm. If omitted,
+                ``DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE``
+                is used.
+
+            Returns
+            -------
+            NETLReactor.GridPlate
+                Default upper-grid-plate geometry and placement.
+            """
+            geometry = (geometry if geometry is not None else
+                        DefaultGeometries.upper_grid_plate(temperature))
+            top_to_core_centerline_distance = (
+                top_to_core_centerline_distance
+                if top_to_core_centerline_distance is not None
+                else DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+            )
+            return NETLReactor.GridPlate(
+                geometry=geometry,
+                top_to_core_centerline_distance=top_to_core_centerline_distance,
+            )
+
+        @staticmethod
+        def lower_grid_plate(
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+            geometry: GridPlate | None = None,
+            top_to_core_centerline_distance: float | None = None,
+        ) -> NETLReactor.GridPlate:
+            """Creates and returns the default lower-grid-plate placement.
+
+            Parameters
+            ----------
+            temperature : float
+                Temperature applied when constructing the default grid-plate
+                geometry. Ignored when ``geometry`` is supplied.
+            geometry : Optional[GridPlate]
+                Lower-grid-plate geometry override. If omitted,
+                ``DefaultGeometries.lower_grid_plate`` is used.
+            top_to_core_centerline_distance : Optional[float]
+                Magnitude of the distance from the core centerline to the plate's
+                top surface in cm. If omitted,
+                ``DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE``
+                is used.
+
+            Returns
+            -------
+            NETLReactor.GridPlate
+                Default lower-grid-plate geometry and placement.
+            """
+            geometry = (geometry if geometry is not None else
+                        DefaultGeometries.lower_grid_plate(temperature))
+            top_to_core_centerline_distance = (
+                top_to_core_centerline_distance
+                if top_to_core_centerline_distance is not None
+                else DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+            )
+            return NETLReactor.GridPlate(
+                geometry=geometry,
+                top_to_core_centerline_distance=top_to_core_centerline_distance,
+            )

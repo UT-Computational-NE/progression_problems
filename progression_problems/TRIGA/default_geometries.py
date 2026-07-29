@@ -212,25 +212,25 @@ class DefaultGeometries:
 
         @staticmethod
         def cladding(
-            thickness: float | None = None,
-            outer_radius: float | None = None,
+            thickness: float = 0.020 * CM_PER_INCH,
+            outer_radius: float = 1.475 * 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.Cladding:
             """Creates and returns the default fuel-element cladding.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Cladding thickness in cm. If omitted, the reference value is used.
-            outer_radius : Optional[float]
-                Cladding outer radius in cm. If omitted, the reference value is used.
+            thickness : float
+                Cladding thickness in cm. Defaults to 0.020 in, per Ref. [1]_ Table 4.1.
+            outer_radius : float
+                Cladding outer radius in cm. Defaults to half the 1.475-in diameter, per Ref. [1]_ Table 4.1.
             material : Optional[openmc.Material]
-                Cladding material. If omitted, ``DefaultMaterials.stainless_steel`` is
-                used at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Cladding material. If omitted, ``DefaultMaterials.stainless_steel`` is used at ``temperature``, per
+                Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -238,27 +238,24 @@ class DefaultGeometries:
             TRIGAFuelElement.Cladding
                 CoreForge fuel-element cladding.
             """
-            thickness = thickness if thickness is not None else 0.020 * CM_PER_INCH  # Ref. [1]_ Table 4.1
-            outer_radius = outer_radius if outer_radius is not None else 1.475 * 0.5 * CM_PER_INCH  # Ref. [1]_ Table 4.1
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.stainless_steel(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else DefaultMaterials.stainless_steel(temperature)
 
             return TRIGAFuelElement.Cladding(thickness, outer_radius, Material(material))
 
         @staticmethod
         def fill_gas(
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> Material:
             """Creates and returns the default fuel-element fill gas.
 
             Parameters
             ----------
             material : Optional[openmc.Material]
-                Fill-gas material. If omitted, ``DefaultMaterials.air`` is used.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Fill-gas material. If omitted, ``DefaultMaterials.air`` is used, per Ref. [2]_ pg. 50.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -266,31 +263,30 @@ class DefaultGeometries:
             Material
                 CoreForge fill-gas material.
             """
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.air(temperature)  # Ref. [2]_ pg. 50
+            material = material if material is not None else DefaultMaterials.air(temperature)
             return Material(material)
 
         @staticmethod
         def upper_end_fitting(
-            length: float | None = None,
-            r2: float | None = None,
+            length: float = 7.3552,
+            r2: float = 0.25,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.EndFitting:
             """Creates and returns the default upper fuel-element end fitting.
 
             Parameters
             ----------
-            length : Optional[float]
-                End-fitting length in cm. If omitted, the reference value is used.
-            r2 : Optional[float]
-                Square of the cone slope. If omitted, the reference value is used.
+            length : float
+                End-fitting length in cm. Defaults to 7.3552 cm, per Ref. [2]_ pg. 55 (cone approx.).
+            r2 : float
+                Square of the cone slope. Defaults to 0.25, per Ref. [2]_ pg. 55 (slope^2).
             material : Optional[openmc.Material]
-                End-fitting material. If omitted, ``DefaultMaterials.stainless_steel``
-                is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                End-fitting material. If omitted, ``DefaultMaterials.stainless_steel`` is used at ``temperature``,
+                per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -298,51 +294,47 @@ class DefaultGeometries:
             TRIGAFuelElement.EndFitting
                 CoreForge upper fuel-element end fitting.
             """
-            length = length if length is not None else 7.3552  # Ref. [2]_ pg. 55 (cone approx.)
-            r2 = r2 if r2 is not None else 0.25  # Ref. [2]_ pg. 55 (slope^2)
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.stainless_steel(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else DefaultMaterials.stainless_steel(temperature)
 
             return TRIGAFuelElement.EndFitting(length, r2, "up", Material(material))
 
         @staticmethod
-        def upper_air_gap(thickness: float | None = None) -> TRIGAFuelElement.AirGap:
+        def upper_air_gap(thickness: float = 0.5 * CM_PER_INCH) -> TRIGAFuelElement.AirGap:
             """Creates and returns the default upper fuel-element air gap.
 
             Parameters
             ----------
-            thickness : Optional[float]
-                Air-gap thickness in cm. If omitted, the reference value is used.
+            thickness : float
+                Air-gap thickness in cm. Defaults to 0.5 in, per Ref. [1]_ pg. 4-3.
 
             Returns
             -------
             TRIGAFuelElement.AirGap
                 CoreForge upper fuel-element air gap.
             """
-            thickness = thickness if thickness is not None else 0.5 * CM_PER_INCH  # Ref. [1]_ pg. 4-3
             return TRIGAFuelElement.AirGap(thickness)
 
         @staticmethod
         def upper_graphite_reflector(
-            radius: float | None = None,
-            thickness: float | None = None,
+            radius: float = 1.430 * 0.5 * CM_PER_INCH,
+            thickness: float = 2.56 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.GraphiteReflector:
             """Creates and returns the default upper fuel-element graphite reflector.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Reflector radius in cm. If omitted, the reference value is used.
-            thickness : Optional[float]
-                Axial reflector thickness in cm. If omitted, the reference value is used.
+            radius : float
+                Reflector radius in cm. Defaults to half the 1.430-in diameter, per Ref. [1]_ pg. 4-4.
+            thickness : float
+                Axial reflector thickness in cm. Defaults to 2.56 in, per Ref. [2]_ pg. 55.
             material : Optional[openmc.Material]
-                Reflector material. If omitted, ``DefaultMaterials.graphite`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Reflector material. If omitted, ``DefaultMaterials.graphite`` is used at ``temperature``, per Ref.
+                [2]_ pg. 50.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -350,31 +342,28 @@ class DefaultGeometries:
             TRIGAFuelElement.GraphiteReflector
                 CoreForge upper fuel-element graphite reflector.
             """
-            radius = radius if radius is not None else 1.430 * 0.5 * CM_PER_INCH  # Ref. [1]_ pg. 4-4
-            thickness = thickness if thickness is not None else 2.56 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.graphite(temperature)  # Ref. [2]_ pg. 50
+            material = material if material is not None else DefaultMaterials.graphite(temperature)
 
             return TRIGAFuelElement.GraphiteReflector(radius, thickness, Material(material))
 
         @staticmethod
         def zr_fill_rod(
-            radius: float | None = None,
+            radius: float = 0.25 * 0.5 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.ZrFillRod:
             """Creates and returns the default fuel-element zirconium fill rod.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Fill-rod radius in cm. If omitted, the reference value is used.
+            radius : float
+                Fill-rod radius in cm. Defaults to half the 0.25-in diameter, per Ref. [2]_ pg. 55.
             material : Optional[openmc.Material]
-                Fill-rod material. If omitted, ``DefaultMaterials.zirc_filler`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Fill-rod material. If omitted, ``DefaultMaterials.zirc_filler`` is used at ``temperature``, per Ref.
+                [2]_ pg. 51.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -382,42 +371,40 @@ class DefaultGeometries:
             TRIGAFuelElement.ZrFillRod
                 CoreForge fuel-element zirconium fill rod.
             """
-            radius = radius if radius is not None else 0.25 * 0.5 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.zirc_filler(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else DefaultMaterials.zirc_filler(temperature)
 
             return TRIGAFuelElement.ZrFillRod(radius, Material(material))
 
         @staticmethod
         def meat(
-            inner_radius: float | None = None,
-            outer_radius: float | None = None,
-            length: float | None = None,
+            inner_radius: float = 0.25 * 0.5 * CM_PER_INCH,
+            outer_radius: float = 1.435 * 0.5 * CM_PER_INCH,
+            length: float = 15.0 * CM_PER_INCH,
             material: openmc.Material | Sequence[openmc.Material] | None = None,
-            num_radial_regions: int | None = None,
-            num_axial_regions: int | None = None,
-            temperature: float | None = None,
+            num_radial_regions: int = 1,
+            num_axial_regions: int = 1,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.FuelMeat:
             """Creates and returns the default fuel meat.
 
             Parameters
             ----------
-            inner_radius : Optional[float]
-                Fuel-meat inner radius in cm. If omitted, the reference value is used.
-            outer_radius : Optional[float]
-                Fuel-meat outer radius in cm. If omitted, the reference value is used.
-            length : Optional[float]
-                Fuel-meat axial length in cm. If omitted, the reference value is used.
+            inner_radius : float
+                Fuel-meat inner radius in cm. Defaults to half the 0.25-in diameter, per Ref. [1]_ pg. 4-2.
+            outer_radius : float
+                Fuel-meat outer radius in cm. Defaults to half the 1.435-in diameter, per Ref. [1]_ Table 4.1.
+            length : float
+                Fuel-meat axial length in cm. Defaults to 15.0 in, per Ref. [1]_ Table 4.1.
             material : Optional[openmc.Material | Sequence[openmc.Material]]
                 Fuel material or one material per region in axial-major order. If omitted,
-                ``DefaultMaterials.fresh_fuel`` is used at ``temperature``.
-            num_radial_regions : Optional[int]
-                Number of equal-volume radial regions. If omitted, one region is used.
-            num_axial_regions : Optional[int]
-                Number of equal-length axial regions. If omitted, one region is used.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                ``DefaultMaterials.fresh_fuel`` is used at ``temperature``, per Ref. [2]_ pg. 51.
+            num_radial_regions : int
+                Number of equal-volume radial regions. Defaults to 1.
+            num_axial_regions : int
+                Number of equal-length axial regions. Defaults to 1.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -425,13 +412,7 @@ class DefaultGeometries:
             TRIGAFuelElement.FuelMeat
                 CoreForge fuel meat.
             """
-            inner_radius = inner_radius if inner_radius is not None else 0.25 * 0.5 * CM_PER_INCH  # Ref. [1]_ pg. 4-2
-            outer_radius = outer_radius if outer_radius is not None else 1.435 * 0.5 * CM_PER_INCH  # Ref. [1]_ Table 4.1
-            length = length if length is not None else 15.0 * CM_PER_INCH  # Ref. [1]_ Table 4.1
-            num_radial_regions = num_radial_regions if num_radial_regions is not None else 1
-            num_axial_regions = num_axial_regions if num_axial_regions is not None else 1
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.fresh_fuel(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else DefaultMaterials.fresh_fuel(temperature)
 
             if isinstance(material, openmc.Material):
                 fuel_material = Material(material)
@@ -449,25 +430,25 @@ class DefaultGeometries:
 
         @staticmethod
         def moly_disc(
-            radius: float | None = None,
-            thickness: float | None = None,
+            radius: float = 1.431 * 0.5 * CM_PER_INCH,
+            thickness: float = 0.031 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.MolyDisc:
             """Creates and returns the default fuel-element molybdenum disc.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Disc radius in cm. If omitted, the reference value is used.
-            thickness : Optional[float]
-                Disc thickness in cm. If omitted, the reference value is used.
+            radius : float
+                Disc radius in cm. Defaults to half the 1.431-in diameter, per Ref. [1]_ pg. 4-3.
+            thickness : float
+                Disc thickness in cm. Defaults to 0.031 in, per Ref. [1]_ pg. 4-3.
             material : Optional[openmc.Material]
-                Disc material. If omitted, ``DefaultMaterials.molybdenum`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Disc material. If omitted, ``DefaultMaterials.molybdenum`` is used at ``temperature``, per Ref. [2]_
+                pg. 51.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -475,34 +456,31 @@ class DefaultGeometries:
             TRIGAFuelElement.MolyDisc
                 CoreForge fuel-element molybdenum disc.
             """
-            radius = radius if radius is not None else 1.431 * 0.5 * CM_PER_INCH  # Ref. [1]_ pg. 4-3
-            thickness = thickness if thickness is not None else 0.031 * CM_PER_INCH  # Ref. [1]_ pg. 4-3
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.molybdenum(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else DefaultMaterials.molybdenum(temperature)
 
             return TRIGAFuelElement.MolyDisc(radius, thickness, Material(material))
 
         @staticmethod
         def lower_graphite_reflector(
-            radius: float | None = None,
-            thickness: float | None = None,
+            radius: float = 1.430 * 0.5 * CM_PER_INCH,
+            thickness: float = 3.72 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.GraphiteReflector:
             """Creates and returns the default lower fuel-element graphite reflector.
 
             Parameters
             ----------
-            radius : Optional[float]
-                Reflector radius in cm. If omitted, the reference value is used.
-            thickness : Optional[float]
-                Axial reflector thickness in cm. If omitted, the reference value is used.
+            radius : float
+                Reflector radius in cm. Defaults to half the 1.430-in diameter, per Ref. [1]_ pg. 4-4.
+            thickness : float
+                Axial reflector thickness in cm. Defaults to 3.72 in, per Ref. [2]_ pg. 55.
             material : Optional[openmc.Material]
-                Reflector material. If omitted, ``DefaultMaterials.graphite`` is used at
-                ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Reflector material. If omitted, ``DefaultMaterials.graphite`` is used at ``temperature``, per Ref.
+                [2]_ pg. 50.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -510,34 +488,31 @@ class DefaultGeometries:
             TRIGAFuelElement.GraphiteReflector
                 CoreForge lower fuel-element graphite reflector.
             """
-            radius = radius if radius is not None else 1.430 * 0.5 * CM_PER_INCH  # Ref. [1]_ pg. 4-4
-            thickness = thickness if thickness is not None else 3.72 * CM_PER_INCH  # Ref. [2]_ pg. 55
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.graphite(temperature)  # Ref. [2]_ pg. 50
+            material = material if material is not None else DefaultMaterials.graphite(temperature)
 
             return TRIGAFuelElement.GraphiteReflector(radius, thickness, Material(material))
 
         @staticmethod
         def lower_end_fitting(
-            length: float | None = None,
-            r2: float | None = None,
+            length: float = 7.6209,
+            r2: float = 0.25,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAFuelElement.EndFitting:
             """Creates and returns the default lower fuel-element end fitting.
 
             Parameters
             ----------
-            length : Optional[float]
-                End-fitting length in cm. If omitted, the reference value is used.
-            r2 : Optional[float]
-                Square of the cone slope. If omitted, the reference value is used.
+            length : float
+                End-fitting length in cm. Defaults to 7.6209 cm, per Ref. [2]_ pg. 55-56 (cone approx.).
+            r2 : float
+                Square of the cone slope. Defaults to 0.25, per Ref. [2]_ pg. 55 (slope^2).
             material : Optional[openmc.Material]
-                End-fitting material. If omitted, ``DefaultMaterials.stainless_steel``
-                is used at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                End-fitting material. If omitted, ``DefaultMaterials.stainless_steel`` is used at ``temperature``,
+                per Ref. [2]_ pg. 51.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -545,10 +520,7 @@ class DefaultGeometries:
             TRIGAFuelElement.EndFitting
                 CoreForge lower fuel-element end fitting.
             """
-            length = length if length is not None else 7.6209  # Ref. [2]_ pg. 55-56 (cone approx.)
-            r2 = r2 if r2 is not None else 0.25  # Ref. [2]_ pg. 55 (slope^2)
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.stainless_steel(temperature)  # Ref. [2]_ pg. 51
+            material = material if material is not None else DefaultMaterials.stainless_steel(temperature)
 
             return TRIGAFuelElement.EndFitting(length, r2, "down", Material(material))
 
@@ -562,24 +534,24 @@ class DefaultGeometries:
             thickness: float | None = None,
             outer_radius: float | None = None,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAGraphiteElement.Cladding:
             """Creates and returns the default graphite-element cladding.
 
             Parameters
             ----------
-            thickness : Optional[float]
+            thickness : Optional[float
                 Cladding thickness in cm. If omitted, the default fuel-element
-                cladding thickness is used.
+                cladding thickness is used, per Ref. [1]_ Section 4.2.3.b.
             outer_radius : Optional[float]
                 Cladding outer radius in cm. If omitted, the default fuel-element
-                cladding radius is used.
+                cladding radius is used, per Ref. [1]_ Section 4.2.3.b.
             material : Optional[openmc.Material]
-                Cladding material. If omitted, ``DefaultMaterials.aluminum`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Cladding material. If omitted, ``DefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+                [2]_ pg. 50.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -589,11 +561,9 @@ class DefaultGeometries:
             """
             if thickness is None or outer_radius is None:
                 fuel_cladding = DefaultGeometries.FuelElement.cladding()
-                thickness = thickness if thickness is not None else fuel_cladding.thickness  # Ref. [1]_ Section 4.2.3.b
-                outer_radius = (outer_radius if outer_radius is not None else
-                                fuel_cladding.outer_radius)  # Ref. [1]_ Section 4.2.3.b
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 50
+                thickness = thickness if thickness is not None else fuel_cladding.thickness
+                outer_radius = (outer_radius if outer_radius is not None else fuel_cladding.outer_radius)
+            material = material if material is not None else DefaultMaterials.aluminum(temperature)
 
             return TRIGAGraphiteElement.Cladding(thickness, outer_radius, Material(material))
 
@@ -602,7 +572,7 @@ class DefaultGeometries:
             outer_radius: float | None = None,
             length: float | None = None,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAGraphiteElement.GraphiteMeat:
             """Creates and returns the default graphite meat.
 
@@ -610,16 +580,16 @@ class DefaultGeometries:
             ----------
             outer_radius : Optional[float]
                 Graphite-meat outer radius in cm. If omitted, the default fuel-meat
-                outer radius is used.
+                outer radius is used, per Ref. [1]_ Section 4.2.3.b.
             length : Optional[float]
                 Graphite-meat axial length in cm. If omitted, the default fuel-element
-                interior length is used.
+                interior length is used, per Ref. [1]_ Section 4.2.3.b.
             material : Optional[openmc.Material]
-                Graphite material. If omitted, ``DefaultMaterials.graphite`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                Graphite material. If omitted, ``DefaultMaterials.graphite`` is used at ``temperature``, per Ref.
+                [2]_ pg. 50.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -629,21 +599,19 @@ class DefaultGeometries:
             """
             if outer_radius is None or length is None:
                 fuel_element = DefaultGeometries.fuel_element()
-                outer_radius = (outer_radius if outer_radius is not None else
-                                fuel_element.fuel_meat.outer_radius) # Ref. [1]_ Section 4.2.3.b
-                length = length if length is not None else fuel_element.interior_length # Ref. [1]_ Section 4.2.3.b
+                outer_radius = (outer_radius if outer_radius is not None else fuel_element.fuel_meat.outer_radius)
+                length = length if length is not None else fuel_element.interior_length
 
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.graphite(temperature)  # Ref. [2]_ pg. 50
+            material = material if material is not None else DefaultMaterials.graphite(temperature)
 
             return TRIGAGraphiteElement.GraphiteMeat(outer_radius, length, Material(material))
 
         @staticmethod
         def upper_end_fitting(
             length: float | None = None,
-            r2: float | None = None,
+            r2: float = 0.25,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAGraphiteElement.EndFitting:
             """Creates and returns the default upper graphite-element end fitting.
 
@@ -651,15 +619,15 @@ class DefaultGeometries:
             ----------
             length : Optional[float]
                 End-fitting length in cm. If omitted, the default upper fuel-element
-                fitting length is used.
-            r2 : Optional[float]
-                Square of the cone slope. If omitted, the reference value is used.
+                fitting length is used, per Ref. [1]_ Section 4.2.3.b.
+            r2 : float
+                Square of the cone slope. Defaults to 0.25, per Ref. [2]_ pg. 55 (slope^2).
             material : Optional[openmc.Material]
-                End-fitting material. If omitted, ``DefaultMaterials.aluminum`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                End-fitting material. If omitted, ``DefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+                [2]_ pg. 50.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -667,20 +635,17 @@ class DefaultGeometries:
             TRIGAGraphiteElement.EndFitting
                 CoreForge upper graphite-element end fitting.
             """
-            if length is None:
-                length = DefaultGeometries.FuelElement.upper_end_fitting().length  # Ref. [1]_ Section 4.2.3.b
-            r2 = r2 if r2 is not None else 0.25  # Ref. [2]_ pg. 55 (slope^2)
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 50
+            length = length if length is not None else DefaultGeometries.FuelElement.upper_end_fitting().length
+            material = material if material is not None else DefaultMaterials.aluminum(temperature)
 
             return TRIGAGraphiteElement.EndFitting(length, r2, "up", Material(material))
 
         @staticmethod
         def lower_end_fitting(
             length: float | None = None,
-            r2: float | None = None,
+            r2: float = 0.25,
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> TRIGAGraphiteElement.EndFitting:
             """Creates and returns the default lower graphite-element end fitting.
 
@@ -688,15 +653,15 @@ class DefaultGeometries:
             ----------
             length : Optional[float]
                 End-fitting length in cm. If omitted, the default lower fuel-element
-                fitting length is used.
-            r2 : Optional[float]
-                Square of the cone slope. If omitted, the reference value is used.
+                fitting length is used, per Ref. [1]_ Section 4.2.3.b.
+            r2 : float
+                Square of the cone slope. Defaults to 0.25, per Ref. [2]_ pg. 55 (slope^2).
             material : Optional[openmc.Material]
-                End-fitting material. If omitted, ``DefaultMaterials.aluminum`` is used
-                at ``temperature``.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+                End-fitting material. If omitted, ``DefaultMaterials.aluminum`` is used at ``temperature``, per Ref.
+                [2]_ pg. 50.
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -704,18 +669,16 @@ class DefaultGeometries:
             TRIGAGraphiteElement.EndFitting
                 CoreForge lower graphite-element end fitting.
             """
-            if length is None:
-                length = DefaultGeometries.FuelElement.lower_end_fitting().length  # Ref. [1]_ Section 4.2.3.b
-            r2 = r2 if r2 is not None else 0.25  # Ref. [2]_ pg. 55 (slope^2)
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
-            material = material if material is not None else DefaultMaterials.aluminum(temperature)  # Ref. [2]_ pg. 50
+
+            length = length if length is not None else DefaultGeometries.FuelElement.lower_end_fitting().length
+            material = material if material is not None else DefaultMaterials.aluminum(temperature)
 
             return TRIGAGraphiteElement.EndFitting(length, r2, "down", Material(material))
 
         @staticmethod
         def fill_gas(
             material: openmc.Material | None = None,
-            temperature: float | None = None,
+            temperature: float = DefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> Material:
             """Creates and returns the default graphite-element fill gas.
 
@@ -723,9 +686,9 @@ class DefaultGeometries:
             ----------
             material : Optional[openmc.Material]
                 Fill-gas material. If omitted, ``DefaultMaterials.air`` is used.
-            temperature : Optional[float]
-                Temperature in Kelvin used to construct the default material. If omitted,
-                ``DefaultMaterials.DEFAULT_TEMPERATURE`` is used. This value is ignored
+            temperature : float
+                Temperature in Kelvin used to construct the default material. Defaults to
+                ``DefaultMaterials.DEFAULT_TEMPERATURE``. This value is ignored
                 when ``material`` is supplied.
 
             Returns
@@ -733,6 +696,5 @@ class DefaultGeometries:
             Material
                 CoreForge fill-gas material.
             """
-            temperature = temperature if temperature is not None else DefaultMaterials.DEFAULT_TEMPERATURE
             material = material if material is not None else DefaultMaterials.air(temperature)
             return Material(material)

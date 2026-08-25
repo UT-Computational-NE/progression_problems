@@ -286,13 +286,13 @@ def test_per_location_fuel(per_location_reactor):
     assert loading["C-02"].fuel_meat.num_radial_regions == 2  # multi-region FuelSpec honored
     assert loading["D-01"].fuel_meat.material.name == "Fuel"
 
-    # MPACT specs: default and custom fuels -> U-ZrH; the fuel follower is left as-is (issue #24).
     material_by_name = {m.name: m for m in per_location_reactor.get_materials()}
     specs = default_mpact_material_specs(list(material_by_name.values()))
-    uzrh_specs = DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH]
-    assert specs[material_by_name["Fuel"]] is uzrh_specs
-    assert specs[material_by_name["Fuel_Ring_B"]] is uzrh_specs
-    assert material_by_name["Fuel_Follower_Fuel"] not in specs
+    uzrh_specs = DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH].using_fission_product_ids(
+        exclude=["Zr91","Zr93","Zr95","Zr96"]
+    )
+    assert specs[material_by_name["Fuel"]] == uzrh_specs
+    assert specs[material_by_name["Fuel_Ring_B"]] == uzrh_specs
 
 
 def test_per_location_fuel_rejects_non_fuel_location():

@@ -106,8 +106,7 @@ DEFAULT_MPACT_SETTINGS: Dict[str, Dict[str, str]] = {
 }
 
 
-DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, MaterialSpecs] = {
-    "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH],
+DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, mpactpy.Material.MPACTSpecs] = {
     "zirc_filler":          DEFAULT_MPACT_MATERIAL_SPECS[materials.Zr],
     "stainless_steel":      DEFAULT_MPACT_MATERIAL_SPECS[materials.SS304],
     "graphite":             DEFAULT_MPACT_MATERIAL_SPECS[materials.Graphite],
@@ -117,6 +116,9 @@ DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, MaterialSpecs] = {
     "water":                DEFAULT_MPACT_MATERIAL_SPECS[materials.Water],
     "control_rod_absorber": DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
     "cadmium":              mpactpy.Material.MPACTSpecs({}, False, False, False, False),
+    "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH].using_fission_product_ids(
+        exclude=["Zr91","Zr93","Zr95","Zr96"]
+    ),
 }
 
 

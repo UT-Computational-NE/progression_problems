@@ -489,7 +489,7 @@ def write_mpact_input(reactor:             Reactor,
     specs = reactor_build_specs or mpact_builder.triga.netl.Reactor.Specs()
 
     default_mat_specs    = default_mpact_material_specs(reactor.get_materials())
-    specs.material_specs = specs.material_specs or default_mat_specs
+    specs.material_specs = default_mat_specs | specs.material_specs
 
     control_rod_specs = control_rod_specs or ControlRodSpecs()
 

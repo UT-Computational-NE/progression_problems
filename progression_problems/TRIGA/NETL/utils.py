@@ -106,8 +106,7 @@ DEFAULT_MPACT_SETTINGS: Dict[str, Dict[str, str]] = {
 }
 
 
-DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, MaterialSpecs] = {
-    "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH],
+DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, mpactpy.Material.MPACTSpecs] = {
     "zirc_filler":          DEFAULT_MPACT_MATERIAL_SPECS[materials.Zr],
     "stainless_steel":      DEFAULT_MPACT_MATERIAL_SPECS[materials.SS304],
     "graphite":             DEFAULT_MPACT_MATERIAL_SPECS[materials.Graphite],
@@ -117,6 +116,9 @@ DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, MaterialSpecs] = {
     "water":                DEFAULT_MPACT_MATERIAL_SPECS[materials.Water],
     "control_rod_absorber": DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
     "cadmium":              mpactpy.Material.MPACTSpecs({}, False, False, False, False),
+    "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH].using_fission_product_ids(
+        exclude=["Zr91","Zr93","Zr95","Zr96"]
+    ),
 }
 
 
@@ -138,21 +140,15 @@ def default_mpact_material_specs(materials_list: List[Material]) -> MaterialSpec
     Materials are matched by name (case-insensitive). Any material whose name is not an
     exact key in the mapping but starts with ``"fuel"`` is treated as U-ZrH fuel, so that
     custom per-location fuels get the correct cross-section / thermal-scattering specs.
-    The control-rod fuel follower (``"Fuel_Follower_Fuel"``) is excluded from this fallback
-    to preserve its existing treatment; see issue #24.
     """
 
     specs: MaterialSpecs = {}
-    uzrh_specs = DEFAULT_MPACT_MATERIAL_SPECS_MAPPING["fuel"]  # == DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH]
+    uzrh_specs = DEFAULT_MPACT_MATERIAL_SPECS_MAPPING["fuel"]
     for material in materials_list:
         material_name = material.name.lower()
         if material_name in DEFAULT_MPACT_MATERIAL_SPECS_MAPPING:
             specs[material] = DEFAULT_MPACT_MATERIAL_SPECS_MAPPING[material_name]
-        elif material_name.startswith("fuel") and material_name != "fuel_follower_fuel":
-            # Custom per-location fuels (e.g. "Fuel_Ring_B") are U-ZrH. The control-rod
-            # fuel follower ("Fuel_Follower_Fuel") is deliberately left on its existing
-            # (default) treatment here to keep MPACT output unchanged; whether it should
-            # also be U-ZrH is tracked separately (see issue #24).
+        elif material_name.startswith("fuel"):
             specs[material] = uzrh_specs
     return specs
 

@@ -568,9 +568,16 @@ def _build_mpact_geometry(reactor:             Reactor,
                                     specs.fuel_follower.builder_specs
                 else:
                     outer_region_specs = specs.outer_region_specs
-                    assert (isinstance(outer_region_specs, (mpact_builder.triga.CoreElement.SegmentSpecs,
-                                                            mpact_builder.triga.netl.Reactor.VoxelizedSegmentSpecs)))
-                    specs = outer_region_specs.builder_specs
+                    if isinstance(outer_region_specs, mpact_builder.triga.CoreElement.SegmentSpecs):
+                        specs = outer_region_specs.builder_specs
+                    elif isinstance(outer_region_specs, mpact_builder.triga.netl.Reactor.VoxelationSpecs):
+                        radial_target = outer_region_specs.target_thicknesses["radial"]
+                        specs = mpact_builder.InfiniteMedium.Specs(
+                            target_cell_thicknesses = {"X": radial_target, "Y": radial_target},
+                            divide_materials        = True,
+                        )
+                    else:
+                        raise TypeError(f"Unsupported outer-region specifications: {type(outer_region_specs)}")
 
             lattice_element = lattice.elements[i][j]
             if specs is None:
@@ -701,23 +708,23 @@ def _set_cell(assembly:            Optional[mpactpy.Assembly],
     target_thicknesses: List[float] = []
     if excore_features in ["rsr", "beamports"]:
         if reactor.shroud.intersects(rect, radial_location):
-            target_thicknesses.append(excore_specs.shroud.radial)
+            target_thicknesses.append(excore_specs.shroud.target_thicknesses["radial"])
         if excore_features == "rsr" and reactor.rsr_cavity_intersects(rect, radial_location):
-            target_thicknesses.append(excore_specs.rsr_cavity.radial)
+            target_thicknesses.append(excore_specs.rsr_cavity.target_thicknesses["radial"])
         if excore_features == "rsr" and reactor.rsr_tube_intersects(rect, radial_location):
-            target_thicknesses.append(excore_specs.rsr_tube.radial)
+            target_thicknesses.append(excore_specs.rsr_tube.target_thicknesses["radial"])
         if reactor.reflector_intersects(rect, radial_location):
-            target_thicknesses.append(excore_specs.reflector.radial)
+            target_thicknesses.append(excore_specs.reflector.target_thicknesses["radial"])
         if excore_features == "beamports":
             for bp in (1, 2, 3, 4):
                 if reactor.beam_port[bp].intersects(rect, radial_location):
                     if reactor.beam_port[bp].contains(rect, radial_location):
-                        target_thicknesses.append(excore_specs.beamport_interior.radial)
+                        target_thicknesses.append(excore_specs.beamport_interior.target_thicknesses["radial"])
                     else:
-                        target_thicknesses.append(excore_specs.beamport_exterior.radial)
+                        target_thicknesses.append(excore_specs.beamport_exterior.target_thicknesses["radial"])
 
     if not target_thicknesses:
-        target_thicknesses.append(excore_specs.pool.radial)
+        target_thicknesses.append(excore_specs.pool.target_thicknesses["radial"])
 
     target_thickness = min(target_thicknesses)
     voxel_build_specs = mpact_builder.InfiniteMedium.Specs(

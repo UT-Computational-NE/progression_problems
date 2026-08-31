@@ -99,7 +99,7 @@ specifications for the various cases to be simulated for this problem.
 
 In the initial cases, the fuel meat and Zr Filler rod are treated with the same temperature, and
 clad and coolant temperatures are treated with the same temperature. Fuel temperatures range from
-room temperature up to 900K with several temperatures aligning with cross-section library temperatures
+room temperature up to 1200K with several temperatures aligning with cross-section library temperatures
 so as to allow for direct comparison to Monte Carlo without the need for interpolation.  823.15 K
 represents the peak allowed fuel temperature according to Table 4.4 of Reference 1_.  Coolant
 temperatures and densities are taken from Table 4.20 of Reference 1_ so as to be representative of

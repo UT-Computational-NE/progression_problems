@@ -154,7 +154,7 @@ def write_mpact_input(fuel:                     FuelElement,
     options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
 
     for state in states:
-        state["tinlet"] = state.get("tinlet", f"{coolant.temperature}")
+        state["tinlet"] = state.get("tinlet", f"{coolant.temperature} K")
 
     options["bound_cond"] = "1 1 1 1 1 1"
 

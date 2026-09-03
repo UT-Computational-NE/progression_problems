@@ -258,6 +258,9 @@ in the actual reactor but are excluded from the current progression-problem defi
    |                                                +-----------+                    |
    |                                                | G-31      |                    |
    +---------------+------------+-------------------+-----------+--------------------+
+   | Pneumatic Sample-Transit Terminal              | G-34      | Ref. 1_, Sec.      |
+   |                                                |           | 10.2.2.a.2         |
+   +---------------+------------+-------------------+-----------+--------------------+
 
 Fuel Element
 ------------
@@ -474,6 +477,134 @@ of the central thimble is shown in :numref:`figure-central_thimble-axial_profile
    +---------------+----------------------+--------------------+----------------------+
 
 
+Pneumatic Neutron Transport System
+-----------------------------------
+
+The pneumatic neutron transport (PNT) system transfers small irradiation capsules between an
+external loading station and an in-core terminal. For the progression problems, only the
+neutronics-relevant in-core terminal is modeled; the ex-core transport tubing, valves, blower,
+receiving stations, and control equipment are excluded. The modeled in-core PNT hardware is
+centered in lattice position ``G-34`` and extends from the top of the model (i.e., top of pool)
+to the bottom of the lower grid plate, passing through both grid-plate penetrations.
+
+Two terminal configurations are defined: an unlined configuration (see: :numref:`table-pnt-unlined`)
+and a cadmium-lined (see: :numref:`table-pnt-cd-lined`) configuration. The unlined configuration
+consists of a small aluminum tube with an air-filled bore. The cadmium-lined configuration retains
+this inner tube, wraps it with cadmium, and places the assembly concentrically inside a larger aluminum
+tube. The annulus between the cadmium and the larger tube is air-filled.
+
+These baseline specifications contain air in the empty tube section and do not explicitly represent a
+polyethylene rabbit, sample container, or irradiated specimen.
+
+.. table:: Unlined PNT Terminal Geometry Specifications
+   :name: table-pnt-unlined
+
+   +---------------+--------------------------------+------------------+--------------------+
+   | Component     | Property                       | Value            | Reference          |
+   +===============+================================+==================+====================+
+   | Empty Tube    | Bottom Axial Location Relative | -18.7182         | Ref. 2_, pp. 53--55|
+   | Section       | to Core Midplane (cm)          |                  |                    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Bore Diameter (in.)            | 0.685            | Ref. 1_, Table 10.3|
+   |               |                                |                  | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Bore Material                  | Air              | Ref. 2_, pg. 53    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Tube Outer Diameter (in.)      | 0.875            | Ref. 1_, Table 10.3|
+   |               |                                |                  | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Tube Material                  | Aluminum         | Ref. 2_, pg. 53    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Shock/        | Axial Thickness (cm)           | 5.1308           | Ref. 2_, pp. 53--55|
+   | Terminus      +--------------------------------+------------------+                    |
+   | Section       | Outer Diameter (in.)           | 0.875            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Material                       | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Connecting    | Axial Thickness (cm)           | 4.1725           | Ref. 2_, pp. 53--55|
+   | Section       +--------------------------------+------------------+                    |
+   |               | Outer Diameter (in.)           | 1.250            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Material                       | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Lower Section | Axial Thickness (cm)           | 8.3259           | Ref. 2_, pp. 53--55|
+   |               +--------------------------------+------------------+                    |
+   |               | Outer Diameter (in.)           | 0.875            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Material                       | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+
+
+.. table:: Cadmium-Lined PNT Terminal Geometry Specifications
+   :name: table-pnt-cd-lined
+
+   +---------------+--------------------------------+------------------+--------------------+
+   | Component     | Property                       | Value            | Reference          |
+   +===============+================================+==================+====================+
+   | Empty Tube    | Bottom Axial Location Relative | -18.7182         | Ref. 2_, pp. 53--55|
+   | Section       | to Core Midplane (cm)          |                  |                    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Bore Diameter (in.)            | 0.685            | Ref. 1_, Table 10.3|
+   |               |                                |                  | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Bore Material                  | Air              | Ref. 2_, pg. 53    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Inner-Tube Outer Diameter (in.)| 0.875            | Ref. 1_, Table 10.3|
+   |               |                                |                  | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Inner-Tube Material            | Aluminum         | Ref. 2_, pg. 53    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Cd-Wrapped    | Start of Section               | Top of Upper     | Ref. 2_, pg. 53    |
+   | Section       |                                | Grid Plate       |                    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Cd-Wrap Outer Diameter (in.)   | 0.955            | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Cd-Wrap Outer Diameter (in.)   | 0.955            | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Air-Gap Outer Diameter (in.)   | 1.120            | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Outer-Tube Outer Diameter (in.)| 1.250            | Ref. 1_, Table 10.3|
+   |               |                                |                  | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Outer-Tube Material            | Aluminum         | Ref. 2_, pg. 53    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Upper Shock   | Axial Thickness (cm)           | 2.5400           | Ref. 2_, pp. 53--55|
+   | Section       +--------------------------------+------------------+                    |
+   |               | Outer Diameter (in.)           | 1.250            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Material                       | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Cd Disk       | Axial Thickness (cm)           | 0.0508           | Ref. 2_, pp. 53--55|
+   | Section       +--------------------------------+------------------+                    |
+   |               | Cd Disk Diameter (in.)         | 0.685            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Cd Disk Material               | Cadmium          |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Aluminum Annulus Outer         | 0.875            |                    |
+   |               | Diameter (in.)                 |                  |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Annulus Material               | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Lower Shock   | Axial Thickness (cm)           | 2.5400           | Ref. 2_, pp. 53--55|
+   | Section       +--------------------------------+------------------+                    |
+   |               | Outer Diameter (in.)           | 1.435            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Material                       | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Connecting    | Axial Thickness (cm)           | 4.1725           | Ref. 2_, pp. 53--55|
+   | Section       +--------------------------------+------------------+                    |
+   |               | Outer Diameter (in.)           | 1.250            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Material                       | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+   | Lower Section | Axial Thickness (cm)           | 8.3259           | Ref. 2_, pp. 53--55|
+   |               +--------------------------------+------------------+                    |
+   |               | Outer Diameter (in.)           | 1.435            |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Material                       | Aluminum         |                    |
+   +---------------+--------------------------------+------------------+--------------------+
+
+
 Material Compositions
 =====================
 
@@ -511,6 +642,31 @@ other TRIGA progression problems are not repeated here, but may be found in the
    | (Iso ID, at%)     | :numref:`table-UZrH-specs` |                      |
    +-------------------+----------------------------+----------------------+
 
+
+.. table:: Cadmium Specifications
+   :name: table-cadmium-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 8.65                  | Ref. 2_, pg. 53      |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | Cd-106  | 0.0125      | Ref. 2_, pg. 60;     |
+   + (Iso ID, at%)     +---------+-------------+                      +
+   |                   | Cd-108  | 0.0089      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cd-110  | 0.1249      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cd-111  | 0.1280      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cd-112  | 0.2413      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cd-113  | 0.1222      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cd-114  | 0.2873      |                      |
+   +                   +---------+-------------+                      +
+   |                   | Cd-116  | 0.0749      |                      |
+   +-------------------+---------+-------------+----------------------+
 
 
 

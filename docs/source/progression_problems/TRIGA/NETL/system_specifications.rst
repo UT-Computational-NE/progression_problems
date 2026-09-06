@@ -605,6 +605,80 @@ polyethylene rabbit, sample container, or irradiated specimen.
    +---------------+--------------------------------+------------------+--------------------+
 
 
+Conventional Three-Element Irradiator
+--------------------------------------
+
+The conventional three-element irradiation facility (3-EL) replaces the fuel elements in lattice
+positions ``E-11``, ``F-13``, and ``F-14``. The irradiation canister is centered at the centroid of
+these three positions. Both the lead-lined and cadmium-lined configurations use the same geometry;
+only the liner material changes. The lead-lined configuration supports thermal and epithermal
+irradiations, whereas the cadmium-lined configuration suppresses the thermal component for
+epithermal irradiations.
+
+This specification follows the conventional 3-EL model described by Hudson (Ref. 4_).
+Following the simplifications in that model, the three standard fuel-element penetrations
+in the upper grid plate are replaced by a single cylindrical penetration centered on the canister.
+The detailed alignment frame, its coolant-flow holes, the centered lower-grid alignment penetration,
+handling fixtures, valves, seals, and other mechanical details are not represented. The upper and
+lower ends of the canister are consequently represented as simple aluminum cylinders.
+Experiment-specific samples are excluded and the sample volume is filled with air. The axial regions
+are listed from top to bottom in :numref:`table-three-element-geometry`.
+
+.. table:: Conventional 3-EL Geometry Specifications
+   :name: table-three-element-geometry
+
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Component            | Property                               | Value            | Reference              |
+   +======================+========================================+==================+========================+
+   | Facility Placement   | Replaced Lattice Positions             | E-11, F-13, F-14 | Ref. 4_, pp. 140       |
+   |                      +----------------------------------------+------------------+------------------------+
+   |                      | Radial Location                        | Centroid of the  | Ref. 4_,               |
+   |                      | (Derived / Model Evidence)             | Three Positions  | pp. 217, 231--232      |
+   |                      +----------------------------------------+------------------+------------------------+
+   |                      | Bottom Axial Location                  | Top of Lower     | Ref. 4_, pp. 218, 228  |
+   |                      |                                        | Grid Plate       | Ref. 1_, pp. 10-14     |
+   |                      +----------------------------------------+------------------+------------------------+
+   |                      | Upper Grid Penetration Radius (cm)     | 2.40000          | Ref. 4_, pp. 152, 217  |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Outer Casing         | Inner Radius (cm)                      | 2.23393          | Ref. 4_, pp. 184, 186, |
+   |                      |                                        |                  | 217--218               |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Outer Radius (cm)                      | 2.38125          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Overall Axial Length (cm)              | 127.9524         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Solid Upper-End Thickness (cm)         | 3.1750           |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Solid Lower-End Thickness (cm)         | 2.5399           |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Material                               | Aluminum         |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Inner Sleeve         | Inner Radius (cm)                      | 1.93929          | Ref. 4_, pp. 187,      |
+   |                      |                                        |                  | 217--218               |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Outer Radius (cm)                      | 2.06375          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Sidewall Axial Length (cm)             | 119.6975         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Bottom-Disk Thickness (cm)             | 0.3175           |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Material                               | Aluminum         |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Liner                | Inner Radius (cm)                      | 2.06375          | Ref. 4_, pp. 140, 187  |
+   |                      |                                        |                  | 217--218               |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Outer Radius (cm)                      | 2.16535          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Sidewall Axial Length (cm)             | 118.1100         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Bottom-Disk Thickness (cm)             | 0.1016           |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Material                               | Lead / Cadmium   |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Interior Fill        | Material                               | Air              | Ref. 4_, pp. 184--185  |
+   +----------------------+----------------------------------------+------------------+------------------------+
+
+
 Material Compositions
 =====================
 
@@ -669,6 +743,19 @@ other TRIGA progression problems are not repeated here, but may be found in the
    +-------------------+---------+-------------+----------------------+
 
 
+.. table:: Lead Specifications
+   :name: table-lead-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 11.35                 | Ref. 4_, pg. 187     |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | Pb-Nat  | 1.0         | Ref. 4_, pg. 270     |
+   | (Iso ID, at%)     |         |             |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
 
 References
 ==========
@@ -684,6 +771,11 @@ References
 .. [3] J. A. Kulesza, et al., "MCNP® Code Version 6.3.1 Theory & User Manual",
        LA-UR-24-24602, Rev. 1, Los Alamos National Laboratory, Los Alamos,
        NM, USA (2024), https://www.osti.gov/biblio/2372634
+
+.. [4] C. C. Hudson, "Development of a Radioisotope Production Facility Using a
+   Cryogenic Cooling System", Ph.D. dissertation, The University of Texas at
+   Austin, December 2025,
+   https://repositories.lib.utexas.edu/items/6cd629db-6ab7-4ec3-920b-254b52cb7c45
 
 See Also
 ========

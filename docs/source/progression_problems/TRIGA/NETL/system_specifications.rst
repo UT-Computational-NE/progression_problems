@@ -490,8 +490,8 @@ to the bottom of the lower grid plate, passing through both grid-plate penetrati
 Two terminal configurations are defined: an unlined configuration (see: :numref:`table-pnt-unlined`)
 and a cadmium-lined (see: :numref:`table-pnt-cd-lined`) configuration. The unlined configuration
 consists of a small aluminum tube with an air-filled bore. The cadmium-lined configuration retains
-this inner tube, wraps it with cadmium, and places the assembly concentrically inside a larger aluminum
-tube. The annulus between the cadmium and the larger tube is air-filled.
+this inner tube wraps it with cadmium, and places the assembly concentrically inside a larger
+aluminum tube. The annulus between the cadmium and the larger tube is air-filled.
 
 These baseline specifications contain air in the empty tube section and do not explicitly represent a
 polyethylene rabbit, sample container, or irradiated specimen.
@@ -515,19 +515,19 @@ polyethylene rabbit, sample container, or irradiated specimen.
    |               +--------------------------------+------------------+--------------------+
    |               | Tube Material                  | Aluminum         | Ref. 2_, pg. 53    |
    +---------------+--------------------------------+------------------+--------------------+
-   | Shock/        | Axial Thickness (cm)           | 5.1308           | Ref. 2_, pp. 53--55|
-   | Terminus      +--------------------------------+------------------+                    |
-   | Section       | Outer Diameter (in.)           | 0.875            |                    |
+   | Shock         | Axial Thickness (cm)           | 5.1308           | Ref. 2_, pp. 53--55|
+   | Absorber      +--------------------------------+------------------+                    |
+   |               | Outer Diameter (in.)           | 0.875            |                    |
    |               +--------------------------------+------------------+                    |
    |               | Material                       | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
-   | Connecting    | Axial Thickness (cm)           | 4.1725           | Ref. 2_, pp. 53--55|
-   | Section       +--------------------------------+------------------+                    |
-   |               | Outer Diameter (in.)           | 1.250            |                    |
+   | Terminus      | Axial Thickness (cm)           | 4.1725           | Ref. 2_, pp. 53--55|
+   | Connecting    +--------------------------------+------------------+                    |
+   | Tube          | Outer Diameter (in.)           | 1.250            |                    |
    |               +--------------------------------+------------------+                    |
    |               | Material                       | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
-   | Lower Section | Axial Thickness (cm)           | 8.3259           | Ref. 2_, pp. 53--55|
+   | Tube Bottom   | Axial Thickness (cm)           | 8.3259           | Ref. 2_, pp. 53--55|
    |               +--------------------------------+------------------+                    |
    |               | Outer Diameter (in.)           | 0.875            |                    |
    |               +--------------------------------+------------------+                    |
@@ -541,23 +541,10 @@ polyethylene rabbit, sample container, or irradiated specimen.
    +---------------+--------------------------------+------------------+--------------------+
    | Component     | Property                       | Value            | Reference          |
    +===============+================================+==================+====================+
-   | Empty Tube    | Bottom Axial Location Relative | -18.7182         | Ref. 2_, pp. 53--55|
-   | Section       | to Core Midplane (cm)          |                  |                    |
-   |               +--------------------------------+------------------+--------------------+
-   |               | Bore Diameter (in.)            | 0.685            | Ref. 1_, Table 10.3|
-   |               |                                |                  | Ref. 2_, pg. 55    |
-   |               +--------------------------------+------------------+--------------------+
-   |               | Bore Material                  | Air              | Ref. 2_, pg. 53    |
-   |               +--------------------------------+------------------+--------------------+
-   |               | Inner-Tube Outer Diameter (in.)| 0.875            | Ref. 1_, Table 10.3|
-   |               |                                |                  | Ref. 2_, pg. 55    |
-   |               +--------------------------------+------------------+--------------------+
-   |               | Inner-Tube Material            | Aluminum         | Ref. 2_, pg. 53    |
+   | Empty Tube    | see :numref:`table-pnt-unlined` Empty Tube Section                     |
    +---------------+--------------------------------+------------------+--------------------+
    | Cd-Wrapped    | Start of Section               | Top of Upper     | Ref. 2_, pg. 53    |
    | Section       |                                | Grid Plate       |                    |
-   |               +--------------------------------+------------------+--------------------+
-   |               | Cd-Wrap Outer Diameter (in.)   | 0.955            | Ref. 2_, pg. 55    |
    |               +--------------------------------+------------------+--------------------+
    |               | Cd-Wrap Outer Diameter (in.)   | 0.955            | Ref. 2_, pg. 55    |
    |               +--------------------------------+------------------+--------------------+
@@ -568,32 +555,25 @@ polyethylene rabbit, sample container, or irradiated specimen.
    |               +--------------------------------+------------------+--------------------+
    |               | Outer-Tube Material            | Aluminum         | Ref. 2_, pg. 53    |
    +---------------+--------------------------------+------------------+--------------------+
-   | Upper Shock   | Axial Thickness (cm)           | 2.5400           | Ref. 2_, pp. 53--55|
+   | Shock         | Axial Thickness (cm)           | 2.5400           | Ref. 2_, pp. 53--55|
+   | Absorber      +--------------------------------+------------------+                    |
+   | Upper         | Outer Diameter (in.)           | 1.250            |                    |
    | Section       +--------------------------------+------------------+                    |
-   |               | Outer Diameter (in.)           | 1.250            |                    |
-   |               +--------------------------------+------------------+                    |
    |               | Material                       | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
    | Cd Disk       | Axial Thickness (cm)           | 0.0508           | Ref. 2_, pp. 53--55|
-   | Section       +--------------------------------+------------------+                    |
-   |               | Cd Disk Diameter (in.)         | 0.685            |                    |
    |               +--------------------------------+------------------+                    |
    |               | Cd Disk Material               | Cadmium          |                    |
-   |               +--------------------------------+------------------+                    |
-   |               | Aluminum Annulus Outer         | 0.875            |                    |
-   |               | Diameter (in.)                 |                  |                    |
-   |               +--------------------------------+------------------+                    |
-   |               | Annulus Material               | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
-   | Lower Shock   | Axial Thickness (cm)           | 2.5400           | Ref. 2_, pp. 53--55|
+   | Shock         | Axial Thickness (cm)           | 2.5400           | Ref. 2_, pp. 53--55|
+   | Absorber      +--------------------------------+------------------+                    |
+   | Lower         | Outer Diameter (in.)           | 1.435            |                    |
    | Section       +--------------------------------+------------------+                    |
-   |               | Outer Diameter (in.)           | 1.435            |                    |
-   |               +--------------------------------+------------------+                    |
    |               | Material                       | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
-   | Connecting    | Axial Thickness (cm)           | 4.1725           | Ref. 2_, pp. 53--55|
-   | Section       +--------------------------------+------------------+                    |
-   |               | Outer Diameter (in.)           | 1.250            |                    |
+   | Terminus      | Axial Thickness (cm)           | 4.1725           | Ref. 2_, pp. 53--55|
+   | Connecting    +--------------------------------+------------------+                    |
+   | Tube          | Outer Diameter (in.)           | 1.250            |                    |
    |               +--------------------------------+------------------+                    |
    |               | Material                       | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
@@ -660,7 +640,7 @@ are listed from top to bottom in :numref:`table-three-element-geometry`.
    |                      +----------------------------------------+------------------+                        +
    |                      | Sidewall Axial Length (cm)             | 119.6975         |                        |
    |                      +----------------------------------------+------------------+                        +
-   |                      | Bottom-Disk Thickness (cm)             | 0.3175           |                        |
+   |                      | Bottom Thickness (cm)                  | 0.3175           |                        |
    |                      +----------------------------------------+------------------+                        +
    |                      | Material                               | Aluminum         |                        |
    +----------------------+----------------------------------------+------------------+------------------------+
@@ -671,11 +651,142 @@ are listed from top to bottom in :numref:`table-three-element-geometry`.
    |                      +----------------------------------------+------------------+                        +
    |                      | Sidewall Axial Length (cm)             | 118.1100         |                        |
    |                      +----------------------------------------+------------------+                        +
-   |                      | Bottom-Disk Thickness (cm)             | 0.1016           |                        |
+   |                      | Bottom Thickness (cm)                  | 0.1016           |                        |
    |                      +----------------------------------------+------------------+                        +
    |                      | Material                               | Lead / Cadmium   |                        |
    +----------------------+----------------------------------------+------------------+------------------------+
    | Interior Fill        | Material                               | Air              | Ref. 4_, pp. 184--185  |
+   +----------------------+----------------------------------------+------------------+------------------------+
+
+Modified Three-Element Irradiator
+----------------------------------
+
+The modified three-element irradiation facility uses the same lattice positions, radial center,
+and simplified grid-plate penetration as the conventional 3-EL. It contains concentric cadmium,
+enriched-boron, and natural-boron-carbide filters surrounding an air-filled pneumatic transfer
+passage. The baseline specification does not include a rabbit, sample container, or irradiated
+specimen. The detailed specification in :numref:`table-modified-three-element-detailed-geometry` follows
+the active modified-3-EL cell and surface cards in Hudson's later MCNP model (Ref. 4_).
+
+.. table:: Detailed Modified 3-EL Geometry Specifications
+   :name: table-modified-three-element-detailed-geometry
+
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Component            | Property                               | Value            | Reference              |
+   +======================+========================================+==================+========================+
+   | Outer Aluminum       | Tube #1 Inner Radius (cm)              | 2.23393          | Ref. 4_, pp. 185--186, |
+   | Casing               +----------------------------------------+------------------+ 221, 227, 242          +
+   |                      | Tube #1 Outer Radius (cm)              | 2.30759          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube #1 Axial Length (cm)              | 124.77400        |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube #1 Bottom Axial Location          | Top of Bottom    |                        |
+   |                      |                                        | Grid Plate       |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube #2 Outer Radius (cm)              | 2.38125          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube #2 End-Cap Thickness (cm)         | 3.39830          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube #2 Annulus Axial Length (cm)      | 81.27660         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube #2 Solid / Annulus Interface      | Top of Tube #1   |                        |
+   |                      | Axial Location                         |                  |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Material                               | Aluminum         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Interior Fill Material                 | Air              |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Pneumatic System     | Tube Inner Radius (cm)                 | 0.67000          | Ref. 4_, pp. 185,      |
+   |                      +----------------------------------------+------------------+ 220--221               +
+   |                      | Tube Outer Radius (cm)                 | 0.79400          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Sleeve Inner Radius (cm)               | 0.86350          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Sleeve Outer Radius (cm)               | 0.95250          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Open-Tube Axial Length (cm)            | 109.73188        |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube Lower-End-Cap Thickness (cm)      | 0.12400          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Sleeve Lower-End-Cap Thickness (cm)    | 0.12850          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Top Axial Location                     | Top of Tube #1   |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Tube and Sleeve Material               | Aluminum         |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | B4C Canister         | B4C-Region Inner Radius (cm)           | 1.11125          | Ref. 4_, pp. 185,      |
+   | (Upper Insert)       +----------------------------------------+------------------+ 220--221               +
+   |                      | B4C-Region Outer Radius (cm)           | 1.89230          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Canister Outer Radius (cm)             | 2.19009          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Top-Cap Axial Thickness (cm)           | 0.19660          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | B4C-Region Axial Thickness (cm)        | 52.00278         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Bottom-Cap Axial Thickness (cm)        | 0.20000          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Canister Top Alignment                 | Top of Tube #1   |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Canister Material                      | Aluminum         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | B4C-Region Material                    | Natural B4C      |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | B-10 Canister        | B-10 Annulus Inner Radius (cm)         | 1.03759          | Ref. 4_, pp. 185--186, |
+   | (Lower Insert)       +----------------------------------------+------------------+ 220                    +
+   |                      | Upper B-10 Outer Radius (cm)           | 2.00660          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Lower B-10 Outer Radius (cm)           | 2.04724          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Canister Exterior Wall Radius (cm)     | 2.12090          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Cadmium-Liner Outer Radius (cm)        | 2.17090          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Gap to B4C Canister (cm)               | 0.10000          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Top-Cap Axial Thickness (cm)           | 2.54000          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Upper B-10 Region Axial Thickness (cm) | 22.86000         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Lower B-10 Region Axial Thickness (cm) | 34.92500         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Canister Exterior Wall Lower-End-Cap   | 0.63500          |                        |
+   |                      | Axial Thickness (cm)                   |                  |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Canister Interior Wall Lower-End-Cap   | 0.30000          |                        |
+   |                      | Thickness (cm)                         |                  |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Cadmium-Liner Axial Extent             | Canister Top to  |                        |
+   |                      |                                        | Bottom of B-10   |                        |
+   |                      |                                        | Region           |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Canister and Sleeve Material           | Aluminum         |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | B-10 Region Material                   | Enriched Boron   |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Liner Material                         | Cadmium          |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Silver Disk          | Axial Thickness (cm)                   | 0.10000          | Ref. 4_, pp. 186, 220  |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Material                               | Silver           |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Cadmium Disk         | Axial Thickness (cm)                   | 0.10000          | Ref. 4_, pp. 186, 220  |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Material                               | Cadmium          |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Hollow Aluminum      | Hollow-Section Radius (cm)             | 2.03393          | Ref. 4_, pp. 186, 220  |
+   | Spacer               +----------------------------------------+------------------+                        +
+   |                      | Hollow-Section Axial Thickness (cm)    | 3.00000          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Solid Upper-Cap Axial Thickness (cm)   | 0.49472          |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Hollow-Section Fill Material           | Air              |                        |
+   |                      +----------------------------------------+------------------+                        +
+   |                      | Spacer Material                        | Aluminum         |                        |
+   +----------------------+----------------------------------------+------------------+------------------------+
+   | Solid Aluminum       | Axial Thickness (cm)                   | 5.08000          | Ref. 4_, pp. 186, 221  |
+   | Spacer               +----------------------------------------+------------------+                        +
+   |                      | Material                               | Aluminum         |                        |
    +----------------------+----------------------------------------+------------------+------------------------+
 
 
@@ -756,6 +867,57 @@ other TRIGA progression problems are not repeated here, but may be found in the
    +-------------------+---------+-------------+----------------------+
 
 
+The enriched-boron density is another difference between the source models. De Luna's embedded
+MCNP model uses 1.55 g/cc, while the accompanying discussion reports a measured tapped-density
+range of approximately 1.3--1.5 g/cc (Ref. 5_, pp. 45, 107). The progression-problem specification
+uses Hudson's later value of 1.40 g/cc, which lies within that measured range.
+
+.. table:: Enriched-Boron Powder Specifications
+   :name: table-enriched-boron-powder-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 1.40                  | Ref. 4_, pg. 186     |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | B-10    | 0.96        | Ref. 4_, pg. 276     |
+   + (Iso ID, wt%)     +---------+-------------+                      +
+   |                   | B-11    | 0.04        |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
+.. table:: Natural-B4C Powder Specifications
+   :name: table-natural-b4c-powder-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 1.46                  | Ref. 4_, pg. 185     |
+   |                   |                       | Ref. 5_, pg. 106     |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | B-10    | 0.159996    | Ref. 4_, pg. 268     |
+   + (Iso ID, at%)     +---------+-------------+                      +
+   |                   | B-11    | 0.639985    |                      |
+   +                   +---------+-------------+                      +
+   |                   | C-Nat   | 0.200019    |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
+.. table:: Silver Specifications
+   :name: table-silver-specs
+
+   +-------------------+-----------------------+----------------------+
+   | Property          | Value                 | Reference            |
+   +===================+=======================+======================+
+   | Density (g/cc)    | 10.49                 | Ref. 4_, pg. 186     |
+   |                   |                       | Ref. 5_, pg. 107     |
+   +-------------------+---------+-------------+----------------------+
+   | Composition       | Ag-107  | 0.51839     | Ref. 4_, pg. 276     |
+   + (Iso ID, wt%)     +---------+-------------+                      +
+   |                   | Ag-109  | 0.48161     |                      |
+   +-------------------+---------+-------------+----------------------+
+
+
 
 References
 ==========
@@ -776,6 +938,11 @@ References
    Cryogenic Cooling System", Ph.D. dissertation, The University of Texas at
    Austin, December 2025,
    https://repositories.lib.utexas.edu/items/6cd629db-6ab7-4ec3-920b-254b52cb7c45
+
+.. [5] B. A. De Luna, "Design of an In-core Fission Spectrum Neutron Irradiation
+   Facility with Pneumatic Sample Transfer at a Research Reactor", M.S.E. thesis,
+   The University of Texas at Austin, 2019,
+   https://repositories.lib.utexas.edu/bitstreams/e3f6e914-7811-4752-9650-0851d50978d8/download
 
 See Also
 ========

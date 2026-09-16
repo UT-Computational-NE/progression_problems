@@ -116,6 +116,7 @@ DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, mpactpy.Material.MPACTSpecs] = {
     "water":                DEFAULT_MPACT_MATERIAL_SPECS[materials.Water],
     "control_rod_absorber": DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
     "cadmium":              mpactpy.Material.MPACTSpecs({}, False, False, False, False),
+    "lead":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.Pb],
     "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH].using_fission_product_ids(
         exclude=["Zr91","Zr93","Zr95","Zr96"]
     ),

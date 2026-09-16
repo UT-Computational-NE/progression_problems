@@ -9,6 +9,7 @@ from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder
                                                     FuelFollowerControlRod as NETLFuelFollowerControlRod,
                                                     TransientRod as NETLTransientRod, GridPlate, BeamPort, Pool,
                                                     RSRCavity as NETLRSRCavity,
+                                                    ThreeElementIrradiator as NETLThreeElementIrradiator,
                                                     Reflector, Shroud, Core, Reactor as NETLReactor)
 from coreforge.geometry_elements.triga.netl.grid_plate import grid_plate_penetration_map
 from coreforge.materials import Material
@@ -35,6 +36,9 @@ class DefaultGeometries:
     .. [2] D. R. Redhouse, et al., "Radiation Characterization Summary: NETL Beam Port
            1/5 Free-Field Environment at the 128-inch Core Centerline Adjacent Location,
            (NETL-FF-BP1/5-128-cca).", Nov. 2022. https://doi.org/10.2172/1898256
+    .. [3] C. C. Hudson, "Development of a Radioisotope Production Facility Using a
+           Cryogenic Cooling System", Ph.D. dissertation, The University of Texas at
+           Austin, December 2025.
     """
 
     UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE = 12.75  * CM_PER_INCH  # Ref. [2]_ pg. 55
@@ -222,6 +226,208 @@ class DefaultGeometries:
             material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
             return NETLSourceHolder.Cladding(outer_radius, Material(material))
+
+    @staticmethod
+    def three_element_irradiator(
+        temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        coolant: openmc.Material | None = None,
+        fill_material: openmc.Material | None = None,
+        liner_material: openmc.Material | None = None,
+        outer_casing: NETLThreeElementIrradiator.OuterCasing | None = None,
+        inner_sleeve: NETLThreeElementIrradiator.InnerSleeve | None = None,
+        liner: NETLThreeElementIrradiator.Liner | None = None,
+    ) -> NETLThreeElementIrradiator:
+        """Creates and returns the default conventional three-element irradiator.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to default irradiator materials.
+        coolant : Optional[openmc.Material]
+            Material surrounding the outer casing. If omitted, water is used.
+        fill_material : Optional[openmc.Material]
+            Material filling the irradiator interior and interstitial spaces. If
+            omitted, air is used at ``temperature``.
+        liner_material : Optional[openmc.Material]
+            Material assigned to the default liner. If omitted, cadmium is used
+            at ``temperature``. Ignored when ``liner`` is supplied.
+        outer_casing : Optional[NETLThreeElementIrradiator.OuterCasing]
+            Outer-casing override. If omitted,
+            ``DefaultGeometries.ThreeElementIrradiator.outer_casing`` is used.
+        inner_sleeve : Optional[NETLThreeElementIrradiator.InnerSleeve]
+            Inner-sleeve override. If omitted,
+            ``DefaultGeometries.ThreeElementIrradiator.inner_sleeve`` is used.
+        liner : Optional[NETLThreeElementIrradiator.Liner]
+            Liner override. If omitted,
+            ``DefaultGeometries.ThreeElementIrradiator.liner`` is used.
+
+        Returns
+        -------
+        NETLThreeElementIrradiator
+            Default conventional NETL three-element irradiator.
+        """
+        coolant = coolant or NETLDefaultMaterials.water()
+        fill_material = (fill_material if fill_material is not None else
+                         NETLDefaultMaterials.air(temperature))
+        liner_material = (liner_material if liner_material is not None else
+                          NETLDefaultMaterials.cadmium(temperature))
+        outer_casing = (outer_casing if outer_casing is not None else
+                        DefaultGeometries.ThreeElementIrradiator.outer_casing(temperature=temperature))
+        inner_sleeve = (inner_sleeve if inner_sleeve is not None else
+                        DefaultGeometries.ThreeElementIrradiator.inner_sleeve(temperature=temperature))
+        liner = (liner if liner is not None else
+                 DefaultGeometries.ThreeElementIrradiator.liner(
+                     material=liner_material,
+                     temperature=temperature,
+                 ))
+
+        return NETLThreeElementIrradiator(
+            outer_casing=outer_casing,
+            inner_sleeve=inner_sleeve,
+            liner=liner,
+            fill_material=Material(fill_material),
+            outer_material=Material(coolant),
+            gap_tolerance=None,
+            name="three_element_irradiator",
+        )
+
+    class ThreeElementIrradiator:
+        """Namespace for default conventional three-element-irradiator features."""
+
+        @staticmethod
+        def outer_casing(
+            inner_radius: float = 2.23393,
+            outer_radius: float = 2.38125,
+            length: float = 127.9524,
+            solid_upper_end_thickness: float = 3.1750,
+            solid_lower_end_thickness: float = 2.5399,
+            material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLThreeElementIrradiator.OuterCasing:
+            """Creates and returns the default outer casing.
+
+            Dimensions default to the conventional 3-EL specification in Ref.
+            [3]_ pages 184, 186, and 217--218.
+
+            Parameters
+            ----------
+            inner_radius : float
+                Casing inner radius in cm.
+            outer_radius : float
+                Casing outer radius in cm.
+            length : float
+                Overall casing axial length in cm.
+            solid_upper_end_thickness : float
+                Solid upper-end axial thickness in cm.
+            solid_lower_end_thickness : float
+                Solid lower-end axial thickness in cm.
+            material : Optional[openmc.Material]
+                Material override. If omitted, aluminum is used at
+                ``temperature``.
+            temperature : float
+                Temperature used to construct the default material. Ignored
+                when ``material`` is supplied.
+
+            Returns
+            -------
+            NETLThreeElementIrradiator.OuterCasing
+                CoreForge outer-casing specification.
+            """
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
+            return NETLThreeElementIrradiator.OuterCasing(
+                inner_radius=inner_radius,
+                outer_radius=outer_radius,
+                length=length,
+                solid_upper_end_thickness=solid_upper_end_thickness,
+                solid_lower_end_thickness=solid_lower_end_thickness,
+                material=Material(material),
+            )
+
+        @staticmethod
+        def inner_sleeve(
+            inner_radius: float = 1.93929,
+            outer_radius: float = 2.06375,
+            sidewall_length: float = 119.6975,
+            bottom_thickness: float = 0.3175,
+            material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLThreeElementIrradiator.InnerSleeve:
+            """Creates and returns the default inner sleeve.
+
+            Dimensions default to the conventional 3-EL specification in Ref.
+            [3]_ pages 187 and 217--218.
+
+            Parameters
+            ----------
+            inner_radius : float
+                Sleeve inner radius in cm.
+            outer_radius : float
+                Sleeve outer radius in cm.
+            sidewall_length : float
+                Sleeve-sidewall axial length in cm.
+            bottom_thickness : float
+                Solid-bottom axial thickness in cm.
+            material : Optional[openmc.Material]
+                Material override. If omitted, aluminum is used at
+                ``temperature``.
+            temperature : float
+                Temperature used to construct the default material. Ignored
+                when ``material`` is supplied.
+
+            Returns
+            -------
+            NETLThreeElementIrradiator.InnerSleeve
+                CoreForge inner-sleeve specification.
+            """
+            material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
+            return NETLThreeElementIrradiator.InnerSleeve(
+                inner_radius=inner_radius,
+                outer_radius=outer_radius,
+                sidewall_length=sidewall_length,
+                bottom_thickness=bottom_thickness,
+                material=Material(material),
+            )
+
+        @staticmethod
+        def liner(
+            thickness: float = 0.10160,
+            sidewall_length: float = 118.1100,
+            bottom_thickness: float = 0.1016,
+            material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLThreeElementIrradiator.Liner:
+            """Creates and returns the default liner.
+
+            Dimensions default to the conventional 3-EL specification in Ref.
+            [3]_ pages 140, 187, and 217--218.
+
+            Parameters
+            ----------
+            thickness : float
+                Liner radial thickness in cm.
+            sidewall_length : float
+                Liner-sidewall axial length in cm.
+            bottom_thickness : float
+                Solid-bottom axial thickness in cm.
+            material : Optional[openmc.Material]
+                Material override. If omitted, cadmium is used at
+                ``temperature``.
+            temperature : float
+                Temperature used to construct the default material. Ignored
+                when ``material`` is supplied.
+
+            Returns
+            -------
+            NETLThreeElementIrradiator.Liner
+                CoreForge liner specification.
+            """
+            material = material if material is not None else NETLDefaultMaterials.cadmium(temperature)
+            return NETLThreeElementIrradiator.Liner(
+                thickness=thickness,
+                sidewall_length=sidewall_length,
+                bottom_thickness=bottom_thickness,
+                material=Material(material),
+            )
 
     @staticmethod
     def fuel_follower_control_rod(
@@ -1033,6 +1239,7 @@ class DefaultGeometries:
         penetration_map: dict[str, float | None] | None = None,
         thickness: float = 0.62 * CM_PER_INCH,
         material: openmc.Material | None = None,
+        three_element_penetration_radius: float | None = 2.40000,
     ) -> GridPlate:
         """Creates and returns the default upper grid plate geometry.
 
@@ -1057,6 +1264,11 @@ class DefaultGeometries:
         material : Optional[openmc.Material]
             Grid-plate material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per
             Ref. [2]_ pg. 50. The temperature is ignored when a material is supplied.
+        three_element_penetration_radius : Optional[float]
+            Radius in cm of the single upper-grid-plate penetration used when a
+            three-element irradiator is present. Defaults to 2.40000 cm, per
+            Ref. [3]_ pages 152 and 217. ``None`` disables the special
+            penetration.
 
         Returns
         -------
@@ -1081,6 +1293,7 @@ class DefaultGeometries:
             thickness=thickness,
             material=Material(material),
             name="upper_grid_plate",
+            three_element_penetration_radius=three_element_penetration_radius,
         )
 
     @staticmethod
@@ -1404,6 +1617,7 @@ class DefaultGeometries:
         shim_2_rod: NETLFuelFollowerControlRod | None = None,
         loading: dict[str, Core.Loadable | None] | None = None,
         fill_material: Material | None = None,
+        three_element_irradiator: Core.Loadable | None = None,
     ) -> Core:
         """Creates and returns a default core geometry.
 
@@ -1445,6 +1659,9 @@ class DefaultGeometries:
         fill_material : Optional[Material]
             CoreForge material used to fill unoccupied core locations. If omitted, the
             material from ``DefaultGeometries.pool`` is used.
+        three_element_irradiator : Optional[Core.Loadable]
+            Loadable spanning E-11, F-13, and F-14. If omitted, those locations will use
+            what is specified in ``loading``.
 
         Returns
         -------
@@ -1535,6 +1752,7 @@ class DefaultGeometries:
             regulating_rod=regulating_rod,
             shim_1_rod=shim_1_rod,
             shim_2_rod=shim_2_rod,
+            three_element_irradiator=three_element_irradiator,
             loading=loading,
             fill_material=fill_material,
             name="core",
@@ -1563,6 +1781,7 @@ class DefaultGeometries:
         reflector: NETLReactor.Reflector | None = None,
         upper_grid_plate: NETLReactor.GridPlate | None = None,
         lower_grid_plate: NETLReactor.GridPlate | None = None,
+        three_element_irradiator: Core.Loadable | None = None,
     ) -> NETLReactor:
         """Creates and returns a default reactor geometry.
 
@@ -1621,6 +1840,9 @@ class DefaultGeometries:
         lower_grid_plate : Optional[NETLReactor.GridPlate]
             Lower-grid-plate geometry and placement override. If omitted, the
             reference geometry and placement are used.
+        three_element_irradiator : Optional[Core.Loadable]
+            Loadable spanning E-11, F-13, and F-14 when constructing the default
+            core. Ignored when ``core`` is supplied.
 
         Returns
         -------
@@ -1634,7 +1856,13 @@ class DefaultGeometries:
         rsr_cavity = (rsr_cavity if rsr_cavity is not None else
                       DefaultGeometries.rsr_cavity(non_fuel_temp))
         core = (core if core is not None else
-                DefaultGeometries.core(fuel_temp, non_fuel_temp, coolant, fuel_materials=fuel_materials))
+                DefaultGeometries.core(
+                    fuel_temp,
+                    non_fuel_temp,
+                    coolant,
+                    fuel_materials=fuel_materials,
+                    three_element_irradiator=three_element_irradiator,
+                ))
 
         if any(beam_port is None for beam_port in
                (beam_port_1_5, beam_port_2, beam_port_3, beam_port_4)):

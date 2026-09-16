@@ -88,14 +88,44 @@ def test_default_reactor_reflector_and_grid_plate_placements():
     assert reflector.core_centerline_offset == pytest.approx(0.565 * CM_PER_INCH)
     assert isinstance(upper_grid, NETLReactor.GridPlate)
     assert upper_grid.geometry is upper_grid_geometry
+    assert upper_grid.geometry.three_element_penetration_radius == pytest.approx(2.40000)
     assert upper_grid.top_to_core_centerline_distance == pytest.approx(
         NETL.DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
     )
     assert isinstance(lower_grid, NETLReactor.GridPlate)
     assert lower_grid.geometry is lower_grid_geometry
+    assert lower_grid.geometry.three_element_penetration_radius is None
     assert lower_grid.top_to_core_centerline_distance == pytest.approx(
         NETL.DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
     )
+
+
+def test_default_three_element_irradiator():
+    cadmium_irradiator = NETL.DefaultGeometries.three_element_irradiator()
+    lead = NETLDefaultMaterials.lead()
+    lead_irradiator = NETL.DefaultGeometries.three_element_irradiator(liner_material=lead)
+
+    assert cadmium_irradiator.outer_casing.inner_radius == pytest.approx(2.23393)
+    assert cadmium_irradiator.outer_casing.outer_radius == pytest.approx(2.38125)
+    assert cadmium_irradiator.outer_casing.length == pytest.approx(127.9524)
+    assert cadmium_irradiator.inner_sleeve.inner_radius == pytest.approx(1.93929)
+    assert cadmium_irradiator.inner_sleeve.outer_radius == pytest.approx(2.06375)
+    assert cadmium_irradiator.liner.thickness == pytest.approx(0.10160)
+    assert cadmium_irradiator.liner.material.name == "Cadmium"
+    assert lead_irradiator.liner.material.name == "Lead"
+    assert lead_irradiator.liner.material.density == pytest.approx(11.35)
+
+    lead_specs = default_mpact_material_specs([lead_irradiator.liner.material])
+    assert lead_specs[lead_irradiator.liner.material] == DEFAULT_MPACT_MATERIAL_SPECS[materials.Pb]
+
+    core = NETL.DefaultGeometries.core(three_element_irradiator=lead_irradiator)
+    assert core.three_element_irradiator is lead_irradiator
+    assert core.full_map["E-11"] is lead_irradiator
+    assert core.full_map["F-13"] is lead_irradiator
+    assert core.full_map["F-14"] is lead_irradiator
+
+    reactor = NETL.DefaultGeometries.reactor(three_element_irradiator=lead_irradiator)
+    assert reactor.core.three_element_irradiator is lead_irradiator
 
 
 def test_problem_1_openmc_tools(fuel_element, coolant, tmp_path):

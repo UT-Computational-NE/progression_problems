@@ -15,6 +15,9 @@ class DefaultMaterials(TRIGADefaultMaterials):
     .. [1] D. R. Redhouse, et al., "Radiation Characterization Summary: NETL Beam Port
            1/5 Free-Field Environment at the 128-inch Core Centerline Adjacent Location,
            (NETL-FF-BP1/5-128-cca).", Nov. 2022. https://doi.org/10.2172/1898256
+    .. [2] C. C. Hudson, "Development of a Radioisotope Production Facility Using a
+           Cryogenic Cooling System", Ph.D. dissertation, The University of Texas at
+           Austin, December 2025.
 
     """
 
@@ -115,4 +118,34 @@ class DefaultMaterials(TRIGADefaultMaterials):
         material.add_nuclide('Cd113', 0.1222, percent_type='ao')
         material.add_nuclide('Cd114', 0.2873, percent_type='ao')
         material.add_nuclide('Cd116', 0.0749, percent_type='ao')
+        return material
+
+    @staticmethod
+    def lead(temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+             density: float = 11.35,
+             density_units: str = 'g/cm3') -> openmc.Material:
+        """Creates and returns natural lead material.
+
+        Composition is from Ref. [2]_ page 270 and density from page 187.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature of the material in Kelvin.
+        density : float
+            Density of the material.
+        density_units : str
+            Units of density.
+
+        Returns
+        -------
+        openmc.Material
+            The lead material.
+        """
+        assert temperature >= 0.0, "Temperature must be positive in Kelvin."
+
+        material = openmc.Material(name='Lead')
+        material.temperature = temperature
+        material.set_density(density_units, density)
+        material.add_element('Pb', 1.0, percent_type='ao')
         return material

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 import math
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -8,10 +8,125 @@ import mpactpy
 import openmc
 
 from coreforge import materials
+from coreforge.geometry_elements import CylindricalPinCell, CylindricalStack, HexLattice
+from coreforge.geometry_elements.triga import CoreElement, FuelElement, GraphiteElement
+from coreforge.geometry_elements.triga.netl import CentralThimble, SourceHolder, PNT
 from coreforge.materials.material import Material
 from coreforge.mpact_builder.builder_specs import MaterialSpecs, DEFAULT_MPACT_MATERIAL_SPECS
 
 from progression_problems.constants import THERMAL_ENERGY_CUTOFF
+
+
+def get_pincell(element: CoreElement,
+                pincell_section: Optional[str] = None) -> CylindricalPinCell:
+    """Retrieve a stored pincell section from a TRIGA core element.
+
+    Parameters
+    ----------
+    element : CoreElement
+        Element supplying the cross section.
+    pincell_section : Optional[str]
+        Key in ``element.pincell``. If omitted, use the standard section for
+        fuel, graphite, central thimble, source holder, or PNT. Rods and
+        irradiators require an explicit key. List-valued sections use their
+        first entry, ordered from bottom to top.
+
+    Returns
+    -------
+    CylindricalPinCell
+        Selected stored cross section.
+    """
+    if pincell_section is None:
+        if isinstance(element, FuelElement):
+            pincell_section = "fuel"
+        elif isinstance(element, GraphiteElement):
+            pincell_section = "graphite"
+        elif isinstance(element, CentralThimble):
+            pincell_section = "thimble"
+        elif isinstance(element, SourceHolder):
+            pincell_section = "cavity"
+        elif isinstance(element, PNT):
+            pincell_section = "wrapped_tube" if element.wrapper is not None else "tube"
+
+    pincells = element.pincell
+    if pincell_section is None or pincell_section not in pincells:
+        raise ValueError(
+            f"Select a pincell_section for {type(element).__name__} "
+            f"from: {', '.join(pincells)}. Got {pincell_section!r}."
+        )
+    pincell = pincells[pincell_section]
+    if isinstance(pincell, list):
+        pincell = pincell[0] if pincell else None
+    if not isinstance(pincell, CylindricalPinCell):
+        raise ValueError(f"Pincell section {pincell_section!r} is unavailable on {element.name!r}.")
+    return pincell
+
+
+def build_coolant_pincell(coolant: openmc.Material,
+                          radii: Sequence[float]) -> CylindricalPinCell:
+    """Build a coolant-only cylindrical pincell.
+
+    Parameters
+    ----------
+    coolant : openmc.Material
+        Coolant material to fill all regions.
+    radii : Sequence[float]
+        Cylindrical mesh radii for the coolant-only pincell.
+
+    Returns
+    -------
+    CylindricalPinCell
+        Coolant-only cylindrical pincell.
+    """
+    filtered_radii = sorted(set(radii))
+    assert filtered_radii, "radii must contain at least one value."
+    assert all(radius > 0.0 for radius in filtered_radii), "All coolant pincell radii must be positive."
+    coolant_material = Material(coolant)
+    return CylindricalPinCell(
+        radii=filtered_radii,
+        materials=[coolant_material for _ in range(len(filtered_radii) + 1)],
+        name="coolant_pincell",
+    )
+
+
+def build_multicell_geometry(
+    fuel: FuelElement | CylindricalPinCell | CylindricalStack,
+    central_element: CoreElement | CylindricalPinCell | CylindricalStack | None,
+    pitch: float,
+) -> HexLattice:
+    """Arrange supplied geometry elements in the multicell hexagonal lattice.
+
+    Parameters
+    ----------
+    fuel : FuelElement | CylindricalPinCell | CylindricalStack
+        Geometry repeated at the fuel locations. Its outer material also fills
+        the lattice exterior and any vacant central location.
+    central_element : CoreElement | CylindricalPinCell | CylindricalStack | None
+        Geometry placed at the central location. ``None`` leaves it vacant.
+    pitch : float
+        Hexagonal lattice pitch [cm].
+
+    Returns
+    -------
+    HexLattice
+        Multicell lattice containing the supplied geometry elements.
+    """
+    f = fuel
+    c = central_element
+    lattice = [[         f,         ],
+               [     f,      f,     ],
+               [ f,      f,      f, ],
+               [     f,      f,     ],
+               [ f,      c,      f, ],
+               [     f,      f,     ],
+               [ f,      f,      f, ],
+               [     f,      f,     ],
+               [         f,         ]]
+
+    return HexLattice(pitch          = pitch,
+                      outer_material = fuel.outer_material,
+                      elements       = lattice,
+                      orientation    = 'y')
 
 
 def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
@@ -117,6 +232,9 @@ DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, mpactpy.Material.MPACTSpecs] = {
     "control_rod_absorber": DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
     "cadmium":              mpactpy.Material.MPACTSpecs({}, False, False, False, False),
     "lead":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.Pb],
+    "enriched_boron":       DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
+    "natural_b4c":          DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
+    "silver":               mpactpy.Material.MPACTSpecs({}, False, False, True, False),
     "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH].using_fission_product_ids(
         exclude=["Zr91","Zr93","Zr95","Zr96"]
     ),
@@ -193,7 +311,7 @@ def plot_model_2D(model:            openmc.Model,
                   axis_units:       str = "cm",
                   legend_kwargs:    Optional[Dict[str, object]] = None,
                   max_pixels:       int = 1800,
-                  min_pixels:       int = 400) -> None:
+                  min_pixels:       int = 400) -> Path:
     """Render a 2-D geometry plot with OpenMC's Python plotting interface.
 
     Parameters
@@ -223,6 +341,11 @@ def plot_model_2D(model:            openmc.Model,
         provided.
     min_pixels : int, default: 400
         Lower bound applied to each computed pixel dimension.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the saved plot image.
     """
 
     assert basis in ["xy", "xz", "yz"]
@@ -285,11 +408,30 @@ def plot_model_2D(model:            openmc.Model,
         savefig_kwargs["bbox_inches"] = "tight"
     axes.figure.savefig(output_path, **savefig_kwargs)
     plt.close(axes.figure)
+    return output_path
 
 
 def _build_plot_material_colors(materials: Iterable[openmc.Material]) -> Dict[openmc.Material, str]:
-    """Build a consistent material-to-color mapping for geometry plots."""
+    """Build a consistent material-to-color mapping for geometry plots.
 
+    Parameters
+    ----------
+    materials : Iterable[openmc.Material]
+        Materials whose names identify their plotting colors.
+
+    Returns
+    -------
+    Dict[openmc.Material, str]
+        Explicit plotting colors, shared by materials with matching names.
+
+    Raises
+    ------
+    ValueError
+        If a material name has no color assignment. Unknown materials must
+        not silently appear white like air.
+    """
+
+    materials = list(materials)
     colors: Dict[openmc.Material, str] = {}
     unique = unique_materials(materials)
     for material in unique:
@@ -298,6 +440,16 @@ def _build_plot_material_colors(materials: Iterable[openmc.Material]) -> Dict[op
             colors[material] = "darkorange"
         elif "follower" in name or "air" in name:
             colors[material] = "white"
+        elif "cadmium" in name or name == "cd":
+            colors[material] = "magenta"
+        elif "lead" in name or name == "pb":
+            colors[material] = "gold"
+        elif "silver" in name or name == "ag":
+            colors[material] = "teal"
+        elif "moly" in name or name == "mo":
+            colors[material] = "darkviolet"
+        elif "b4c" in name or "boron_carbide" in name or "boron carbide" in name:
+            colors[material] = "crimson"
         elif "absorber" in name or "boron" in name:
             colors[material] = "sienna"
         elif "zirc" in name or "zr" in name:
@@ -311,11 +463,11 @@ def _build_plot_material_colors(materials: Iterable[openmc.Material]) -> Dict[op
         elif "water" in name or "coolant" in name or "void" in name:
             colors[material] = "skyblue"
         else:
-            colors[material] = "white"
+            raise ValueError(f"No plotting color is assigned to material {material.name!r}.")
 
     for material in materials:
         if material not in colors:
-            duplicate = next((item for item in unique if item.name.lower() == material.name.lower()), material)
-            colors[material] = colors.get(duplicate, "white")
+            duplicate = next(item for item in unique if item.name.lower() == material.name.lower())
+            colors[material] = colors[duplicate]
 
     return colors

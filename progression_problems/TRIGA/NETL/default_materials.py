@@ -8,7 +8,9 @@ class DefaultMaterials(TRIGADefaultMaterials):
 
     This class extends the base TRIGA materials with NETL-specific materials.
     All common TRIGA materials (fresh_fuel, zirc_filler, stainless_steel, graphite,
-    aluminum, air, molybdenum) are inherited from TRIGADefaultMaterials.
+    aluminum, air, molybdenum) are inherited from TRIGADefaultMaterials. NETL-
+    specific materials include the control-rod absorber, cadmium, lead, enriched-
+    boron powder, natural-B4C powder, and silver.
 
     References
     ----------
@@ -148,4 +150,113 @@ class DefaultMaterials(TRIGADefaultMaterials):
         material.temperature = temperature
         material.set_density(density_units, density)
         material.add_element('Pb', 1.0, percent_type='ao')
+        return material
+
+    @staticmethod
+    def enriched_boron(
+        temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+        density: float = 1.40,
+        density_units: str = 'g/cm3',
+    ) -> openmc.Material:
+        """Create the enriched-boron powder used by the modified 3-EL.
+
+        The density is from Ref. [2]_ page 187 and the isotopic composition is
+        from Ref. [2]_ page 277.
+
+        Parameters
+        ----------
+        temperature : float
+            Material temperature in Kelvin. Defaults to
+            ``TRIGADefaultMaterials.DEFAULT_TEMPERATURE``.
+        density : float
+            Material density. Defaults to 1.40 g/cm3, per Ref. [2]_ page 187.
+        density_units : str
+            Units associated with ``density``. Defaults to ``'g/cm3'``.
+
+        Returns
+        -------
+        openmc.Material
+            Enriched-boron powder material.
+        """
+
+        assert temperature >= 0.0, "Temperature must be positive in Kelvin."
+
+        material = openmc.Material(name='Enriched_Boron')
+        material.temperature = temperature
+        material.set_density(density_units, density)
+        material.add_nuclide('B10', 0.96, percent_type='wo')
+        material.add_nuclide('B11', 0.04, percent_type='wo')
+        return material
+
+    @staticmethod
+    def natural_b4c(
+        temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+        density: float = 1.46,
+        density_units: str = 'g/cm3',
+    ) -> openmc.Material:
+        """Create the natural-B4C powder used by the modified 3-EL.
+
+        The density is from Ref. [2]_ page 186 and the atom fractions are from
+        Ref. [2]_ page 269.
+
+        Parameters
+        ----------
+        temperature : float
+            Material temperature in Kelvin. Defaults to
+            ``TRIGADefaultMaterials.DEFAULT_TEMPERATURE``.
+        density : float
+            Material density. Defaults to 1.46 g/cm3, per Ref. [2]_ page 186.
+        density_units : str
+            Units associated with ``density``. Defaults to ``'g/cm3'``.
+
+        Returns
+        -------
+        openmc.Material
+            Natural-B4C powder material.
+        """
+
+        assert temperature >= 0.0, "Temperature must be positive in Kelvin."
+
+        material = openmc.Material(name='Natural_B4C')
+        material.temperature = temperature
+        material.set_density(density_units, density)
+        material.add_nuclide('B10', 0.159996, percent_type='ao')
+        material.add_nuclide('B11', 0.639985, percent_type='ao')
+        material.add_element('C', 0.200019, percent_type='ao')
+        return material
+
+    @staticmethod
+    def silver(
+        temperature: float = TRIGADefaultMaterials.DEFAULT_TEMPERATURE,
+        density: float = 10.49,
+        density_units: str = 'g/cm3',
+    ) -> openmc.Material:
+        """Create the silver disk material used by the modified 3-EL.
+
+        The density is from Ref. [2]_ page 187 and the isotopic composition is
+        from Ref. [2]_ page 277.
+
+        Parameters
+        ----------
+        temperature : float
+            Material temperature in Kelvin. Defaults to
+            ``TRIGADefaultMaterials.DEFAULT_TEMPERATURE``.
+        density : float
+            Material density. Defaults to 10.49 g/cm3, per Ref. [2]_ page 187.
+        density_units : str
+            Units associated with ``density``. Defaults to ``'g/cm3'``.
+
+        Returns
+        -------
+        openmc.Material
+            Silver material.
+        """
+
+        assert temperature >= 0.0, "Temperature must be positive in Kelvin."
+
+        material = openmc.Material(name='Silver')
+        material.temperature = temperature
+        material.set_density(density_units, density)
+        material.add_nuclide('Ag107', 0.51839, percent_type='wo')
+        material.add_nuclide('Ag109', 0.48161, percent_type='wo')
         return material

@@ -4,12 +4,14 @@ from typing import Sequence
 
 import openmc
 
+from coreforge.geometry_elements import CylindricalPinCell, CylindricalStack, Stack
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
 from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder as NETLSourceHolder,
                                                     FuelFollowerControlRod as NETLFuelFollowerControlRod,
                                                     TransientRod as NETLTransientRod, GridPlate, BeamPort, Pool,
-                                                    RSRCavity as NETLRSRCavity,
+                                                    PNT as NETLPNT, RSRCavity as NETLRSRCavity,
                                                     ThreeElementIrradiator as NETLThreeElementIrradiator,
+                                                    ModifiedThreeElementIrradiator as NETLModifiedThreeElementIrradiator,
                                                     Reflector, Shroud, Core, Reactor as NETLReactor)
 from coreforge.geometry_elements.triga.netl.grid_plate import grid_plate_penetration_map
 from coreforge.materials import Material
@@ -228,6 +230,416 @@ class DefaultGeometries:
             return NETLSourceHolder.Cladding(outer_radius, Material(material))
 
     @staticmethod
+    def pnt(
+        temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        coolant: openmc.Material | None = None,
+        bottom_pos: float | None = None,
+        tube: NETLPNT.Tube | None = None,
+        terminus: CylindricalStack | None = None,
+        wrapper: NETLPNT.Wrapper | None = None,
+    ) -> NETLPNT:
+        """Create and return the default NETL pneumatic transport system.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to default PNT materials.
+        coolant : Optional[openmc.Material]
+            Material surrounding the PNT. If omitted, water is used, consistent
+            with the reactor-coolant fill in Ref. [2]_ pages 53--55.
+        bottom_pos : Optional[float]
+            Bottom axial position of the PNT relative to the core midplane
+            [cm]. If omitted, the bottom of the lower grid plate is used, as
+            derived from Ref. [2]_ pages 53--55.
+        tube : Optional[NETLPNT.Tube]
+            Transport-tube override. If omitted, the unlined transport tube is
+            extended from its specified bottom to the top of the default pool.
+        terminus : Optional[CylindricalStack]
+            Terminus override. If omitted,
+            ``DefaultGeometries.PNT.unlined_terminus`` is used.
+        wrapper : Optional[NETLPNT.Wrapper]
+            Optional wrapper around the transport tube. If omitted, the tube is
+            unwrapped.
+
+        Returns
+        -------
+        NETLPNT
+            Default NETL PNT geometry.
+        """
+
+        coolant = coolant or NETLDefaultMaterials.water()
+        bottom_pos = (
+            bottom_pos if bottom_pos is not None
+            else -DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+                 - DefaultGeometries.lower_grid_plate(temperature).thickness
+        )
+        tube = (
+            tube if tube is not None
+            else DefaultGeometries.PNT.tube(
+                length=(
+                    0.5 * DefaultGeometries.pool(coolant).height
+                    - DefaultGeometries.PNT.TUBE_BOTTOM_AXIAL_LOCATION
+                ),
+                temperature=temperature,
+            )
+        )
+        terminus = (
+            terminus if terminus is not None
+            else DefaultGeometries.PNT.unlined_terminus(
+                temperature=temperature,
+                outer_material=coolant,
+            )
+        )
+
+        return NETLPNT(
+            tube=tube,
+            terminus=terminus,
+            bottom_pos=bottom_pos,
+            wrapper=wrapper,
+            outer_material=Material(coolant),
+            gap_tolerance=None,
+            name="pnt",
+        )
+
+    class PNT:
+        """Namespace for default NETL pneumatic-transport-system features.
+
+        The unlined transport-tube dimensions are specified in Ref. [1]_
+        Table 10.3 and Ref. [2]_ page 55. The detailed unlined and cadmium-lined
+        terminal dimensions, materials, and axial positions follow the MCNP
+        model in Ref. [2]_ pages 53--55.
+        """
+
+        TUBE_BOTTOM_AXIAL_LOCATION = -18.7182  # Ref. [2]_ pp. 53--55
+
+        @staticmethod
+        def tube(
+            length: float,
+            inner_radius: float = 0.5 * 0.685 * CM_PER_INCH,
+            outer_radius: float = 0.5 * 0.875 * CM_PER_INCH,
+            material: openmc.Material | None = None,
+            fill_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLPNT.Tube:
+            """Create the air-filled aluminum PNT transport tube.
+
+            Parameters
+            ----------
+            length : float
+                Tube length in cm. The default PNT factory derives this from
+                the -18.7182-cm tube-bottom position in Ref. [2]_ pages 53--55
+                and the top of the modeled pool.
+            inner_radius : float
+                Tube inner radius in cm. Defaults to half the 0.685-in bore
+                diameter in Ref. [1]_ Table 10.3 and Ref. [2]_ page 55.
+            outer_radius : float
+                Tube outer radius in cm. Defaults to half the 0.875-in outer
+                diameter in Ref. [1]_ Table 10.3 and Ref. [2]_ page 55.
+            material : Optional[openmc.Material]
+                Tube-material override. If omitted, aluminum is used at
+                ``temperature``, per Ref. [2]_ page 53.
+            fill_material : Optional[openmc.Material]
+                Bore-fill override. If omitted, air is used at ``temperature``,
+                per Ref. [2]_ page 53.
+            temperature : float
+                Temperature used to construct default materials. Ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            NETLPNT.Tube
+                CoreForge PNT transport-tube specification.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            fill_material = (
+                fill_material if fill_material is not None
+                else NETLDefaultMaterials.air(temperature)
+            )
+            return NETLPNT.Tube(
+                inner_radius=inner_radius,
+                outer_radius=outer_radius,
+                length=length,
+                material=Material(material),
+                fill_material=Material(fill_material),
+            )
+
+        @staticmethod
+        def unlined_terminus(
+            tube_bottom_thickness: float = 8.3259,
+            connecting_tube_thickness: float = 4.1725,
+            shock_absorber_thickness: float = 5.1308,
+            connecting_tube_radius: float = 0.5 * 1.250 * CM_PER_INCH,
+            tube_bottom_radius: float = 0.5 * 0.875 * CM_PER_INCH,
+            material: openmc.Material | None = None,
+            outer_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> CylindricalStack:
+            """Create the unlined PNT terminus stack.
+
+            Parameters
+            ----------
+            tube_bottom_thickness : float
+                Axial thickness of the lowest terminal region in cm. Defaults
+                to 8.3259 cm, per Ref. [2]_ pages 53--55.
+            connecting_tube_thickness : float
+                Connecting-tube axial thickness in cm. Defaults to 4.1725 cm,
+                per Ref. [2]_ pages 53--55.
+            shock_absorber_thickness : float
+                Unlined shock-absorber axial thickness in cm. Defaults to
+                5.1308 cm, per Ref. [2]_ pages 53--55.
+            connecting_tube_radius : float
+                Radius of the 1.250-in-OD connecting tube. Defaults to the
+                dimension in Ref. [2]_ page 55.
+            tube_bottom_radius : float
+                Radius of the 0.875-in-OD unlined tube bottom and shock
+                absorber. Defaults to the dimensions in Ref. [1]_ Table 10.3
+                and Ref. [2]_ page 55.
+            material : Optional[openmc.Material]
+                Terminal aluminum override. If omitted, aluminum is used at
+                ``temperature``, per Ref. [2]_ page 53.
+            outer_material : Optional[openmc.Material]
+                Temporary outer material for the component pincells. The
+                enclosing PNT replaces it with the PNT coolant.
+            temperature : float
+                Temperature used to construct default materials. Ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            CylindricalStack
+                CoreForge unlined PNT terminus ordered from bottom to top.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            outer_material = outer_material or NETLDefaultMaterials.water()
+            aluminum = Material(material)
+            exterior = Material(outer_material)
+
+            def solid_section(
+                radius: float,
+                section_material: Material,
+                name: str,
+            ) -> CylindricalPinCell:
+                return CylindricalPinCell(
+                    radii=[radius],
+                    materials=[section_material, exterior],
+                    name=name,
+                )
+
+            return CylindricalStack(
+                segments=[
+                    Stack.Segment(
+                        solid_section(tube_bottom_radius, aluminum, "pnt_tube_bottom"),
+                        tube_bottom_thickness,
+                    ),
+                    Stack.Segment(
+                        solid_section(
+                            connecting_tube_radius,
+                            aluminum,
+                            "pnt_connecting_tube",
+                        ),
+                        connecting_tube_thickness,
+                    ),
+                    Stack.Segment(
+                        solid_section(tube_bottom_radius, aluminum, "pnt_shock_absorber"),
+                        shock_absorber_thickness,
+                    ),
+                ],
+                name="pnt_unlined_terminus",
+            )
+
+        @staticmethod
+        def cadmium_lined_terminus(
+            lower_section_thickness: float = 8.3259,
+            connecting_tube_thickness: float = 4.1725,
+            shock_absorber_section_thickness: float = 2.5400,
+            cadmium_disk_thickness: float = 0.0508,
+            narrow_radius: float = 0.5 * 1.250 * CM_PER_INCH,
+            wide_radius: float = 0.5 * 1.435 * CM_PER_INCH,
+            material: openmc.Material | None = None,
+            cadmium_material: openmc.Material | None = None,
+            outer_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> CylindricalStack:
+            """Create the cadmium-lined PNT terminus stack.
+
+            Parameters
+            ----------
+            lower_section_thickness : float
+                Axial thickness of the lowest terminal region in cm. Defaults
+                to 8.3259 cm, per Ref. [2]_ pages 53--55.
+            connecting_tube_thickness : float
+                Connecting-tube axial thickness in cm. Defaults to 4.1725 cm,
+                per Ref. [2]_ pages 53--55.
+            shock_absorber_section_thickness : float
+                Axial thickness of each shock-absorber section in cm. Defaults
+                to 2.5400 cm, per Ref. [2]_ pages 53--55.
+            cadmium_disk_thickness : float
+                Cadmium-disk axial thickness in cm. Defaults to 0.0508 cm, per
+                Ref. [2]_ pages 53--55.
+            narrow_radius : float
+                Radius of the 1.250-in-OD connecting tube and upper shock
+                absorber. Defaults to the dimension in Ref. [2]_ page 55.
+            wide_radius : float
+                Radius of the 1.435-in-OD lower section, lower shock absorber,
+                and cadmium disk. Defaults to the dimension in Ref. [2]_ page 55.
+            material : Optional[openmc.Material]
+                Terminal aluminum override. If omitted, aluminum is used at
+                ``temperature``, per Ref. [2]_ page 53.
+            cadmium_material : Optional[openmc.Material]
+                Cadmium-disk material override. If omitted, cadmium is used at
+                ``temperature``, per Ref. [2]_ page 53.
+            outer_material : Optional[openmc.Material]
+                Temporary outer material for the component pincells. The
+                enclosing PNT replaces it with the PNT coolant.
+            temperature : float
+                Temperature used to construct default materials. Ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            CylindricalStack
+                CoreForge cadmium-lined PNT terminus ordered from bottom to top.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            cadmium_material = (
+                cadmium_material if cadmium_material is not None
+                else NETLDefaultMaterials.cadmium(temperature)
+            )
+            outer_material = outer_material or NETLDefaultMaterials.water()
+            aluminum = Material(material)
+            cadmium = Material(cadmium_material)
+            exterior = Material(outer_material)
+
+            def solid_section(
+                radius: float,
+                section_material: Material,
+                name: str,
+            ) -> CylindricalPinCell:
+                return CylindricalPinCell(
+                    radii=[radius],
+                    materials=[section_material, exterior],
+                    name=name,
+                )
+
+            return CylindricalStack(
+                segments=[
+                    Stack.Segment(
+                        solid_section(wide_radius, aluminum, "pnt_lower_section"),
+                        lower_section_thickness,
+                    ),
+                    Stack.Segment(
+                        solid_section(narrow_radius, aluminum, "pnt_connecting_tube"),
+                        connecting_tube_thickness,
+                    ),
+                    Stack.Segment(
+                        solid_section(wide_radius, aluminum, "pnt_shock_absorber_lower"),
+                        shock_absorber_section_thickness,
+                    ),
+                    Stack.Segment(
+                        solid_section(wide_radius, cadmium, "pnt_cadmium_disk"),
+                        cadmium_disk_thickness,
+                    ),
+                    Stack.Segment(
+                        solid_section(narrow_radius, aluminum, "pnt_shock_absorber_upper"),
+                        shock_absorber_section_thickness,
+                    ),
+                ],
+                name="pnt_cadmium_lined_terminus",
+            )
+
+        @staticmethod
+        def wrapper(
+            length: float | None = None,
+            cadmium_outer_radius: float = 0.5 * 0.955 * CM_PER_INCH,
+            air_gap_outer_radius: float = 0.5 * 1.120 * CM_PER_INCH,
+            outer_tube_outer_radius: float = 0.5 * 1.250 * CM_PER_INCH,
+            cadmium_material: openmc.Material | None = None,
+            fill_material: openmc.Material | None = None,
+            outer_tube_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLPNT.Wrapper:
+            """Create the default cadmium wrapper around the transport tube.
+
+            Parameters
+            ----------
+            length : Optional[float]
+                Wrapped axial length in cm. If omitted, it is derived from the
+                -18.7182-cm tube-bottom position and the upper-grid-plate top
+                position in Ref. [2]_ pages 53--55.
+            cadmium_outer_radius : float
+                Cadmium-wrap outer radius in cm. Defaults to half the 0.955-in
+                outer diameter in Ref. [2]_ page 55.
+            air_gap_outer_radius : float
+                Air-gap outer radius in cm. Defaults to half the 1.120-in outer
+                diameter in Ref. [2]_ page 55.
+            outer_tube_outer_radius : float
+                Outer aluminum tube radius in cm. Defaults to half the 1.250-in
+                outer diameter in Ref. [1]_ Table 10.3 and Ref. [2]_ page 55.
+            cadmium_material : Optional[openmc.Material]
+                Cadmium-wrap material override. If omitted, cadmium is used at
+                ``temperature``, per Ref. [2]_ page 53.
+            fill_material : Optional[openmc.Material]
+                Annular-gap material override. If omitted, air is used at
+                ``temperature``, per Ref. [2]_ page 53.
+            outer_tube_material : Optional[openmc.Material]
+                Outer-tube material override. If omitted, aluminum is used at
+                ``temperature``, per Ref. [2]_ page 53.
+            temperature : float
+                Temperature used to construct default materials. Ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            NETLPNT.Wrapper
+                CoreForge PNT wrapper specification.
+            """
+
+            length = (
+                length if length is not None
+                else DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
+                     - DefaultGeometries.PNT.TUBE_BOTTOM_AXIAL_LOCATION
+            )
+            cadmium_material = (
+                cadmium_material if cadmium_material is not None
+                else NETLDefaultMaterials.cadmium(temperature)
+            )
+            fill_material = (
+                fill_material if fill_material is not None
+                else NETLDefaultMaterials.air(temperature)
+            )
+            outer_tube_material = (
+                outer_tube_material if outer_tube_material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            cross_section = CylindricalPinCell(
+                radii=[
+                    cadmium_outer_radius,
+                    air_gap_outer_radius,
+                    outer_tube_outer_radius,
+                ],
+                materials=[
+                    Material(cadmium_material),
+                    Material(fill_material),
+                    Material(outer_tube_material),
+                    Material(NETLDefaultMaterials.water()),
+                ],
+                name="pnt_wrapper_cross_section",
+            )
+            return NETLPNT.Wrapper(length=length, cross_section=cross_section)
+
+    @staticmethod
     def three_element_irradiator(
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         coolant: openmc.Material | None = None,
@@ -426,6 +838,638 @@ class DefaultGeometries:
                 thickness=thickness,
                 sidewall_length=sidewall_length,
                 bottom_thickness=bottom_thickness,
+                material=Material(material),
+            )
+
+    @staticmethod
+    def modified_three_element_irradiator(
+        temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        coolant: openmc.Material | None = None,
+        fill_material: openmc.Material | None = None,
+        outer_casing: NETLModifiedThreeElementIrradiator.OuterCasing | None = None,
+        pneumatic_system: NETLModifiedThreeElementIrradiator.PneumaticSystem | None = None,
+        b4c_canister: NETLModifiedThreeElementIrradiator.B4CCanister | None = None,
+        b10_canister: NETLModifiedThreeElementIrradiator.B10Canister | None = None,
+        silver_disk: NETLModifiedThreeElementIrradiator.Disk | None = None,
+        cadmium_disk: NETLModifiedThreeElementIrradiator.Disk | None = None,
+        hollow_spacer: NETLModifiedThreeElementIrradiator.HollowSpacer | None = None,
+        solid_spacer: NETLModifiedThreeElementIrradiator.SolidSpacer | None = None,
+        simplified: bool = False,
+    ) -> NETLModifiedThreeElementIrradiator:
+        """Create and return the default modified three-element irradiator.
+
+        The detailed geometry defaults follow the active modified-3-EL model
+        in Ref. [3]_ pages 186--187, 221--222, 228, and 243. Setting
+        ``simplified`` selects the documented volume-preserving ten-region
+        representation derived from that detailed geometry.
+
+        Parameters
+        ----------
+        temperature : float
+            Temperature applied to default irradiator materials.
+        coolant : Optional[openmc.Material]
+            Material surrounding the outer casing. If omitted, water is used.
+        fill_material : Optional[openmc.Material]
+            Material filling the casing interior and interstitial spaces. If
+            omitted, air is used at ``temperature``.
+        outer_casing : Optional[NETLModifiedThreeElementIrradiator.OuterCasing]
+            Outer-casing override. If omitted, the default is used.
+        pneumatic_system : Optional[NETLModifiedThreeElementIrradiator.PneumaticSystem]
+            Pneumatic-system override. If omitted, the default is used.
+        b4c_canister : Optional[NETLModifiedThreeElementIrradiator.B4CCanister]
+            Natural-B4C-canister override. If omitted, the default is used.
+        b10_canister : Optional[NETLModifiedThreeElementIrradiator.B10Canister]
+            Enriched-boron-canister override. If omitted, the default is used.
+        silver_disk : Optional[NETLModifiedThreeElementIrradiator.Disk]
+            Silver-disk override. If omitted, the default is used.
+        cadmium_disk : Optional[NETLModifiedThreeElementIrradiator.Disk]
+            Cadmium-disk override. If omitted, the default is used.
+        hollow_spacer : Optional[NETLModifiedThreeElementIrradiator.HollowSpacer]
+            Hollow-spacer override. If omitted, the default is used.
+        solid_spacer : Optional[NETLModifiedThreeElementIrradiator.SolidSpacer]
+            Solid-spacer override. If omitted, the default is used.
+        simplified : bool
+            Whether to select the ten-region simplified geometry. Defaults to
+            ``False`` for the detailed geometry.
+
+        Returns
+        -------
+        NETLModifiedThreeElementIrradiator
+            Default NETL modified three-element irradiator.
+        """
+
+        coolant = coolant or NETLDefaultMaterials.water()
+        fill_material = (
+            fill_material if fill_material is not None
+            else NETLDefaultMaterials.air(temperature)
+        )
+        outer_casing = (
+            outer_casing if outer_casing is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.outer_casing(
+                temperature=temperature
+            )
+        )
+        pneumatic_system = (
+            pneumatic_system if pneumatic_system is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.pneumatic_system(
+                temperature=temperature
+            )
+        )
+        b4c_canister = (
+            b4c_canister if b4c_canister is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.b4c_canister(
+                temperature=temperature
+            )
+        )
+        b10_canister = (
+            b10_canister if b10_canister is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.b10_canister(
+                temperature=temperature
+            )
+        )
+        silver_disk = (
+            silver_disk if silver_disk is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.silver_disk(
+                temperature=temperature
+            )
+        )
+        cadmium_disk = (
+            cadmium_disk if cadmium_disk is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.cadmium_disk(
+                temperature=temperature
+            )
+        )
+        hollow_spacer = (
+            hollow_spacer if hollow_spacer is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.hollow_spacer(
+                temperature=temperature
+            )
+        )
+        solid_spacer = (
+            solid_spacer if solid_spacer is not None
+            else DefaultGeometries.ModifiedThreeElementIrradiator.solid_spacer(
+                temperature=temperature
+            )
+        )
+
+        return NETLModifiedThreeElementIrradiator(
+            outer_casing=outer_casing,
+            pneumatic_system=pneumatic_system,
+            b4c_canister=b4c_canister,
+            b10_canister=b10_canister,
+            silver_disk=silver_disk,
+            cadmium_disk=cadmium_disk,
+            hollow_spacer=hollow_spacer,
+            solid_spacer=solid_spacer,
+            fill_material=Material(fill_material),
+            outer_material=Material(coolant),
+            gap_tolerance=None,
+            simplified=simplified,
+            name="modified_three_element_irradiator",
+        )
+
+    class ModifiedThreeElementIrradiator:
+        """Namespace for default modified three-element-irradiator features.
+
+        Dimensions follow the detailed modified-3-EL specification in Ref.
+        [3]_ pages 186--187, 221--222, 228, and 243.
+        """
+
+        @staticmethod
+        def outer_casing(
+            tube_1_inner_radius: float = 2.23393,
+            tube_1_outer_radius: float = 2.30759,
+            tube_1_length: float = 124.77400,
+            tube_2_outer_radius: float = 2.38125,
+            tube_2_annulus_length: float = 81.27660,
+            tube_2_end_cap_thickness: float = 3.39830,
+            material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.OuterCasing:
+            """Create the default two-tube outer casing.
+
+            Dimensions follow Ref. [3]_ pages 186--187, 222, 228, and 243.
+            The material defaults to aluminum at ``temperature``.
+
+            Parameters
+            ----------
+            tube_1_inner_radius : float
+                Tube #1 inner radius in cm. Defaults to 2.23393 cm, per Ref.
+                [3]_ pages 186--187, 222, 228, and 243.
+            tube_1_outer_radius : float
+                Tube #1 outer radius in cm. Defaults to 2.30759 cm, per Ref.
+                [3]_ pages 186--187, 222, 228, and 243.
+            tube_1_length : float
+                Tube #1 axial length in cm. Defaults to 124.77400 cm, per Ref.
+                [3]_ pages 186--187, 222, 228, and 243.
+            tube_2_outer_radius : float
+                Tube #2 outer radius in cm. Defaults to 2.38125 cm, per Ref.
+                [3]_ pages 186--187, 222, 228, and 243.
+            tube_2_annulus_length : float
+                Axial length over which Tube #2 surrounds Tube #1 in cm.
+                Defaults to 81.27660 cm, per Ref. [3]_ pages 186--187, 222,
+                228, and 243.
+            tube_2_end_cap_thickness : float
+                Thickness of the solid Tube #2 region above Tube #1 in cm.
+                Defaults to 3.39830 cm, per Ref. [3]_ pages 186--187, 222,
+                228, and 243.
+            material : Optional[openmc.Material]
+                Casing-material override. Defaults to ``None``, which uses
+                aluminum per Ref. [3]_ pages 186--187 and 222.
+            temperature : float
+                Temperature used to construct the default material. Defaults
+                to ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored
+                when ``material`` is supplied.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.OuterCasing
+                CoreForge modified-3-EL outer-casing specification.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.OuterCasing(
+                tube_1_inner_radius=tube_1_inner_radius,
+                tube_1_outer_radius=tube_1_outer_radius,
+                tube_1_length=tube_1_length,
+                tube_2_outer_radius=tube_2_outer_radius,
+                tube_2_annulus_length=tube_2_annulus_length,
+                tube_2_end_cap_thickness=tube_2_end_cap_thickness,
+                material=Material(material),
+            )
+
+        @staticmethod
+        def pneumatic_system(
+            tube_inner_radius: float = 0.67000,
+            tube_outer_radius: float = 0.79400,
+            sleeve_inner_radius: float = 0.86350,
+            sleeve_outer_radius: float = 0.95250,
+            open_tube_length: float = 109.73188,
+            tube_lower_end_cap_thickness: float = 0.12400,
+            sleeve_lower_end_cap_thickness: float = 0.12850,
+            material: openmc.Material | None = None,
+            fill_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.PneumaticSystem:
+            """Create the default central pneumatic tube and sleeve.
+
+            Dimensions and the aluminum/air assignments follow Ref. [3]_
+            pages 186 and 221. All dimensions are in cm.
+
+            Parameters
+            ----------
+            tube_inner_radius : float
+                Pneumatic-tube inner radius in cm. Defaults to 0.67000 cm, per
+                Ref. [3]_ pages 186 and 221.
+            tube_outer_radius : float
+                Pneumatic-tube outer radius in cm. Defaults to 0.79400 cm, per
+                Ref. [3]_ pages 186 and 221.
+            sleeve_inner_radius : float
+                Pneumatic-sleeve inner radius in cm. Defaults to 0.86350 cm,
+                per Ref. [3]_ pages 186 and 221.
+            sleeve_outer_radius : float
+                Pneumatic-sleeve outer radius in cm. Defaults to 0.95250 cm,
+                per Ref. [3]_ pages 186 and 221.
+            open_tube_length : float
+                Length of the open pneumatic-tube passage below the top of
+                Tube #1 in cm. Defaults to 109.73188 cm, per Ref. [3]_ pages
+                186 and 221.
+            tube_lower_end_cap_thickness : float
+                Pneumatic-tube lower-end-cap thickness in cm. Defaults to
+                0.12400 cm, per Ref. [3]_ pages 186 and 221.
+            sleeve_lower_end_cap_thickness : float
+                Pneumatic-sleeve lower-end-cap thickness in cm. Defaults to
+                0.12850 cm, per Ref. [3]_ pages 186 and 221.
+            material : Optional[openmc.Material]
+                Tube-and-sleeve material override. Defaults to ``None``, which
+                uses aluminum per Ref. [3]_ pages 186 and 221.
+            fill_material : Optional[openmc.Material]
+                Passage-and-gap fill override. Defaults to ``None``, which uses
+                air per Ref. [3]_ pages 186 and 221.
+            temperature : float
+                Temperature used to construct default materials. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.PneumaticSystem
+                CoreForge modified-3-EL pneumatic-system specification.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            fill_material = (
+                fill_material if fill_material is not None
+                else NETLDefaultMaterials.air(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.PneumaticSystem(
+                tube_inner_radius=tube_inner_radius,
+                tube_outer_radius=tube_outer_radius,
+                sleeve_inner_radius=sleeve_inner_radius,
+                sleeve_outer_radius=sleeve_outer_radius,
+                open_tube_length=open_tube_length,
+                tube_lower_end_cap_thickness=tube_lower_end_cap_thickness,
+                sleeve_lower_end_cap_thickness=sleeve_lower_end_cap_thickness,
+                material=Material(material),
+                fill_material=Material(fill_material),
+            )
+
+        @staticmethod
+        def b4c_canister(
+            b4c_region_inner_radius: float = 1.11125,
+            b4c_region_outer_radius: float = 1.89230,
+            canister_outer_radius: float = 2.19009,
+            top_cap_thickness: float = 0.19660,
+            b4c_region_thickness: float = 52.00278,
+            bottom_cap_thickness: float = 0.20000,
+            b4c_material: openmc.Material | None = None,
+            canister_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.B4CCanister:
+            """Create the default natural-B4C upper canister.
+
+            Dimensions follow Ref. [3]_ pages 186 and 221. The canister
+            defaults to aluminum and the filter material uses the natural-B4C
+            powder composition from Ref. [3]_ pages 186 and 269.
+
+            Parameters
+            ----------
+            b4c_region_inner_radius : float
+                Natural-B4C-region inner radius in cm. Defaults to 1.11125 cm,
+                per Ref. [3]_ pages 186 and 221.
+            b4c_region_outer_radius : float
+                Natural-B4C-region outer radius in cm. Defaults to 1.89230 cm,
+                per Ref. [3]_ pages 186 and 221.
+            canister_outer_radius : float
+                Aluminum-canister outer radius in cm. Defaults to 2.19009 cm,
+                per Ref. [3]_ pages 186 and 221.
+            top_cap_thickness : float
+                Canister top-cap axial thickness in cm. Defaults to 0.19660 cm,
+                per Ref. [3]_ pages 186 and 221.
+            b4c_region_thickness : float
+                Natural-B4C-region axial thickness in cm. Defaults to
+                52.00278 cm, per Ref. [3]_ pages 186 and 221.
+            bottom_cap_thickness : float
+                Canister bottom-cap axial thickness in cm. Defaults to
+                0.20000 cm, per Ref. [3]_ pages 186 and 221.
+            b4c_material : Optional[openmc.Material]
+                Filter-material override. Defaults to ``None``, which uses the
+                natural-B4C powder density and composition from Ref. [3]_ pages
+                186 and 269.
+            canister_material : Optional[openmc.Material]
+                Canister-material override. Defaults to ``None``, which uses
+                aluminum per Ref. [3]_ pages 186 and 221.
+            temperature : float
+                Temperature used to construct default materials. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.B4CCanister
+                CoreForge natural-B4C-canister specification.
+            """
+
+            b4c_material = (
+                b4c_material if b4c_material is not None
+                else NETLDefaultMaterials.natural_b4c(temperature)
+            )
+            canister_material = (
+                canister_material if canister_material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.B4CCanister(
+                b4c_region_inner_radius=b4c_region_inner_radius,
+                b4c_region_outer_radius=b4c_region_outer_radius,
+                canister_outer_radius=canister_outer_radius,
+                top_cap_thickness=top_cap_thickness,
+                b4c_region_thickness=b4c_region_thickness,
+                bottom_cap_thickness=bottom_cap_thickness,
+                b4c_material=Material(b4c_material),
+                canister_material=Material(canister_material),
+            )
+
+        @staticmethod
+        def b10_canister(
+            b10_annulus_inner_radius: float = 1.03759,
+            upper_b10_outer_radius: float = 2.00660,
+            lower_b10_outer_radius: float = 2.04724,
+            canister_exterior_wall_radius: float = 2.12090,
+            cadmium_sleeve_outer_radius: float = 2.17090,
+            gap_to_b4c_canister: float = 0.10000,
+            top_cap_thickness: float = 2.54000,
+            upper_b10_region_thickness: float = 22.86000,
+            lower_b10_region_thickness: float = 34.92500,
+            exterior_wall_lower_end_cap_thickness: float = 0.63500,
+            lower_b10_solid_section_thickness: float = 2.54000,
+            b10_material: openmc.Material | None = None,
+            canister_material: openmc.Material | None = None,
+            cadmium_sleeve_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.B10Canister:
+            """Create the default enriched-boron lower canister.
+
+            Dimensions follow Ref. [3]_ pages 186--187 and 221. The canister
+            defaults to aluminum, the sleeve to cadmium, and the filter to the
+            enriched-boron powder specified by Ref. [3]_ pages 187 and 277.
+
+            Parameters
+            ----------
+            b10_annulus_inner_radius : float
+                Inner radius of the annular B-10 regions in cm. Defaults to
+                1.03759 cm, per Ref. [3]_ pages 186--187 and 221.
+            upper_b10_outer_radius : float
+                Outer radius of the upper B-10 annulus in cm. Defaults to
+                2.00660 cm, per Ref. [3]_ pages 186--187 and 221.
+            lower_b10_outer_radius : float
+                Outer radius of the lower B-10 region in cm. Defaults to
+                2.04724 cm, per Ref. [3]_ pages 186--187 and 221.
+            canister_exterior_wall_radius : float
+                Canister exterior-wall outer radius in cm. Defaults to
+                2.12090 cm, per Ref. [3]_ pages 186--187 and 221.
+            cadmium_sleeve_outer_radius : float
+                Cadmium-sleeve outer radius in cm. Defaults to 2.17090 cm, per
+                Ref. [3]_ pages 186--187 and 221.
+            gap_to_b4c_canister : float
+                Axial air gap to the B4C canister in cm. Defaults to 0.10000 cm,
+                per Ref. [3]_ pages 186--187 and 221.
+            top_cap_thickness : float
+                Canister top-cap axial thickness in cm. Defaults to 2.54000 cm,
+                per Ref. [3]_ pages 186--187 and 221.
+            upper_b10_region_thickness : float
+                Upper B-10-region axial thickness in cm. Defaults to
+                22.86000 cm, per Ref. [3]_ pages 186--187 and 221.
+            lower_b10_region_thickness : float
+                Complete lower B-10-region axial thickness in cm. Defaults to
+                34.92500 cm, per Ref. [3]_ pages 186--187 and 221.
+            exterior_wall_lower_end_cap_thickness : float
+                Canister exterior-wall lower-end-cap thickness in cm. Defaults
+                to 0.63500 cm, per Ref. [3]_ pages 186--187 and 221.
+            lower_b10_solid_section_thickness : float
+                Solid lower portion of the B-10 region in cm. Defaults to
+                2.54000 cm, per Ref. [3]_ pages 186--187 and 221.
+            b10_material : Optional[openmc.Material]
+                Filter-material override. Defaults to ``None``, which uses the
+                enriched-boron powder density and composition from Ref. [3]_
+                pages 187 and 277.
+            canister_material : Optional[openmc.Material]
+                Canister-material override. Defaults to ``None``, which uses
+                aluminum per Ref. [3]_ pages 186--187 and 221.
+            cadmium_sleeve_material : Optional[openmc.Material]
+                Sleeve-material override. Defaults to ``None``, which uses
+                cadmium per Ref. [3]_ pages 186--187 and 221.
+            temperature : float
+                Temperature used to construct default materials. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.B10Canister
+                CoreForge enriched-boron-canister specification.
+            """
+
+            b10_material = (
+                b10_material if b10_material is not None
+                else NETLDefaultMaterials.enriched_boron(temperature)
+            )
+            canister_material = (
+                canister_material if canister_material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            cadmium_sleeve_material = (
+                cadmium_sleeve_material if cadmium_sleeve_material is not None
+                else NETLDefaultMaterials.cadmium(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.B10Canister(
+                b10_annulus_inner_radius=b10_annulus_inner_radius,
+                upper_b10_outer_radius=upper_b10_outer_radius,
+                lower_b10_outer_radius=lower_b10_outer_radius,
+                canister_exterior_wall_radius=canister_exterior_wall_radius,
+                cadmium_sleeve_outer_radius=cadmium_sleeve_outer_radius,
+                gap_to_b4c_canister=gap_to_b4c_canister,
+                top_cap_thickness=top_cap_thickness,
+                upper_b10_region_thickness=upper_b10_region_thickness,
+                lower_b10_region_thickness=lower_b10_region_thickness,
+                exterior_wall_lower_end_cap_thickness=(
+                    exterior_wall_lower_end_cap_thickness
+                ),
+                lower_b10_solid_section_thickness=lower_b10_solid_section_thickness,
+                b10_material=Material(b10_material),
+                canister_material=Material(canister_material),
+                cadmium_sleeve_material=Material(cadmium_sleeve_material),
+            )
+
+        @staticmethod
+        def silver_disk(
+            thickness: float = 0.10000,
+            material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.Disk:
+            """Create the silver filter disk.
+
+            Parameters
+            ----------
+            thickness : float
+                Disk axial thickness in cm. Defaults to 0.10000 cm, per Ref.
+                [3]_ pages 187 and 221.
+            material : Optional[openmc.Material]
+                Disk-material override. Defaults to ``None``, which uses the
+                silver density and composition from Ref. [3]_ pages 187 and
+                277.
+            temperature : float
+                Temperature used to construct the default material. Defaults
+                to ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored
+                when ``material`` is supplied.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.Disk
+                CoreForge silver-disk specification.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.silver(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.Disk(
+                thickness=thickness,
+                material=Material(material),
+            )
+
+        @staticmethod
+        def cadmium_disk(
+            thickness: float = 0.10000,
+            material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.Disk:
+            """Create the cadmium filter disk.
+
+            Parameters
+            ----------
+            thickness : float
+                Disk axial thickness in cm. Defaults to 0.10000 cm, per Ref.
+                [3]_ pages 187 and 221.
+            material : Optional[openmc.Material]
+                Disk-material override. Defaults to ``None``, which uses
+                cadmium per Ref. [3]_ pages 187 and 221.
+            temperature : float
+                Temperature used to construct the default material. Defaults
+                to ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored
+                when ``material`` is supplied.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.Disk
+                CoreForge cadmium-disk specification.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.cadmium(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.Disk(
+                thickness=thickness,
+                material=Material(material),
+            )
+
+        @staticmethod
+        def hollow_spacer(
+            hollow_section_radius: float = 2.03393,
+            hollow_section_thickness: float = 3.00000,
+            solid_upper_cap_thickness: float = 0.49472,
+            material: openmc.Material | None = None,
+            fill_material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.HollowSpacer:
+            """Create the default air-filled hollow aluminum spacer.
+
+            Dimensions and material assignments follow Ref. [3]_ pages 187
+            and 221.
+
+            Parameters
+            ----------
+            hollow_section_radius : float
+                Radius of the air-filled hollow section in cm. Defaults to
+                2.03393 cm, per Ref. [3]_ pages 187 and 221.
+            hollow_section_thickness : float
+                Hollow-section axial thickness in cm. Defaults to 3.00000 cm,
+                per Ref. [3]_ pages 187 and 221.
+            solid_upper_cap_thickness : float
+                Solid upper-cap axial thickness in cm. Defaults to 0.49472 cm,
+                per Ref. [3]_ pages 187 and 221.
+            material : Optional[openmc.Material]
+                Spacer-material override. Defaults to ``None``, which uses
+                aluminum per Ref. [3]_ pages 187 and 221.
+            fill_material : Optional[openmc.Material]
+                Hollow-section fill override. Defaults to ``None``, which uses
+                air per Ref. [3]_ pages 187 and 221.
+            temperature : float
+                Temperature used to construct default materials. Defaults to
+                ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored for
+                each material supplied explicitly.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.HollowSpacer
+                CoreForge hollow-spacer specification.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            fill_material = (
+                fill_material if fill_material is not None
+                else NETLDefaultMaterials.air(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.HollowSpacer(
+                hollow_section_radius=hollow_section_radius,
+                hollow_section_thickness=hollow_section_thickness,
+                solid_upper_cap_thickness=solid_upper_cap_thickness,
+                material=Material(material),
+                fill_material=Material(fill_material),
+            )
+
+        @staticmethod
+        def solid_spacer(
+            thickness: float = 5.08000,
+            material: openmc.Material | None = None,
+            temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
+        ) -> NETLModifiedThreeElementIrradiator.SolidSpacer:
+            """Create the solid aluminum lower spacer.
+
+            Parameters
+            ----------
+            thickness : float
+                Spacer axial thickness in cm. Defaults to 5.08000 cm, per Ref.
+                [3]_ pages 187 and 222.
+            material : Optional[openmc.Material]
+                Spacer-material override. Defaults to ``None``, which uses
+                aluminum per Ref. [3]_ pages 187 and 222.
+            temperature : float
+                Temperature used to construct the default material. Defaults
+                to ``NETLDefaultMaterials.DEFAULT_TEMPERATURE`` and is ignored
+                when ``material`` is supplied.
+
+            Returns
+            -------
+            NETLModifiedThreeElementIrradiator.SolidSpacer
+                CoreForge solid-spacer specification.
+            """
+
+            material = (
+                material if material is not None
+                else NETLDefaultMaterials.aluminum(temperature)
+            )
+            return NETLModifiedThreeElementIrradiator.SolidSpacer(
+                thickness=thickness,
                 material=Material(material),
             )
 
@@ -1235,6 +2279,7 @@ class DefaultGeometries:
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         fuel_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         control_rod_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
+        pnt_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         central_thimble_radius: float | None = None,
         penetration_map: dict[str, float | None] | None = None,
         thickness: float = 0.62 * CM_PER_INCH,
@@ -1253,12 +2298,16 @@ class DefaultGeometries:
         control_rod_location_radius : float
             Control-rod-location penetration radius in cm. Defaults to half the 1.505-in diameter, per Ref. [1]_
             Section 4.2.4.a. Ignored when ``penetration_map`` is supplied.
+        pnt_location_radius : float
+            PNT-location (G-34) penetration radius in cm. Defaults to half the
+            1.505-in diameter, per Ref. [2]_ pages 53 and 55. Ignored when
+            ``penetration_map`` is supplied.
         central_thimble_radius : Optional[float]
             Central-thimble penetration radius in cm. If omitted, the default central
             thimble outer radius is used. Ignored when ``penetration_map`` is supplied.
         penetration_map : Optional[dict[str, float | None]]
             Complete map of core locations to penetration radii. If omitted, the
-            standard map is generated from the three radius parameters.
+            standard map is generated from the four radius parameters.
         thickness : float
             Grid-plate thickness in cm. Defaults to 0.62 in, per Ref. [2]_ pg. 55.
         material : Optional[openmc.Material]
@@ -1283,6 +2332,7 @@ class DefaultGeometries:
             penetration_map = grid_plate_penetration_map(
                 fuel_location_radius,
                 control_rod_location_radius,
+                pnt_location_radius,
                 central_thimble_radius,
             )
 
@@ -1301,6 +2351,7 @@ class DefaultGeometries:
         temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         fuel_location_radius: float = 1.25 * 0.5 * CM_PER_INCH,
         control_rod_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
+        pnt_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         central_thimble_radius: float | None = None,
         penetration_map: dict[str, float | None] | None = None,
         thickness: float = 1.25 * CM_PER_INCH,
@@ -1318,12 +2369,16 @@ class DefaultGeometries:
         control_rod_location_radius : float
             Control-rod-location penetration radius in cm. Defaults to half the 1.505-in diameter, per Ref. [1]_
             Section 4.2.4.b. Ignored when ``penetration_map`` is supplied.
+        pnt_location_radius : float
+            PNT-location (G-34) penetration radius in cm. Defaults to half the
+            1.505-in diameter, per Ref. [2]_ pages 53 and 55. Ignored when
+            ``penetration_map`` is supplied.
         central_thimble_radius : Optional[float]
             Central-thimble penetration radius in cm. If omitted, the default central
             thimble outer radius is used. Ignored when ``penetration_map`` is supplied.
         penetration_map : Optional[dict[str, float | None]]
             Complete map of core locations to penetration radii. If omitted, the
-            standard map is generated from the three radius parameters.
+            standard map is generated from the four radius parameters.
         thickness : float
             Grid-plate thickness in cm. Defaults to 1.25 in, per Ref. [2]_ pg. 55.
         material : Optional[openmc.Material]
@@ -1344,6 +2399,7 @@ class DefaultGeometries:
             penetration_map = grid_plate_penetration_map(
                 fuel_location_radius,
                 control_rod_location_radius,
+                pnt_location_radius,
                 central_thimble_radius,
             )
 
@@ -1617,6 +2673,7 @@ class DefaultGeometries:
         shim_2_rod: NETLFuelFollowerControlRod | None = None,
         loading: dict[str, Core.Loadable | None] | None = None,
         fill_material: Material | None = None,
+        pnt: NETLPNT | None = None,
         three_element_irradiator: Core.Loadable | None = None,
     ) -> Core:
         """Creates and returns a default core geometry.
@@ -1659,6 +2716,9 @@ class DefaultGeometries:
         fill_material : Optional[Material]
             CoreForge material used to fill unoccupied core locations. If omitted, the
             material from ``DefaultGeometries.pool`` is used.
+        pnt : Optional[NETLPNT]
+            PNT placed at G-34. If omitted, the default unlined PNT is used. Ignored
+            when ``loading`` is supplied.
         three_element_irradiator : Optional[Core.Loadable]
             Loadable spanning E-11, F-13, and F-14. If omitted, those locations will use
             what is specified in ``loading``.
@@ -1699,6 +2759,11 @@ class DefaultGeometries:
             def source_holder(_location: str | None = None) -> NETLSourceHolder:
                 return DefaultGeometries.source_holder(non_fuel_temp, coolant)
 
+            pnt = pnt if pnt is not None else DefaultGeometries.pnt(
+                non_fuel_temp,
+                coolant,
+            )
+
             def fill(locations, factory):
                 return {loc: factory(loc) for loc in locations}
 
@@ -1730,11 +2795,12 @@ class DefaultGeometries:
             loading |= fill([        "G-02", "G-03", "G-04", "G-05", "G-06",
                                      "G-08", "G-09", "G-10", "G-11", "G-12",
                                      "G-14", "G-15", "G-16", "G-17", "G-18",
-                                     "G-20", "G-21", "G-22", "G-23", "G-24",
+                                     "G-20", "G-21", "G-22", "G-23",
                                      "G-26", "G-27", "G-28", "G-29", "G-30",
                                              "G-33", "G-35", "G-36"], fuel)
             loading["G-32"] = source_holder()
-            loading["G-34"] = None
+            loading["G-34"] = pnt
+            loading["G-24"] = None
 
             if fuel_materials:
                 fuel_locations = {loc for loc, element in loading.items() if isinstance(element, FuelElement)}
@@ -1781,6 +2847,7 @@ class DefaultGeometries:
         reflector: NETLReactor.Reflector | None = None,
         upper_grid_plate: NETLReactor.GridPlate | None = None,
         lower_grid_plate: NETLReactor.GridPlate | None = None,
+        pnt: NETLPNT | None = None,
         three_element_irradiator: Core.Loadable | None = None,
     ) -> NETLReactor:
         """Creates and returns a default reactor geometry.
@@ -1840,6 +2907,10 @@ class DefaultGeometries:
         lower_grid_plate : Optional[NETLReactor.GridPlate]
             Lower-grid-plate geometry and placement override. If omitted, the
             reference geometry and placement are used.
+        pnt : Optional[NETLPNT]
+            PNT placed at G-34 when constructing the default core. If omitted,
+            the default unlined PNT extending to the pool top is used. Ignored
+            when ``core`` is supplied.
         three_element_irradiator : Optional[Core.Loadable]
             Loadable spanning E-11, F-13, and F-14 when constructing the default
             core. Ignored when ``core`` is supplied.
@@ -1855,14 +2926,28 @@ class DefaultGeometries:
         shroud = shroud if shroud is not None else DefaultGeometries.shroud(non_fuel_temp)
         rsr_cavity = (rsr_cavity if rsr_cavity is not None else
                       DefaultGeometries.rsr_cavity(non_fuel_temp))
-        core = (core if core is not None else
-                DefaultGeometries.core(
-                    fuel_temp,
+        if core is None:
+            if pnt is None:
+                pnt_tube = DefaultGeometries.PNT.tube(
+                    length=(
+                        0.5 * pool.height
+                        - DefaultGeometries.PNT.TUBE_BOTTOM_AXIAL_LOCATION
+                    ),
+                    temperature=non_fuel_temp,
+                )
+                pnt = DefaultGeometries.pnt(
                     non_fuel_temp,
                     coolant,
-                    fuel_materials=fuel_materials,
-                    three_element_irradiator=three_element_irradiator,
-                ))
+                    tube=pnt_tube,
+                )
+            core = DefaultGeometries.core(
+                fuel_temp,
+                non_fuel_temp,
+                coolant,
+                fuel_materials=fuel_materials,
+                pnt=pnt,
+                three_element_irradiator=three_element_irradiator,
+            )
 
         if any(beam_port is None for beam_port in
                (beam_port_1_5, beam_port_2, beam_port_3, beam_port_4)):

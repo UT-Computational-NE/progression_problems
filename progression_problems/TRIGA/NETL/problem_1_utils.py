@@ -10,6 +10,7 @@ from coreforge import mpact_builder
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries
 from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS,
+                                                  get_pincell,
                                                   build_generic_openmc_tallies,
                                                   default_mpact_material_specs)
 
@@ -20,18 +21,15 @@ def lattice_dims(pitch: float) -> Dict[str, float]:
 
 
 def build_openmc_model(fuel:                     FuelElement,
-                       coolant:                  openmc.Material,
                        spectrum_group_structure: str = "MPACT-51",
                        pitch:                    float = DefaultGeometries.core().pitch,
 ) -> openmc.model.Model:
-    """Build a pincell OpenMC model for a given TRIGA fuel element and coolant material.
+    """Build a pincell OpenMC model for a given TRIGA fuel element.
 
     Parameters
     ----------
     fuel : FuelElement
-        CoreForge TRIGA fuel element to model.
-    coolant : openmc.Material
-        The coolant material to use in the pincell geometry.
+        CoreForge TRIGA fuel element to model, including its exterior material.
     spectrum_group_structure : str
         The energy group structure to use for the multi-group spectrum tally.
     pitch : float
@@ -46,13 +44,7 @@ def build_openmc_model(fuel:                     FuelElement,
 
     dims = lattice_dims(pitch)
 
-    pincell = FuelElement.build_fuel_meat_pincell(cladding       = fuel.cladding,
-                                                  fuel_meat      = fuel.fuel_meat,
-                                                  zr_fill_rod    = fuel.zr_fill_rod,
-                                                  fill_gas       = fuel.fill_gas,
-                                                  outer_material = Material(coolant),
-                                                  gap_tolerance  = fuel.gap_tolerance,
-                                                  name           = fuel.name + "_fuel_meat_pincell")
+    pincell = get_pincell(fuel)
     pincell = openmc_builder.build(pincell)
 
     quadrant = {}
@@ -71,7 +63,7 @@ def build_openmc_model(fuel:                     FuelElement,
     lattice.lower_left = [-dims["width"], -dims["height"] * 0.5]
     lattice.pitch      = [dims["width"], dims["height"]]
     lattice.universes  = [[quadrant["NE"], quadrant["SW"]]]
-    lattice.outer      = openmc.Universe(cells=[openmc.Cell(fill=coolant)])
+    lattice.outer      = openmc.Universe(cells=[openmc.Cell(fill=fuel.outer_material.openmc_material)])
 
     outer_surface = openmc.model.RectangularPrism(width         = dims["width"] * 2,
                                                   height        = dims["height"],
@@ -94,7 +86,6 @@ def build_openmc_model(fuel:                     FuelElement,
 
 
 def write_mpact_input(fuel:                     FuelElement,
-                      coolant:                  openmc.Material,
                       pitch:                    float = DefaultGeometries.core().pitch,
                       build_specs:              Optional[mpact_builder.CylindricalPinCell.Specs] = None,
                       filename:                 str = "mpact.inp",
@@ -107,9 +98,7 @@ def write_mpact_input(fuel:                     FuelElement,
     Parameters
     ----------
     fuel : FuelElement
-        CoreForge TRIGA fuel element to model.
-    coolant : openmc.Material
-        The coolant material to use in the pincell geometry.
+        CoreForge TRIGA fuel element to model, including its exterior material.
     pitch : float
         Hexagonal lattice pitch to use when constructing the repeated pincell
         geometry. Defaults to the NETL core pitch.
@@ -127,13 +116,7 @@ def write_mpact_input(fuel:                     FuelElement,
 
     dims = lattice_dims(pitch)
 
-    pincell = FuelElement.build_fuel_meat_pincell(cladding       = fuel.cladding,
-                                                  fuel_meat      = fuel.fuel_meat,
-                                                  zr_fill_rod    = fuel.zr_fill_rod,
-                                                  fill_gas       = fuel.fill_gas,
-                                                  outer_material = Material(coolant),
-                                                  gap_tolerance  = fuel.gap_tolerance,
-                                                  name           = fuel.name + "_fuel_meat_pincell")
+    pincell = get_pincell(fuel)
 
     build_specs = apply_default_mpact_material_specs(build_specs, pincell.get_materials())
 
@@ -154,7 +137,7 @@ def write_mpact_input(fuel:                     FuelElement,
     options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
 
     for state in states:
-        state["tinlet"] = state.get("tinlet", f"{coolant.temperature} K")
+        state["tinlet"] = state.get("tinlet", f"{fuel.outer_material.temperature} K")
 
     options["bound_cond"] = "1 1 1 1 1 1"
 

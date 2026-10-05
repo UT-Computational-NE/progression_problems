@@ -10,7 +10,11 @@ from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, pr
 from progression_problems.TRIGA.NETL.utils import plot_model_2D, default_mpact_material_specs
 from progression_problems.constants import CM_PER_INCH
 from coreforge import mpact_builder, materials
-from coreforge.geometry_elements.triga.netl import Reactor as NETLReactor
+from coreforge.geometry_elements.triga.netl import (
+    ModifiedThreeElementIrradiator,
+    PNT,
+    Reactor as NETLReactor,
+)
 from coreforge.mpact_builder.builder_specs import DEFAULT_MPACT_MATERIAL_SPECS
 
 
@@ -128,8 +132,81 @@ def test_default_three_element_irradiator():
     assert reactor.core.three_element_irradiator is lead_irradiator
 
 
-def test_problem_1_openmc_tools(fuel_element, coolant, tmp_path):
-    model = problem_1_utils.build_openmc_model(fuel_element, coolant)
+def test_default_modified_three_element_irradiator():
+    irradiator = NETL.DefaultGeometries.modified_three_element_irradiator()
+
+    assert isinstance(irradiator, ModifiedThreeElementIrradiator)
+    assert not irradiator.simplified
+    assert irradiator.outer_casing.tube_1_inner_radius == pytest.approx(2.23393)
+    assert irradiator.outer_casing.tube_2_outer_radius == pytest.approx(2.38125)
+    assert irradiator.pneumatic_system.open_tube_length == pytest.approx(109.73188)
+    assert irradiator.b4c_canister.b4c_region_outer_radius == pytest.approx(1.89230)
+    assert irradiator.b10_canister.upper_b10_outer_radius == pytest.approx(2.00660)
+    assert irradiator.b10_canister.lower_b10_outer_radius == pytest.approx(2.04724)
+    assert irradiator.silver_disk.material.name == "Silver"
+    assert irradiator.b4c_canister.b4c_material.name == "Natural_B4C"
+    assert irradiator.b10_canister.b10_material.name == "Enriched_Boron"
+    assert len(irradiator.as_stack().segments) == 20
+
+    material_specs = default_mpact_material_specs(irradiator.get_materials())
+    assert irradiator.silver_disk.material in material_specs
+    assert irradiator.b4c_canister.b4c_material in material_specs
+    assert irradiator.b10_canister.b10_material in material_specs
+
+    simplified = NETL.DefaultGeometries.modified_three_element_irradiator(
+        simplified=True
+    )
+    assert simplified.simplified
+    assert len(simplified.as_stack().segments) == 10
+
+    core = NETL.DefaultGeometries.core(three_element_irradiator=irradiator)
+    assert core.three_element_irradiator is irradiator
+    assert core.full_map["E-11"] is irradiator
+    assert core.full_map["F-13"] is irradiator
+    assert core.full_map["F-14"] is irradiator
+
+
+def test_default_pnt():
+    pnt = NETL.DefaultGeometries.pnt()
+
+    assert isinstance(pnt, PNT)
+    assert pnt.wrapper is None
+    assert pnt.bottom_pos == pytest.approx(-13.06 * CM_PER_INCH - 1.25 * CM_PER_INCH)
+    assert pnt.tube.inner_radius == pytest.approx(0.5 * 0.685 * CM_PER_INCH)
+    assert pnt.tube.outer_radius == pytest.approx(0.5 * 0.875 * CM_PER_INCH)
+    assert pnt.tube.length == pytest.approx(80.0 + 18.7182)
+    assert [segment.length for segment in pnt.terminus.segments] == pytest.approx([
+        8.3259,
+        4.1725,
+        5.1308,
+    ])
+    assert pnt.bottom_pos + pnt.length == pytest.approx(80.0)
+
+    cadmium_lined_pnt = NETL.DefaultGeometries.pnt(
+        terminus=NETL.DefaultGeometries.PNT.cadmium_lined_terminus(),
+        wrapper=NETL.DefaultGeometries.PNT.wrapper(),
+    )
+    assert cadmium_lined_pnt.wrapper is not None
+    assert cadmium_lined_pnt.wrapper.length == pytest.approx(
+        12.75 * CM_PER_INCH + 18.7182
+    )
+    assert [segment.length for segment in cadmium_lined_pnt.terminus.segments] == pytest.approx([
+        8.3259,
+        4.1725,
+        2.5400,
+        0.0508,
+        2.5400,
+    ])
+
+    core = NETL.DefaultGeometries.core()
+    assert isinstance(core.full_map["G-34"], PNT)
+
+    reactor = NETL.DefaultGeometries.reactor(pnt=cadmium_lined_pnt)
+    assert reactor.core.full_map["G-34"] is cadmium_lined_pnt
+
+
+def test_problem_1_openmc_tools(fuel_element, tmp_path):
+    model = problem_1_utils.build_openmc_model(fuel_element)
     assert model is not None
 
     plot_path = tmp_path / "problem_1_plot.png"
@@ -141,82 +218,78 @@ def test_problem_1_openmc_tools(fuel_element, coolant, tmp_path):
             plot_path.unlink()
 
 
-def test_problem_1_mpact_tools(fuel_element, coolant):
-    problem_1_utils.write_mpact_input(fuel_element, coolant)
+def test_problem_1_mpact_tools(fuel_element):
+    problem_1_utils.write_mpact_input(fuel_element)
     assert os.path.exists("mpact.inp")
     os.remove("mpact.inp")
 
 
 def test_problem_2_openmc_tools(fuel_element, graphite_element, central_thimble,
-                                transient_rod, fuel_follower_control_rod,
-                                coolant):
+                                transient_rod, fuel_follower_control_rod):
 
-    cases = [(None,                      False),
-             (graphite_element,          False),
-             (central_thimble,           False),
-             (transient_rod,             False),
-             (transient_rod,             True),
-             (fuel_follower_control_rod, False),
-             (fuel_follower_control_rod, True)]
+    cases = [(None,                      None),
+             (graphite_element,          None),
+             (central_thimble,           None),
+             (transient_rod,             "air_follower"),
+             (transient_rod,             "absorber"),
+             (fuel_follower_control_rod, "fuel_follower"),
+             (fuel_follower_control_rod, "absorber")]
 
-    for element, inserted in cases:
-        model = problem_2_utils.build_openmc_model(fuel_element, coolant, element, control_rod_inserted=inserted)
+    for element, section in cases:
+        model = problem_2_utils.build_openmc_model(fuel_element, element, central_pincell_section=section)
         assert model is not None
 
 
 def test_problem_2_mpact_tools(fuel_element, graphite_element, central_thimble,
-                               transient_rod, fuel_follower_control_rod,
-                               coolant):
+                               transient_rod, fuel_follower_control_rod):
 
-    cases = [(None,                      False),
-             (graphite_element,          False),
-             (central_thimble,           False),
-             (transient_rod,             False),
-             (transient_rod,             True),
-             (fuel_follower_control_rod, False),
-             (fuel_follower_control_rod, True)]
+    cases = [(None,                      None),
+             (graphite_element,          None),
+             (central_thimble,           None),
+             (transient_rod,             "air_follower"),
+             (transient_rod,             "absorber"),
+             (fuel_follower_control_rod, "fuel_follower"),
+             (fuel_follower_control_rod, "absorber")]
 
-    for element, inserted in cases:
-        problem_2_utils.write_mpact_input(fuel_element, coolant, element, control_rod_inserted=inserted)
+    for element, section in cases:
+        problem_2_utils.write_mpact_input(fuel_element, element, central_pincell_section=section)
         assert os.path.exists("mpact.inp")
         os.remove("mpact.inp")
 
 
-def test_problem_3_openmc_tools(coolant):
+def test_problem_3_openmc_tools():
     reactor = NETL.DefaultGeometries.reactor()
 
     control_cases = [problem_3_utils.ControlRodSpecs(),
-                     problem_3_utils.ControlRodSpecs(transient_rod_inserted=True,
-                                                     shim_1_rod_inserted=True,
-                                                     shim_2_rod_inserted=True,
-                                                     regulating_rod_inserted=True)]
+                     problem_3_utils.ControlRodSpecs(transient_rod_section="absorber",
+                                                     shim_1_rod_section="absorber",
+                                                     shim_2_rod_section="absorber",
+                                                     regulating_rod_section="absorber")]
 
     excore_cases = ["none", "rsr", "beamports"]
 
     for excore in excore_cases:
         for specs in control_cases:
             model = problem_3_utils.build_openmc_model(reactor,
-                                                       coolant,
                                                        control_rod_specs = specs,
                                                        excore_features   = excore)
             assert model is not None
 
-def test_problem_3_mpact_tools(coolant, num_procs):
+def test_problem_3_mpact_tools(num_procs):
     reactor = NETL.DefaultGeometries.reactor()
     reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(num_procs=num_procs)
 
     control_cases = [problem_3_utils.ControlRodSpecs(),
-                     problem_3_utils.ControlRodSpecs(transient_rod_inserted=True,
-                                                     shim_1_rod_inserted=True,
-                                                     shim_2_rod_inserted=True,
-                                                     regulating_rod_inserted=True)]
+                     problem_3_utils.ControlRodSpecs(transient_rod_section="absorber",
+                                                     shim_1_rod_section="absorber",
+                                                     shim_2_rod_section="absorber",
+                                                     regulating_rod_section="absorber")]
 
     excore_cases = ["none", "rsr", "beamports"]
 
     for excore in excore_cases:
         for specs in control_cases:
             problem_3_utils.write_mpact_input(reactor,
-                                              coolant,
                                               control_rod_specs   = specs,
                                               excore_features     = excore,
                                               reactor_build_specs = reactor_build_specs)
@@ -225,8 +298,7 @@ def test_problem_3_mpact_tools(coolant, num_procs):
 
 
 def test_problem_4_openmc_tools(fuel_element, graphite_element, central_thimble,
-                                transient_rod, fuel_follower_control_rod,
-                                coolant):
+                                transient_rod, fuel_follower_control_rod):
 
     cases = [(None,                      False),
              (graphite_element,          False),
@@ -245,15 +317,13 @@ def test_problem_4_openmc_tools(fuel_element, graphite_element, central_thimble,
             control_rod_position = NETL.DefaultGeometries.FFCR_FULLY_INSERTED_POSITION if inserted else \
                                    NETL.DefaultGeometries.FFCR_FULLY_WITHDRAWN_POSITION
         model = problem_4_utils.build_openmc_model(fuel_element,
-                                                   coolant,
                                                    element,
                                                    control_rod_position)
         assert model is not None
 
 
 def test_problem_4_mpact_tools(fuel_element, graphite_element, central_thimble,
-                               transient_rod, fuel_follower_control_rod,
-                               coolant):
+                               transient_rod, fuel_follower_control_rod):
 
     cases = [(None,                      False),
              (graphite_element,          False),
@@ -272,7 +342,6 @@ def test_problem_4_mpact_tools(fuel_element, graphite_element, central_thimble,
             control_rod_position = NETL.DefaultGeometries.FFCR_FULLY_INSERTED_POSITION if inserted else \
                                    NETL.DefaultGeometries.FFCR_FULLY_WITHDRAWN_POSITION
         problem_4_utils.write_mpact_input(fuel_element,
-                                          coolant,
                                           element,
                                           control_rod_position)
         assert os.path.exists("mpact.inp")

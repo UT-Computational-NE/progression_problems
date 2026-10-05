@@ -2,16 +2,18 @@ from typing import Dict, List, Optional
 
 import openmc
 import mpactpy
-from coreforge.geometry_elements import HexLattice
+from coreforge.geometry_elements import CylindricalStack, HexLattice
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import Core, CentralThimble, SourceHolder, Reactor
+from coreforge.geometry_elements.triga.netl import (Core, CentralThimble, SourceHolder, Reactor,
+                                                    PNT, ThreeElementIrradiator,
+                                                    ModifiedThreeElementIrradiator)
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
-from progression_problems.TRIGA.NETL.problem_2_utils import build_multicell_geometry
 from progression_problems.TRIGA.NETL.utils import (build_generic_openmc_tallies,
+                                                   build_multicell_geometry,
                                                    DEFAULT_MPACT_SETTINGS,
                                                    default_mpact_material_specs)
 
@@ -20,7 +22,7 @@ reactor          = NETL_DefaultGeometries.reactor()
 
 
 def core_location(element: Core.Element) -> str:
-    """Get the core location string for a given core element.
+    """Select a reference core location for grid-penetration specifications.
 
     Parameters
     ----------
@@ -30,19 +32,57 @@ def core_location(element: Core.Element) -> str:
     Returns
     -------
     str
-        The core location string.
+        Reference location used to look up the grid-plate penetrations.
     """
 
     if isinstance(element, CentralThimble):
         return "A-01"
     if isinstance(element, Core.ControlRod):
         return "C-01"
+    if isinstance(element, PNT):
+        return "G-34"
     return "B-01"
+
+
+def grid_plate_specs(
+    grid_plate: Reactor.GridPlate,
+    location: str,
+    element: Optional[Core.Element],
+) -> Reactor.CoreCellSpecs.GridPlateSpecs:
+    """Select grid-plate geometry specifications for a core element.
+
+    Parameters
+    ----------
+    grid_plate : Reactor.GridPlate
+        Plate supplying the material, axial bounds, and penetration radii.
+    location : str
+        Reference location for the ordinary penetration-map entry.
+    element : Optional[Core.Element]
+        Element occupying the cell, or ``None`` for a vacant location.
+
+    Returns
+    -------
+    Reactor.CoreCellSpecs.GridPlateSpecs
+        Plate specifications with the selected penetration radius.
+    """
+    radius = grid_plate.geometry.penetration_map[location]
+
+    if isinstance(element, (ThreeElementIrradiator, ModifiedThreeElementIrradiator)):
+        three_element_radius = grid_plate.geometry.three_element_penetration_radius
+        if three_element_radius is not None:
+            radius = three_element_radius
+
+    return Reactor.CoreCellSpecs.GridPlateSpecs(
+        axial_bounds=grid_plate.axial_bounds,
+        material=grid_plate.geometry.material,
+        penetration_radius=radius,
+    )
 
 
 def element_bottom_axial_position(element: Core.Element,
                                   control_rod_bottom_position: float,
-                                  upper_grid_plate: Reactor.GridPlate) -> float:
+                                  upper_grid_plate: Reactor.GridPlate,
+                                  lower_grid_plate: Reactor.GridPlate) -> float:
     """Get the bottom axial position for a core element.
 
     Parameters
@@ -51,17 +91,23 @@ def element_bottom_axial_position(element: Core.Element,
         The core element to get the bottom axial position for.
     control_rod_bottom_position : float
         The bottom axial position of control rods [cm].
-    upper_grid_plate : Core.GridPlate
-        The upper grid plate to use for calculating axial positions.
+    upper_grid_plate : Reactor.GridPlate
+        Upper grid plate used to position the source holder.
+    lower_grid_plate : Reactor.GridPlate
+        Lower grid plate whose top surface supports the three-element irradiator.
 
     Returns
     -------
     float
-        The bottom axial position of the element [cm].
+        Bottom axial position relative to the fuel centerline [cm].
     """
 
     bottom_axial_position = control_rod_bottom_position
-    if isinstance(element, CentralThimble):
+    if isinstance(element, (PNT, CylindricalStack)):
+        bottom_axial_position = element.bottom_pos
+    elif isinstance(element, (ThreeElementIrradiator, ModifiedThreeElementIrradiator)):
+        bottom_axial_position = lower_grid_plate.axial_bounds.upper
+    elif isinstance(element, CentralThimble):
         bottom_axial_position = -0.5 * element.length
     elif isinstance(element, FuelElement):
         bottom_axial_position = (-0.5 * element.fuel_meat.length -
@@ -78,7 +124,6 @@ def element_bottom_axial_position(element: Core.Element,
 
 
 def build_openmc_model(fuel:                        FuelElement,
-                       coolant:                     openmc.Material,
                        central_element:             Optional[Core.Element],
                        control_rod_bottom_position: float = 0.0,
                        upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
@@ -92,9 +137,7 @@ def build_openmc_model(fuel:                        FuelElement,
     Parameters
     ----------
     fuel : FuelElement
-        The TRIGA fuel element to build the fuel cells with.
-    coolant : openmc.Material
-        The coolant material to use in the multicell geometry.
+        Fuel element supplying the fuel geometry.
     central_element : Optional[Core.Element]
         The central element to include in the multicell geometry.
     control_rod_bottom_position : float
@@ -119,21 +162,11 @@ def build_openmc_model(fuel:                        FuelElement,
     """
 
     dims           = lattice_dims(pitch)
-    lattice        = build_multicell_geometry(fuel                   = fuel,
-                                              coolant                = coolant,
-                                              central_element        = central_element,
-                                              pitch                  = pitch,
-                                              build_2D_pincells     = False)
+    lattice        = build_multicell_geometry(fuel            = fuel,
+                                              central_element = central_element,
+                                              pitch           = pitch)
     outer_material = lattice.outer_material
     outer_universe = openmc.Universe(cells=[openmc.Cell(fill=outer_material.openmc_material)])
-
-    def grid_plate_specs(grid_plate: Reactor.GridPlate,
-                         location: str) -> Reactor.CoreCellSpecs.GridPlateSpecs:
-        return Reactor.CoreCellSpecs.GridPlateSpecs(
-            axial_bounds=grid_plate.axial_bounds,
-            material=grid_plate.geometry.material,
-            penetration_radius=grid_plate.geometry.penetration_map[location],
-        )
 
     universes = []
     for ring in lattice.elements:
@@ -148,6 +181,7 @@ def build_openmc_model(fuel:                        FuelElement,
                         element,
                         control_rod_bottom_position,
                         upper_grid_plate,
+                        lower_grid_plate,
                     ),
                 )
 
@@ -155,8 +189,8 @@ def build_openmc_model(fuel:                        FuelElement,
                 location=location,
                 outer_material=outer_material,
                 element=element_specs,
-                upper_grid_plate=grid_plate_specs(upper_grid_plate, location),
-                lower_grid_plate=grid_plate_specs(lower_grid_plate, location),
+                upper_grid_plate=grid_plate_specs(upper_grid_plate, location, element),
+                lower_grid_plate=grid_plate_specs(lower_grid_plate, location, element),
             )
             universe = openmc_builder.triga.netl.reactor.build_core_element(
                 core_cell_specs=core_cell_specs,
@@ -207,7 +241,6 @@ def build_openmc_model(fuel:                        FuelElement,
 
 
 def write_mpact_input(fuel:                        FuelElement,
-                      coolant:                     openmc.Material,
                       central_element:             Optional[Core.Element],
                       control_rod_bottom_position: float = 0.0,
                       upper_grid_plate:            Reactor.GridPlate = reactor.upper_grid_plate,
@@ -221,14 +254,12 @@ def write_mpact_input(fuel:                        FuelElement,
                       states:                      Optional[List[Dict[str, str]]] = None,
                       xsec_settings:               Optional[Dict[str, str]] = None,
                       options:                     Optional[Dict[str, str]] = None) -> None:
-    """Write the MPACT input for a given TRIGA fuel element, coolant, and central element.
+    """Write the MPACT input for a TRIGA fuel element and central element.
 
     Parameters
     ----------
     fuel : FuelElement
-        The TRIGA fuel element to use for building the multicell geometry.
-    coolant : openmc.Material
-        The coolant material to use in the multicell geometry.
+        Fuel element supplying the fuel geometry.
     central_element : Optional[Core.Element]
         The central element to use for building the multicell geometry.
     control_rod_bottom_position : float
@@ -260,25 +291,13 @@ def write_mpact_input(fuel:                        FuelElement,
         The options settings to use in the MPACT input.
     """
 
-    lattice = build_multicell_geometry(fuel                   = fuel,
-                                       coolant                = coolant,
-                                       central_element        = central_element,
-                                       pitch                  = pitch,
-                                       build_2D_pincells     = False)
+    lattice = build_multicell_geometry(fuel            = fuel,
+                                       central_element = central_element,
+                                       pitch           = pitch)
 
     stack_elements = []
     element_specs = {}
     axial_bounds = (-0.5 * pool_height, 0.5 * pool_height)
-
-    def grid_plate_geometry_specs(
-        grid_plate: Reactor.GridPlate,
-        location: str,
-    ) -> Reactor.CoreCellSpecs.GridPlateSpecs:
-        return Reactor.CoreCellSpecs.GridPlateSpecs(
-            axial_bounds=grid_plate.axial_bounds,
-            material=grid_plate.geometry.material,
-            penetration_radius=grid_plate.geometry.penetration_map[location],
-        )
 
     for ring in lattice.elements:
         ring_stacks = []
@@ -291,7 +310,8 @@ def write_mpact_input(fuel:                        FuelElement,
             if element is not None:
                 bottom_position = element_bottom_axial_position(element,
                                                                 control_rod_bottom_position,
-                                                                upper_grid_plate)
+                                                                upper_grid_plate,
+                                                                lower_grid_plate)
 
             location = core_location(element)
             element_geometry_specs = None
@@ -305,8 +325,8 @@ def write_mpact_input(fuel:                        FuelElement,
                 location=location,
                 outer_material=lattice.outer_material,
                 element=element_geometry_specs,
-                upper_grid_plate=grid_plate_geometry_specs(upper_grid_plate, location),
-                lower_grid_plate=grid_plate_geometry_specs(lower_grid_plate, location),
+                upper_grid_plate=grid_plate_specs(upper_grid_plate, location, element),
+                lower_grid_plate=grid_plate_specs(lower_grid_plate, location, element),
             )
             builder_specs = mpact_builder.triga.netl.Reactor.CoreCellSpecs(
                 element_specs=build_specs,
@@ -339,7 +359,7 @@ def write_mpact_input(fuel:                        FuelElement,
     options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
 
     for state in states:
-        state["tinlet"] = state.get("tinlet", f"{coolant.temperature} K")
+        state["tinlet"] = state.get("tinlet", f"{fuel.outer_material.temperature} K")
 
     options["bound_cond"] = "1 1 1 1 0 0"
 

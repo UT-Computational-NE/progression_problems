@@ -497,10 +497,21 @@ Two terminal configurations are defined: an unlined configuration (see: :numref:
 and a cadmium-lined (see: :numref:`table-pnt-cd-lined`) configuration. The unlined configuration
 consists of a small aluminum tube with an air-filled bore. The cadmium-lined configuration retains
 this inner tube wraps it with cadmium, and places the assembly concentrically inside a larger
-aluminum tube. The annulus between the cadmium and the larger tube is air-filled.
+aluminum tube. The annulus between the cadmium and the larger tube is air-filled. The axial
+configurations of both terminal types are shown in :numref:`figure-pnt-axial_profile`.
 
 These baseline specifications contain air in the empty tube section and do not explicitly represent a
 polyethylene rabbit, sample container, or irradiated specimen.
+
+
+.. _figure-pnt-axial_profile:
+
+.. figure:: /_static/images/triga/netl/pnt_axial_diagram.png
+   :align: center
+   :width: 60%
+
+   Diagrams of Unlined (Left) and Cadmium-Lined (Right) Pneumatic Neutron Transport System Axial Profiles.
+
 
 .. table:: Unlined PNT Terminal Geometry Specifications
    :name: table-pnt-unlined
@@ -608,7 +619,19 @@ The detailed alignment frame, its coolant-flow holes, the centered lower-grid al
 handling fixtures, valves, seals, and other mechanical details are not represented. The upper and
 lower ends of the canister are consequently represented as simple aluminum cylinders.
 Experiment-specific samples are excluded and the sample volume is filled with air. The axial regions
-are listed from top to bottom in :numref:`table-three-element-geometry`.
+are listed from top to bottom in :numref:`table-three-element-geometry`. The axial configuration
+of the conventional 3-EL facility is shown in :numref:`figure-conv_3L-axial_profile`.
+
+
+.. _figure-conv_3L-axial_profile:
+
+.. figure:: /_static/images/triga/netl/conv_3L_axial_diagram.png
+   :align: center
+   :width: 60%
+
+   Diagram of the Conventional Three-Element Irradiation Facility Axial Profile.
+
+
 
 .. table:: Conventional 3-EL Geometry Specifications
    :name: table-three-element-geometry
@@ -671,6 +694,26 @@ enriched-boron, and natural-boron-carbide filters surrounding an air-filled pneu
 passage. The baseline specification does not include a rabbit, sample container, or irradiated
 specimen. The detailed specification in :numref:`table-modified-three-element-detailed-geometry` follows
 the active modified-3-EL cell and surface cards in Hudson's later MCNP model (Ref. 4_).
+
+An axially simplified version of the modified 3-EL is specified in
+:numref:`table-modified-three-element-simplified-geometry`. The simplification reduces the
+number of distinct axial regions from 20 to 10 by eliminating short axial features and making
+small adjustments to selected radii to preserve the affected material volumes. The basis and
+calculations for these changes are provided in the :ref:`simplified modified 3-EL derivation
+<progression_problems_triga_netl_simplified_3l_derivation>`.
+
+The axial configurations of both detailed and simplified representations are shown in
+ :numref:`figure-mod-3L-axial_profile`.
+
+.. _figure-mod-3L-axial_profile:
+
+.. figure:: /_static/images/triga/netl/mod_3L_axial_diagram.png
+   :align: center
+   :width: 60%
+
+   Diagrams of Detailed (Left) and Simplified (Right) Modified Three-Element Irradiation Facility Axial Profiles.
+
+
 
 .. table:: Detailed Modified 3-EL Geometry Specifications
    :name: table-modified-three-element-detailed-geometry
@@ -794,12 +837,6 @@ the active modified-3-EL cell and surface cards in Hudson's later MCNP model (Re
    +----------------------+----------------------------------------+------------------+------------------------+
 
 
-An axially simplified version of the modified 3-EL is specified in
-:numref:`table-modified-three-element-simplified-geometry`. The simplification reduces the
-number of distinct axial regions from 20 to 10 by eliminating short axial features and making
-small adjustments to selected radii to preserve the affected material volumes. The basis and
-calculations for these changes are provided in the :ref:`simplified modified 3-EL derivation
-<progression_problems_triga_netl_simplified_3l_derivation>`.
 
 .. table:: Simplified Modified 3-EL Geometry Specifications
    :name: table-modified-three-element-simplified-geometry

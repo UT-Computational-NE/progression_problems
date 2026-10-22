@@ -8,7 +8,7 @@ import mpactpy
 import openmc
 
 from coreforge import materials
-from coreforge.geometry_elements import CylindricalPinCell, CylindricalStack, HexLattice
+from coreforge.geometry_elements import CylindricalPinCell, PinCellStack, HexLattice
 from coreforge.geometry_elements.triga import CoreElement, FuelElement, GraphiteElement
 from coreforge.geometry_elements.triga.netl import CentralThimble, SourceHolder, PNT
 from coreforge.materials.material import Material
@@ -90,18 +90,18 @@ def build_coolant_pincell(coolant: openmc.Material,
 
 
 def build_multicell_geometry(
-    fuel: FuelElement | CylindricalPinCell | CylindricalStack,
-    central_element: CoreElement | CylindricalPinCell | CylindricalStack | None,
+    fuel: FuelElement | CylindricalPinCell | PinCellStack,
+    central_element: CoreElement | CylindricalPinCell | PinCellStack | None,
     pitch: float,
 ) -> HexLattice:
     """Arrange supplied geometry elements in the multicell hexagonal lattice.
 
     Parameters
     ----------
-    fuel : FuelElement | CylindricalPinCell | CylindricalStack
+    fuel : FuelElement | CylindricalPinCell | PinCellStack
         Geometry repeated at the fuel locations. Its outer material also fills
         the lattice exterior and any vacant central location.
-    central_element : CoreElement | CylindricalPinCell | CylindricalStack | None
+    central_element : CoreElement | CylindricalPinCell | PinCellStack | None
         Geometry placed at the central location. ``None`` leaves it vacant.
     pitch : float
         Hexagonal lattice pitch [cm].
@@ -111,8 +111,10 @@ def build_multicell_geometry(
     HexLattice
         Multicell lattice containing the supplied geometry elements.
     """
+    overlay_central_pincell = (isinstance(fuel, CylindricalPinCell) and
+                               isinstance(central_element, CylindricalPinCell))
     f = fuel
-    c = central_element
+    c = None if overlay_central_pincell else central_element
     lattice = [[         f,         ],
                [     f,      f,     ],
                [ f,      f,      f, ],
@@ -123,10 +125,11 @@ def build_multicell_geometry(
                [     f,      f,     ],
                [         f,         ]]
 
-    return HexLattice(pitch          = pitch,
-                      outer_material = fuel.outer_material,
-                      elements       = lattice,
-                      orientation    = 'y')
+    lattice = HexLattice(pitch          = pitch,
+                          outer_material = fuel.outer_material,
+                          elements       = lattice,
+                          orientation    = 'y')
+    return lattice.overlay(central_element) if overlay_central_pincell else lattice
 
 
 def build_generic_openmc_tallies(spectrum_group_structure: str = "MPACT-51",
@@ -311,7 +314,8 @@ def plot_model_2D(model:            openmc.Model,
                   axis_units:       str = "cm",
                   legend_kwargs:    Optional[Dict[str, object]] = None,
                   max_pixels:       int = 1800,
-                  min_pixels:       int = 400) -> Path:
+                  min_pixels:       int = 400,
+                  show_axes:        bool = True) -> Path:
     """Render a 2-D geometry plot with OpenMC's Python plotting interface.
 
     Parameters
@@ -341,6 +345,9 @@ def plot_model_2D(model:            openmc.Model,
         provided.
     min_pixels : int, default: 400
         Lower bound applied to each computed pixel dimension.
+    show_axes : bool, default: True
+        Show the plot frame, ticks, and coordinate labels. If ``False``, hide
+        them and tightly crop the saved image without exterior padding.
 
     Returns
     -------
@@ -406,6 +413,9 @@ def plot_model_2D(model:            openmc.Model,
     savefig_kwargs = {"dpi": axes.figure.dpi}
     if with_legend:
         savefig_kwargs["bbox_inches"] = "tight"
+    if not show_axes:
+        axes.set_axis_off()
+        savefig_kwargs.update(bbox_inches="tight", pad_inches=0)
     axes.figure.savefig(output_path, **savefig_kwargs)
     plt.close(axes.figure)
     return output_path

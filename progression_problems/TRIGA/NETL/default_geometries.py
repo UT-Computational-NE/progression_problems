@@ -4,7 +4,7 @@ from typing import Sequence
 
 import openmc
 
-from coreforge.geometry_elements import CylindricalPinCell, CylindricalStack, Stack
+from coreforge.geometry_elements import CylindricalPinCell, PinCellStack, Stack
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
 from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder as NETLSourceHolder,
                                                     FuelFollowerControlRod as NETLFuelFollowerControlRod,
@@ -235,7 +235,7 @@ class DefaultGeometries:
         coolant: openmc.Material | None = None,
         bottom_pos: float | None = None,
         tube: NETLPNT.Tube | None = None,
-        terminus: CylindricalStack | None = None,
+        terminus: PinCellStack | None = None,
         wrapper: NETLPNT.Wrapper | None = None,
     ) -> NETLPNT:
         """Create and return the default NETL pneumatic transport system.
@@ -254,7 +254,7 @@ class DefaultGeometries:
         tube : Optional[NETLPNT.Tube]
             Transport-tube override. If omitted, the unlined transport tube is
             extended from its specified bottom to the top of the default pool.
-        terminus : Optional[CylindricalStack]
+        terminus : Optional[PinCellStack]
             Terminus override. If omitted,
             ``DefaultGeometries.PNT.unlined_terminus`` is used.
         wrapper : Optional[NETLPNT.Wrapper]
@@ -377,7 +377,7 @@ class DefaultGeometries:
             material: openmc.Material | None = None,
             outer_material: openmc.Material | None = None,
             temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
-        ) -> CylindricalStack:
+        ) -> PinCellStack:
             """Create the unlined PNT terminus stack.
 
             Parameters
@@ -410,7 +410,7 @@ class DefaultGeometries:
 
             Returns
             -------
-            CylindricalStack
+            PinCellStack
                 CoreForge unlined PNT terminus ordered from bottom to top.
             """
 
@@ -433,7 +433,7 @@ class DefaultGeometries:
                     name=name,
                 )
 
-            return CylindricalStack(
+            return PinCellStack(
                 segments=[
                     Stack.Segment(
                         solid_section(tube_bottom_radius, aluminum, "pnt_tube_bottom"),
@@ -467,7 +467,7 @@ class DefaultGeometries:
             cadmium_material: openmc.Material | None = None,
             outer_material: openmc.Material | None = None,
             temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
-        ) -> CylindricalStack:
+        ) -> PinCellStack:
             """Create the cadmium-lined PNT terminus stack.
 
             Parameters
@@ -505,7 +505,7 @@ class DefaultGeometries:
 
             Returns
             -------
-            CylindricalStack
+            PinCellStack
                 CoreForge cadmium-lined PNT terminus ordered from bottom to top.
             """
 
@@ -533,7 +533,7 @@ class DefaultGeometries:
                     name=name,
                 )
 
-            return CylindricalStack(
+            return PinCellStack(
                 segments=[
                     Stack.Segment(
                         solid_section(wide_radius, aluminum, "pnt_lower_section"),

@@ -7,7 +7,7 @@ import openmc
 import mpactpy
 from coreforge.materials import Material
 from coreforge.shapes import Circle, Hexagon, Rectangle
-from coreforge.geometry_elements import HexLattice, InfiniteMedium
+from coreforge.geometry_elements import CylindricalPinCells, HexLattice, InfiniteMedium
 from coreforge.geometry_elements.triga.netl import Reactor, Core, RSRCavity
 from coreforge import openmc_builder
 from coreforge import mpact_builder
@@ -181,7 +181,7 @@ def build_core_lattice(reactor: Reactor,
                        coolant_pincell_radii: Sequence[float],
                        pitch: float = NETL_DefaultGeometries.core().pitch,
                        three_element_pincell_section: Optional[str] = None) -> HexLattice:
-    """Build the OpenMC hex lattice for the TRIGA NETL core.
+    """Build the 2D hex lattice for the TRIGA NETL core.
 
     Parameters
     ----------
@@ -215,6 +215,11 @@ def build_core_lattice(reactor: Reactor,
         for location, element in zip(location_ring, element_ring):
             is_three_element_location = (reactor.core.three_element_irradiator is not None
                                          and location in Core.THREE_ELEMENT_LOCATIONS)
+            if is_three_element_location:
+                # Leave coolant beneath the facility; overlay its section once below.
+                entries.append(InfiniteMedium(coolant))
+                continue
+
             pincell_section = None
             if element is reactor.core.transient_rod:
                 pincell_section = control_rod_specs.transient_rod_section
@@ -224,8 +229,6 @@ def build_core_lattice(reactor: Reactor,
                 pincell_section = control_rod_specs.shim_2_rod_section
             elif element is reactor.core.regulating_rod:
                 pincell_section = control_rod_specs.regulating_rod_section
-            elif is_three_element_location:
-                pincell_section = three_element_pincell_section
 
             upper_penetration = reactor.upper_grid_plate.geometry.penetration_map[location]
             lower_penetration = reactor.lower_grid_plate.geometry.penetration_map[location]
@@ -237,20 +240,26 @@ def build_core_lattice(reactor: Reactor,
                 entry = build_coolant_pincell(coolant.openmc_material, coolant_pincell_radii)
             else:
                 entry = get_pincell(element, pincell_section)
-                if is_three_element_location:
-                    x0, y0 = reactor.core.three_element_offsets[location]
-                    entry = copy(entry)
-                    entry.x0 += x0
-                    entry.y0 += y0
-                    entry.name = f"{entry.name}_{location}"
             entries.append(entry)
         elements.append(entries)
 
-    return HexLattice(pitch          = pitch,
-                      outer_material = coolant,
-                      elements       = elements,
-                      orientation    = 'y',
-                      map_type       = 'ring')
+    lattice = HexLattice(pitch          = pitch,
+                         outer_material = coolant,
+                         elements       = elements,
+                         orientation    = 'y',
+                         map_type       = 'ring')
+    if reactor.core.three_element_irradiator is not None:
+        # Use this lattice's centers so the centroid also follows a custom pitch.
+        centers = [center
+                   for locations, ring_centers in zip(Core.RING_MAP, lattice.cell_centers)
+                   for location, center in zip(locations, ring_centers)
+                   if location in Core.THREE_ELEMENT_LOCATIONS]
+        x0, y0 = (sum(coordinates) / len(centers) for coordinates in zip(*centers))
+        pincell = get_pincell(reactor.core.three_element_irradiator,
+                              three_element_pincell_section)
+        lattice = lattice.overlay(pincell.translate(dx=x0, dy=y0))
+
+    return lattice
 
 
 def build_pool_universe(reactor:      Reactor,
@@ -562,19 +571,28 @@ def _build_mpact_geometry(reactor:             Reactor,
         three_element_pincell_section=three_element_pincell_section,
     )
 
+    irradiator_specs = None
+    if reactor.core.three_element_irradiator is not None:
+        cell_specs = reactor_build_specs.three_element_irradiator_specs
+        if cell_specs is not None and cell_specs.element_specs[0] is not None:
+            irradiator_specs = getattr(cell_specs.element_specs[0],
+                                       three_element_pincell_section).builder_specs
+        irradiator_specs = copy(irradiator_specs or mpact_builder.CylindricalPinCell.Specs())
+        irradiator_specs.material_specs = reactor_build_specs.material_specs | irradiator_specs.material_specs
+
     element_specs = {}
     for i, ring in enumerate(Core.RING_MAP):
         for j, loc in enumerate(ring):
             element = reactor.core.full_map.get(loc, None)
             is_three_element_location = (reactor.core.three_element_irradiator is not None
                                          and loc in Core.THREE_ELEMENT_LOCATIONS)
-            specs = (reactor_build_specs.three_element_irradiator_specs
-                     if is_three_element_location else
-                     reactor_build_specs.core_specs.get(loc, None))
+            specs = reactor_build_specs.core_specs.get(loc, None)
 
-            if specs:
+            if is_three_element_location:
+                specs = irradiator_specs
+            elif specs:
                 if element:
-                    specs = specs.element_specs
+                    specs = specs.element_specs[0]
                     if isinstance(specs, mpact_builder.triga.FuelElement.Specs):
                         specs = specs.fuel.builder_specs
                     elif isinstance(specs, mpact_builder.triga.GraphiteElement.Specs):
@@ -617,11 +635,18 @@ def _build_mpact_geometry(reactor:             Reactor,
                 specs = (mpact_builder.InfiniteMedium.Specs()
                          if isinstance(lattice_element, InfiniteMedium)
                          else mpact_builder.CylindricalPinCell.Specs())
-            if is_three_element_location:
-                corner_radius = 0.5 * hypot(pitch, 0.5 * sqrt(3.0) * pitch)
-                specs = copy(specs)
-                specs.outer_bounding_radius = corner_radius + hypot(lattice_element.x0, lattice_element.y0)
+            specs = copy(specs)
             specs.material_specs = reactor_build_specs.material_specs | specs.material_specs
+            if is_three_element_location or isinstance(lattice_element, CylindricalPinCells):
+                pincell = (lattice_element.pincells[-1]
+                           if isinstance(lattice_element, CylindricalPinCells) else lattice_element)
+                corner_radius = 0.5 * hypot(pitch, 0.5 * sqrt(3.0) * pitch)
+                pincell_specs = copy(irradiator_specs)
+                pincell_specs.outer_bounding_radius = corner_radius + hypot(pincell.x0, pincell.y0)
+                specs = (mpact_builder.CylindricalPinCells.Specs(
+                             pincell_specs={lattice_element.pincells[0]: specs,
+                                            pincell: pincell_specs})
+                         if isinstance(lattice_element, CylindricalPinCells) else pincell_specs)
             element_specs[lattice_element] = specs
 
     lattice_specs = mpact_builder.HexLattice.Specs(element_specs = element_specs,

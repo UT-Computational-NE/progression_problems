@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import openmc
 import mpactpy
+from coreforge.geometry_elements import CylindricalPinCells
 from coreforge.geometry_elements.triga import CoreElement, FuelElement
 from coreforge import openmc_builder
 from coreforge import mpact_builder
@@ -150,6 +151,13 @@ def write_mpact_input(fuel: FuelElement,
 
     specs    = mpact_builder.HexLattice.Specs(element_specs = {fuel_pincell:    fuel_build_specs,
                                                                central_pincell: element_build_specs})
+    for ring in lattice.elements:
+        for element in ring:
+            if isinstance(element, CylindricalPinCells):
+                specs.element_specs[element] = mpact_builder.CylindricalPinCells.Specs(
+                    pincell_specs={element.pincells[0]: fuel_build_specs,
+                                   element.pincells[1]: element_build_specs},
+                )
 
     # Build the full hex lattice and then trim to the progression problem domain
     # (i.e. remove top and bottom 3 rows and leftmost and rightmost 2 columns)

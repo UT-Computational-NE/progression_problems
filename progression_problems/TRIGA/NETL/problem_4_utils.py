@@ -2,13 +2,14 @@ from typing import Dict, List, Optional
 
 import openmc
 import mpactpy
-from coreforge.geometry_elements import CylindricalStack, HexLattice
+from coreforge.geometry_elements import PinCellStack, HexLattice
 from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
 from coreforge.geometry_elements.triga.netl import (Core, CentralThimble, SourceHolder, Reactor,
                                                     PNT, ThreeElementIrradiator,
                                                     ModifiedThreeElementIrradiator)
 from coreforge import openmc_builder
 from coreforge import mpact_builder
+from coreforge.shapes import Circle
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.problem_1_utils import lattice_dims
@@ -21,13 +22,14 @@ from progression_problems.TRIGA.NETL.utils import (build_generic_openmc_tallies,
 reactor          = NETL_DefaultGeometries.reactor()
 
 
-def core_location(element: Core.Element) -> str:
+def core_location(element: Optional[Core.Element]) -> str:
     """Select a reference core location for grid-penetration specifications.
 
     Parameters
     ----------
-    element : Core.Element
-        The core element to get the location for.
+    element : Optional[Core.Element]
+        The core element to get the location for. ``None`` uses the ordinary
+        fuel-location penetrations.
 
     Returns
     -------
@@ -63,7 +65,7 @@ def grid_plate_specs(
     Returns
     -------
     Reactor.CoreCellSpecs.GridPlateSpecs
-        Plate specifications with the selected penetration radius.
+        Plate specifications with the selected penetration.
     """
     radius = grid_plate.geometry.penetration_map[location]
 
@@ -75,7 +77,7 @@ def grid_plate_specs(
     return Reactor.CoreCellSpecs.GridPlateSpecs(
         axial_bounds=grid_plate.axial_bounds,
         material=grid_plate.geometry.material,
-        penetration_radius=radius,
+        penetrations=[] if radius is None else [Reactor.CoreCellSpecs.PenetrationSpecs(radius=radius)],
     )
 
 
@@ -103,7 +105,7 @@ def element_bottom_axial_position(element: Core.Element,
     """
 
     bottom_axial_position = control_rod_bottom_position
-    if isinstance(element, (PNT, CylindricalStack)):
+    if isinstance(element, (PNT, PinCellStack)):
         bottom_axial_position = element.bottom_pos
     elif isinstance(element, (ThreeElementIrradiator, ModifiedThreeElementIrradiator)):
         bottom_axial_position = lower_grid_plate.axial_bounds.upper
@@ -121,6 +123,88 @@ def element_bottom_axial_position(element: Core.Element,
         bottom_axial_position = (upper_grid_plate.top_to_core_centerline_distance -
                 element.length)
     return bottom_axial_position
+
+
+def _build_core_cell_specs(
+    lattice: HexLattice,
+    control_rod_bottom_position: float,
+    upper_grid_plate: Reactor.GridPlate,
+    lower_grid_plate: Reactor.GridPlate,
+) -> List[List[Reactor.CoreCellSpecs]]:
+    """Resolve per-cell geometry specifications for the multicell lattice.
+
+    Parameters
+    ----------
+    lattice : HexLattice
+        Native core-element layout and its surrounding material.
+    control_rod_bottom_position : float
+        Axial position for the bottom of a control rod [cm].
+    upper_grid_plate : Reactor.GridPlate
+        Upper-grid geometry and axial placement.
+    lower_grid_plate : Reactor.GridPlate
+        Lower-grid geometry and axial placement.
+
+    Returns
+    -------
+    List[List[Reactor.CoreCellSpecs]]
+        Geometry specifications in the same ring order as ``lattice.elements``.
+    """
+    irradiator_cells = {}
+    for ring, centers in zip(lattice.elements, lattice.cell_centers):
+        for element, center in zip(ring, centers):
+            if not isinstance(element, (ThreeElementIrradiator, ModifiedThreeElementIrradiator)):
+                continue
+            radius = upper_grid_plate.geometry.three_element_penetration_radius
+            assert radius is not None, \
+                "An upper-grid-plate three-element penetration radius is required when an irradiator is present."
+            bottom_position = element_bottom_axial_position(
+                element, control_rod_bottom_position, upper_grid_plate, lower_grid_plate,
+            )
+            for i, j in lattice.cells_intersecting(Circle(radius), center):
+                cell_center = lattice.cell_centers[i][j]
+                x0, y0 = center[0] - cell_center[0], center[1] - cell_center[1]
+                irradiator_cells[i, j] = (
+                    Reactor.CoreCellSpecs.ElementSpecs(
+                        geometry=element, bottom_axial_position=bottom_position, x0=x0, y0=y0,
+                    ),
+                    Reactor.CoreCellSpecs.PenetrationSpecs(radius=radius, x0=x0, y0=y0),
+                )
+
+    core_cell_specs = []
+    for i, ring in enumerate(lattice.elements):
+        ring_specs = []
+        for j, element in enumerate(ring):
+            location = core_location(element)
+            elements = []
+            if element is not None:
+                elements.append(Reactor.CoreCellSpecs.ElementSpecs(
+                    geometry=element,
+                    bottom_axial_position=element_bottom_axial_position(
+                        element,
+                        control_rod_bottom_position,
+                        upper_grid_plate,
+                        lower_grid_plate,
+                    ),
+                ))
+
+            upper_specs = grid_plate_specs(upper_grid_plate, location, element)
+            irradiator_specs = irradiator_cells.get((i, j))
+            if irradiator_specs is not None:
+                placement, penetration = irradiator_specs
+                if placement.geometry is not element:
+                    elements.append(placement)
+                    upper_specs.penetrations.append(penetration)
+
+            ring_specs.append(Reactor.CoreCellSpecs(
+                location=location,
+                outer_material=lattice.outer_material,
+                elements=elements,
+                upper_grid_plate=upper_specs,
+                lower_grid_plate=grid_plate_specs(lower_grid_plate, location, element),
+            ))
+        core_cell_specs.append(ring_specs)
+
+    return core_cell_specs
 
 
 def build_openmc_model(fuel:                        FuelElement,
@@ -167,33 +251,16 @@ def build_openmc_model(fuel:                        FuelElement,
                                               pitch           = pitch)
     outer_material = lattice.outer_material
     outer_universe = openmc.Universe(cells=[openmc.Cell(fill=outer_material.openmc_material)])
+    core_cell_specs = _build_core_cell_specs(
+        lattice, control_rod_bottom_position, upper_grid_plate, lower_grid_plate,
+    )
 
     universes = []
-    for ring in lattice.elements:
+    for ring in core_cell_specs:
         ring_universes = []
-        for element in ring:
-            location = core_location(element)
-            element_specs = None
-            if element is not None:
-                element_specs = Reactor.CoreCellSpecs.ElementSpecs(
-                    geometry=element,
-                    bottom_axial_position=element_bottom_axial_position(
-                        element,
-                        control_rod_bottom_position,
-                        upper_grid_plate,
-                        lower_grid_plate,
-                    ),
-                )
-
-            core_cell_specs = Reactor.CoreCellSpecs(
-                location=location,
-                outer_material=outer_material,
-                element=element_specs,
-                upper_grid_plate=grid_plate_specs(upper_grid_plate, location, element),
-                lower_grid_plate=grid_plate_specs(lower_grid_plate, location, element),
-            )
+        for geometry_specs in ring:
             universe = openmc_builder.triga.netl.reactor.build_core_element(
-                core_cell_specs=core_cell_specs,
+                core_cell_specs=geometry_specs,
             )
             ring_universes.append(universe)
         universes.append(ring_universes)
@@ -294,42 +361,29 @@ def write_mpact_input(fuel:                        FuelElement,
     lattice = build_multicell_geometry(fuel            = fuel,
                                        central_element = central_element,
                                        pitch           = pitch)
+    core_cell_specs = _build_core_cell_specs(
+        lattice, control_rod_bottom_position, upper_grid_plate, lower_grid_plate,
+    )
 
     stack_elements = []
     element_specs = {}
     axial_bounds = (-0.5 * pool_height, 0.5 * pool_height)
 
-    for ring in lattice.elements:
+    for ring in core_cell_specs:
         ring_stacks = []
-        for element in ring:
-            build_specs = fuel_build_specs if isinstance(element, FuelElement) else None
-            if element is not None and element is central_element and element_build_specs is not None:
-                build_specs = element_build_specs
+        for geometry_specs in ring:
+            build_specs = []
+            materials = []
+            for placement in geometry_specs.elements:
+                element = placement.geometry
+                placement_specs = fuel_build_specs if isinstance(element, FuelElement) else None
+                if element is central_element and element_build_specs is not None:
+                    placement_specs = element_build_specs
+                build_specs.append(placement_specs)
+                materials.extend(element.get_materials())
 
-            bottom_position = None
-            if element is not None:
-                bottom_position = element_bottom_axial_position(element,
-                                                                control_rod_bottom_position,
-                                                                upper_grid_plate,
-                                                                lower_grid_plate)
-
-            location = core_location(element)
-            element_geometry_specs = None
-            if element is not None:
-                element_geometry_specs = Reactor.CoreCellSpecs.ElementSpecs(
-                    geometry=element,
-                    bottom_axial_position=bottom_position,
-                )
-
-            geometry_specs = Reactor.CoreCellSpecs(
-                location=location,
-                outer_material=lattice.outer_material,
-                element=element_geometry_specs,
-                upper_grid_plate=grid_plate_specs(upper_grid_plate, location, element),
-                lower_grid_plate=grid_plate_specs(lower_grid_plate, location, element),
-            )
             builder_specs = mpact_builder.triga.netl.Reactor.CoreCellSpecs(
-                element_specs=build_specs,
+                element_specs=build_specs or None,
                 outer_region_specs=outer_region_specs,
                 axial_bounds=axial_bounds)
 
@@ -338,7 +392,6 @@ def write_mpact_input(fuel:                        FuelElement,
                 builder_specs=builder_specs)
 
             ring_stacks.append(stack)
-            materials = element.get_materials() if element is not None else []
             stack_specs.apply_material_specs(stack, default_mpact_material_specs(materials))
             element_specs[stack] = stack_specs
         stack_elements.append(ring_stacks)

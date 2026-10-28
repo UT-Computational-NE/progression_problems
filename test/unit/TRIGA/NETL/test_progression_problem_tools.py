@@ -166,7 +166,8 @@ def test_default_modified_three_element_irradiator():
     assert core.full_map["F-14"] is irradiator
 
 
-def test_default_pnt():
+@pytest.mark.parametrize("liner_material_factory", [None, NETLDefaultMaterials.lead])
+def test_default_pnt(liner_material_factory):
     pnt = NETL.DefaultGeometries.pnt()
 
     assert isinstance(pnt, PNT)
@@ -182,27 +183,43 @@ def test_default_pnt():
     ])
     assert pnt.bottom_pos + pnt.length == pytest.approx(80.0)
 
-    cadmium_lined_pnt = NETL.DefaultGeometries.pnt(
-        terminus=NETL.DefaultGeometries.PNT.cadmium_lined_terminus(),
-        wrapper=NETL.DefaultGeometries.PNT.wrapper(),
+    liner_material = liner_material_factory() if liner_material_factory is not None else None
+    lined_pnt = NETL.DefaultGeometries.pnt(
+        terminus=NETL.DefaultGeometries.PNT.lined_terminus(liner_material=liner_material),
+        wrapper=NETL.DefaultGeometries.PNT.wrapper(liner_material=liner_material),
     )
-    assert cadmium_lined_pnt.wrapper is not None
-    assert cadmium_lined_pnt.wrapper.length == pytest.approx(
+    assert lined_pnt.wrapper is not None
+    assert lined_pnt.wrapper.length == pytest.approx(
         12.75 * CM_PER_INCH + 18.7182
     )
-    assert [segment.length for segment in cadmium_lined_pnt.terminus.segments] == pytest.approx([
+    assert [segment.length for segment in lined_pnt.terminus.segments] == pytest.approx([
         8.3259,
         4.1725,
         2.5400,
         0.0508,
         2.5400,
     ])
+    disk = lined_pnt.terminus.segments[3].element
+    assert [zone.shape.outer_radius for zone in disk.zones] == pytest.approx([0.86995, 1.11125])
+    liner_name = liner_material.name if liner_material is not None else "Cadmium"
+    assert [zone.material.name for zone in disk.zones] == [liner_name, "Aluminum"]
+    assert lined_pnt.wrapper.cross_section.zones[0].material.name == liner_name
+    assert disk.outer_material == lined_pnt.outer_material
+    assert [segment.element.zones[-1].shape.outer_radius
+            for segment in lined_pnt.terminus.segments] == pytest.approx([
+        1.82245, 1.5875, 1.82245, 1.11125, 1.5875,
+    ])
+
+    custom_terminus = NETL.DefaultGeometries.PNT.lined_terminus(
+        disk_radius=0.8, disk_outer_radius=1.2,
+    )
+    assert [zone.shape.outer_radius for zone in custom_terminus.segments[3].element.zones] == pytest.approx([0.8, 1.2])
 
     core = NETL.DefaultGeometries.core()
     assert isinstance(core.full_map["G-34"], PNT)
 
-    reactor = NETL.DefaultGeometries.reactor(pnt=cadmium_lined_pnt)
-    assert reactor.core.full_map["G-34"] is cadmium_lined_pnt
+    reactor = NETL.DefaultGeometries.reactor(pnt=lined_pnt)
+    assert reactor.core.full_map["G-34"] is lined_pnt
 
 
 def test_problem_1_openmc_tools(fuel_element, tmp_path):

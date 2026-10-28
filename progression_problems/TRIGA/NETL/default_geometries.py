@@ -28,6 +28,7 @@ def sind(degrees: float) -> float:
 def cosd(degrees: float) -> float:
     return cos(radians(degrees))
 
+
 class DefaultGeometries:
     """ Dataclass containing default geometries for NETL reactor models
 
@@ -305,9 +306,9 @@ class DefaultGeometries:
         """Namespace for default NETL pneumatic-transport-system features.
 
         The unlined transport-tube dimensions are specified in Ref. [1]_
-        Table 10.3 and Ref. [2]_ page 55. The detailed unlined and cadmium-lined
+        Table 10.3 and Ref. [2]_ page 55. The detailed unlined and lined
         terminal dimensions, materials, and axial positions follow the MCNP
-        model in Ref. [2]_ pages 53--55.
+        model in Ref. [2]_ pages 53--55, with cadmium as the default liner.
         """
 
         TUBE_BOTTOM_AXIAL_LOCATION = -18.7182  # Ref. [2]_ pp. 53--55
@@ -456,19 +457,21 @@ class DefaultGeometries:
             )
 
         @staticmethod
-        def cadmium_lined_terminus(
+        def lined_terminus(
             lower_section_thickness: float = 8.3259,
             connecting_tube_thickness: float = 4.1725,
             shock_absorber_section_thickness: float = 2.5400,
-            cadmium_disk_thickness: float = 0.0508,
+            disk_thickness: float = 0.0508,
             narrow_radius: float = 0.5 * 1.250 * CM_PER_INCH,
             wide_radius: float = 0.5 * 1.435 * CM_PER_INCH,
+            disk_radius: float = 0.5 * 0.685 * CM_PER_INCH,
+            disk_outer_radius: float = 0.5 * 0.875 * CM_PER_INCH,
             material: openmc.Material | None = None,
-            cadmium_material: openmc.Material | None = None,
+            liner_material: openmc.Material | None = None,
             outer_material: openmc.Material | None = None,
             temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> PinCellStack:
-            """Create the cadmium-lined PNT terminus stack.
+            """Create the lined PNT terminus stack.
 
             Parameters
             ----------
@@ -481,21 +484,27 @@ class DefaultGeometries:
             shock_absorber_section_thickness : float
                 Axial thickness of each shock-absorber section in cm. Defaults
                 to 2.5400 cm, per Ref. [2]_ pages 53--55.
-            cadmium_disk_thickness : float
-                Cadmium-disk axial thickness in cm. Defaults to 0.0508 cm, per
+            disk_thickness : float
+                Liner-disk axial thickness in cm. Defaults to 0.0508 cm, per
                 Ref. [2]_ pages 53--55.
             narrow_radius : float
                 Radius of the 1.250-in-OD connecting tube and upper shock
                 absorber. Defaults to the dimension in Ref. [2]_ page 55.
             wide_radius : float
-                Radius of the 1.435-in-OD lower section, lower shock absorber,
-                and cadmium disk. Defaults to the dimension in Ref. [2]_ page 55.
+                Radius of the 1.435-in-OD lower section and lower shock absorber.
+                Defaults to the dimension in Ref. [2]_ page 55.
+            disk_radius : float
+                Liner-region radius in cm. Defaults to 0.86995 cm,
+                per Ref. [2]_ pages 54--55.
+            disk_outer_radius : float
+                Outer radius of the aluminum surround in cm. Defaults to
+                1.11125 cm, per Ref. [2]_ pages 54--55.
             material : Optional[openmc.Material]
                 Terminal aluminum override. If omitted, aluminum is used at
                 ``temperature``, per Ref. [2]_ page 53.
-            cadmium_material : Optional[openmc.Material]
-                Cadmium-disk material override. If omitted, cadmium is used at
-                ``temperature``, per Ref. [2]_ page 53.
+            liner_material : Optional[openmc.Material]
+                Disk liner material override (cadmium or lead). If omitted,
+                cadmium is used at ``temperature``, per Ref. [2]_ page 53.
             outer_material : Optional[openmc.Material]
                 Temporary outer material for the component pincells. The
                 enclosing PNT replaces it with the PNT coolant.
@@ -506,20 +515,20 @@ class DefaultGeometries:
             Returns
             -------
             PinCellStack
-                CoreForge cadmium-lined PNT terminus ordered from bottom to top.
+                CoreForge lined PNT terminus ordered from bottom to top.
             """
 
             material = (
                 material if material is not None
                 else NETLDefaultMaterials.aluminum(temperature)
             )
-            cadmium_material = (
-                cadmium_material if cadmium_material is not None
+            liner_material = (
+                liner_material if liner_material is not None
                 else NETLDefaultMaterials.cadmium(temperature)
             )
             outer_material = outer_material or NETLDefaultMaterials.water()
             aluminum = Material(material)
-            cadmium = Material(cadmium_material)
+            liner = Material(liner_material)
             exterior = Material(outer_material)
 
             def solid_section(
@@ -548,29 +557,33 @@ class DefaultGeometries:
                         shock_absorber_section_thickness,
                     ),
                     Stack.Segment(
-                        solid_section(wide_radius, cadmium, "pnt_cadmium_disk"),
-                        cadmium_disk_thickness,
+                        CylindricalPinCell(
+                            radii=[disk_radius, disk_outer_radius],
+                            materials=[liner, aluminum, exterior],
+                            name="pnt_liner_disk",
+                        ),
+                        disk_thickness,
                     ),
                     Stack.Segment(
                         solid_section(narrow_radius, aluminum, "pnt_shock_absorber_upper"),
                         shock_absorber_section_thickness,
                     ),
                 ],
-                name="pnt_cadmium_lined_terminus",
+                name="pnt_lined_terminus",
             )
 
         @staticmethod
         def wrapper(
             length: float | None = None,
-            cadmium_outer_radius: float = 0.5 * 0.955 * CM_PER_INCH,
+            liner_outer_radius: float = 0.5 * 0.955 * CM_PER_INCH,
             air_gap_outer_radius: float = 0.5 * 1.120 * CM_PER_INCH,
             outer_tube_outer_radius: float = 0.5 * 1.250 * CM_PER_INCH,
-            cadmium_material: openmc.Material | None = None,
+            liner_material: openmc.Material | None = None,
             fill_material: openmc.Material | None = None,
             outer_tube_material: openmc.Material | None = None,
             temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLPNT.Wrapper:
-            """Create the default cadmium wrapper around the transport tube.
+            """Create the liner wrapper around the transport tube.
 
             Parameters
             ----------
@@ -578,8 +591,8 @@ class DefaultGeometries:
                 Wrapped axial length in cm. If omitted, it is derived from the
                 -18.7182-cm tube-bottom position and the upper-grid-plate top
                 position in Ref. [2]_ pages 53--55.
-            cadmium_outer_radius : float
-                Cadmium-wrap outer radius in cm. Defaults to half the 0.955-in
+            liner_outer_radius : float
+                Liner outer radius in cm. Defaults to half the 0.955-in
                 outer diameter in Ref. [2]_ page 55.
             air_gap_outer_radius : float
                 Air-gap outer radius in cm. Defaults to half the 1.120-in outer
@@ -587,9 +600,9 @@ class DefaultGeometries:
             outer_tube_outer_radius : float
                 Outer aluminum tube radius in cm. Defaults to half the 1.250-in
                 outer diameter in Ref. [1]_ Table 10.3 and Ref. [2]_ page 55.
-            cadmium_material : Optional[openmc.Material]
-                Cadmium-wrap material override. If omitted, cadmium is used at
-                ``temperature``, per Ref. [2]_ page 53.
+            liner_material : Optional[openmc.Material]
+                Sleeve liner material override (cadmium or lead). If omitted,
+                cadmium is used at ``temperature``, per Ref. [2]_ page 53.
             fill_material : Optional[openmc.Material]
                 Annular-gap material override. If omitted, air is used at
                 ``temperature``, per Ref. [2]_ page 53.
@@ -611,8 +624,8 @@ class DefaultGeometries:
                 else DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
                      - DefaultGeometries.PNT.TUBE_BOTTOM_AXIAL_LOCATION
             )
-            cadmium_material = (
-                cadmium_material if cadmium_material is not None
+            liner_material = (
+                liner_material if liner_material is not None
                 else NETLDefaultMaterials.cadmium(temperature)
             )
             fill_material = (
@@ -625,12 +638,12 @@ class DefaultGeometries:
             )
             cross_section = CylindricalPinCell(
                 radii=[
-                    cadmium_outer_radius,
+                    liner_outer_radius,
                     air_gap_outer_radius,
                     outer_tube_outer_radius,
                 ],
                 materials=[
-                    Material(cadmium_material),
+                    Material(liner_material),
                     Material(fill_material),
                     Material(outer_tube_material),
                     Material(NETLDefaultMaterials.water()),
@@ -982,7 +995,7 @@ class DefaultGeometries:
             tube_1_length: float = 124.77400,
             tube_2_outer_radius: float = 2.38125,
             tube_2_annulus_length: float = 81.27660,
-            tube_2_end_cap_thickness: float = 3.39830,
+            tube_2_solid_upper_region_length: float = 3.39830,
             material: openmc.Material | None = None,
             temperature: float = NETLDefaultMaterials.DEFAULT_TEMPERATURE,
         ) -> NETLModifiedThreeElementIrradiator.OuterCasing:
@@ -1009,10 +1022,10 @@ class DefaultGeometries:
                 Axial length over which Tube #2 surrounds Tube #1 in cm.
                 Defaults to 81.27660 cm, per Ref. [3]_ pages 186--187, 222,
                 228, and 243.
-            tube_2_end_cap_thickness : float
-                Thickness of the solid Tube #2 region above Tube #1 in cm.
-                Defaults to 3.39830 cm, per Ref. [3]_ pages 186--187, 222,
-                228, and 243.
+            tube_2_solid_upper_region_length : float
+                Axial length of the modeled solid Tube #2 region above Tube #1
+                in cm. This is Defaults to 3.39830 cm,
+                per Ref. [3]_ pages 186--187, 222, 228, and 243.
             material : Optional[openmc.Material]
                 Casing-material override. Defaults to ``None``, which uses
                 aluminum per Ref. [3]_ pages 186--187 and 222.
@@ -1037,7 +1050,7 @@ class DefaultGeometries:
                 tube_1_length=tube_1_length,
                 tube_2_outer_radius=tube_2_outer_radius,
                 tube_2_annulus_length=tube_2_annulus_length,
-                tube_2_end_cap_thickness=tube_2_end_cap_thickness,
+                tube_2_solid_upper_region_length=tube_2_solid_upper_region_length,
                 material=Material(material),
             )
 
@@ -2674,7 +2687,7 @@ class DefaultGeometries:
         loading: dict[str, Core.Loadable | None] | None = None,
         fill_material: Material | None = None,
         pnt: NETLPNT | None = None,
-        three_element_irradiator: Core.Loadable | None = None,
+        three_element_irradiator: Core.Irradiator | None = None,
     ) -> Core:
         """Creates and returns a default core geometry.
 
@@ -2719,9 +2732,10 @@ class DefaultGeometries:
         pnt : Optional[NETLPNT]
             PNT placed at G-34. If omitted, the default unlined PNT is used. Ignored
             when ``loading`` is supplied.
-        three_element_irradiator : Optional[Core.Loadable]
-            Loadable spanning E-11, F-13, and F-14. If omitted, those locations will use
-            what is specified in ``loading``.
+        three_element_irradiator : Optional[Core.Irradiator]
+            Conventional or modified irradiator, or a custom ``PinCellStack``,
+            spanning E-11, F-13, and F-14. If omitted, the detailed modified
+            irradiator is built using ``non_fuel_temp`` and ``coolant``.
 
         Returns
         -------
@@ -2742,6 +2756,12 @@ class DefaultGeometries:
                       DefaultGeometries.fuel_follower_control_rod(fuel_temp, non_fuel_temp, coolant))
         fill_material = (fill_material if fill_material is not None else
                          DefaultGeometries.pool(coolant).material)
+
+        if three_element_irradiator is None:
+            three_element_irradiator = DefaultGeometries.modified_three_element_irradiator(
+                temperature=non_fuel_temp,
+                coolant=coolant,
+            )
 
         if loading is None:
             def fuel(location: str) -> FuelElement:
@@ -2848,7 +2868,7 @@ class DefaultGeometries:
         upper_grid_plate: NETLReactor.GridPlate | None = None,
         lower_grid_plate: NETLReactor.GridPlate | None = None,
         pnt: NETLPNT | None = None,
-        three_element_irradiator: Core.Loadable | None = None,
+        three_element_irradiator: Core.Irradiator | None = None,
     ) -> NETLReactor:
         """Creates and returns a default reactor geometry.
 
@@ -2909,11 +2929,13 @@ class DefaultGeometries:
             reference geometry and placement are used.
         pnt : Optional[NETLPNT]
             PNT placed at G-34 when constructing the default core. If omitted,
-            the default unlined PNT extending to the pool top is used. Ignored
-            when ``core`` is supplied.
-        three_element_irradiator : Optional[Core.Loadable]
-            Loadable spanning E-11, F-13, and F-14 when constructing the default
-            core. Ignored when ``core`` is supplied.
+            the default unlined PNT extends from the supplied lower grid plate's
+            bottom to the pool top. Ignored when ``core`` is supplied.
+        three_element_irradiator : Optional[Core.Irradiator]
+            Conventional or modified irradiator, or a custom ``PinCellStack``,
+            spanning E-11, F-13, and F-14 when constructing the default core.
+            If omitted, the detailed modified irradiator is built using
+            ``non_fuel_temp`` and ``coolant``. Ignored when ``core`` is supplied.
 
         Returns
         -------
@@ -2926,18 +2948,31 @@ class DefaultGeometries:
         shroud = shroud if shroud is not None else DefaultGeometries.shroud(non_fuel_temp)
         rsr_cavity = (rsr_cavity if rsr_cavity is not None else
                       DefaultGeometries.rsr_cavity(non_fuel_temp))
+        lower_grid_plate = (lower_grid_plate if lower_grid_plate is not None else
+                            DefaultGeometries.Reactor.lower_grid_plate(non_fuel_temp))
         if core is None:
             if pnt is None:
+                pnt_bottom = (
+                    -lower_grid_plate.top_to_core_centerline_distance
+                    - lower_grid_plate.geometry.thickness
+                )
+                pnt_terminus = DefaultGeometries.PNT.unlined_terminus(
+                    temperature=non_fuel_temp,
+                    outer_material=coolant,
+                )
                 pnt_tube = DefaultGeometries.PNT.tube(
                     length=(
                         0.5 * pool.height
-                        - DefaultGeometries.PNT.TUBE_BOTTOM_AXIAL_LOCATION
+                        - pnt_bottom
+                        - pnt_terminus.length
                     ),
                     temperature=non_fuel_temp,
                 )
                 pnt = DefaultGeometries.pnt(
                     non_fuel_temp,
                     coolant,
+                    bottom_pos=pnt_bottom,
+                    terminus=pnt_terminus,
                     tube=pnt_tube,
                 )
             core = DefaultGeometries.core(
@@ -2966,8 +3001,6 @@ class DefaultGeometries:
                      DefaultGeometries.Reactor.reflector(non_fuel_temp))
         upper_grid_plate = (upper_grid_plate if upper_grid_plate is not None else
                             DefaultGeometries.Reactor.upper_grid_plate(non_fuel_temp))
-        lower_grid_plate = (lower_grid_plate if lower_grid_plate is not None else
-                            DefaultGeometries.Reactor.lower_grid_plate(non_fuel_temp))
 
         return NETLReactor(
             name="reactor",

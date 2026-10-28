@@ -35,13 +35,13 @@ outer radius of 2.38125 cm. Above Tube #1, Tube #2 forms a solid aluminum region
 thickness of 3.39830 cm. This construction introduces changes in the casing cross section at
 the bottom of Tube #2 and at the top of Tube #1.
 
-The simplified casing replaces Tube #1 and the annular portion of Tube #2 with a single
-constant-radius annular tube. This tube begins at the top of the bottom grid plate and extends
-upward 124.77400 cm. The solid upper portion is retained immediately above the annular tube
-with its original axial thickness of 3.39830 cm. The annular tube retains the original inner
-radius of 2.23393 cm. A single outer radius is used for both the annular tube and the solid
-upper portion and is selected to preserve their combined aluminum volume. The original
-aluminum volume is
+ The simplified casing replaces Tube #1 and the annular portion of Tube #2 with a single
+ constant-radius annular tube. This tube begins at the top of the bottom grid plate and extends
+ upward 124.77400 cm. The solid upper portion is retained immediately above the annular tube
+ with its original axial thickness of 3.39830 cm. The annular tube retains the original inner
+ radius of 2.23393 cm. A single outer radius is used for both the annular tube and the solid
+ upper portion and is selected to preserve their combined aluminum volume. The original
+ aluminum volume is
 
 .. math::
 
@@ -93,9 +93,9 @@ Solving for the outer radius gives
    2.35651\ \mathrm{cm}.
 
 The simplified casing therefore consists of a 124.77400-cm-long annular tube with an inner
-radius of 2.23393 cm and an outer radius of 2.35651 cm, followed by a 3.39830-cm-thick solid
-upper portion with the same outer radius. The casing remains aluminum and its interior is
-filled with air wherever another facility component is not present.
+radius of 2.23393 cm and an outer radius of 2.35651 cm, followed by a modeled solid upper
+region of axial length 3.39830 cm with the same outer radius. The casing remains aluminum
+and its interior is filled with air wherever another facility component is not present.
 
 This simplification eliminates the casing interface at the lower end of Tube #2. The interface
 at the top of Tube #1 is retained because the simplified casing changes from an annulus to
@@ -180,7 +180,7 @@ The detailed pneumatic sleeve consists of a 109.85588-cm-long annulus and a
    +
    \pi\left(0.95250^2\right)(0.12850)
    =
-   56.14630\ \mathrm{cm^3}.
+   56.14632\ \mathrm{cm^3}.
 
 The detailed B-10-canister interior wall has a total axial length of 57.78500 cm. Its annular
 portion is 57.48500 cm long, and its implied solid lower closure is 0.30000 cm thick. Its

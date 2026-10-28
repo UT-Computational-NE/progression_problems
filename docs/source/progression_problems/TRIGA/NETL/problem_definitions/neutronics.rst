@@ -104,9 +104,9 @@ temperatures and densities are taken from Table 4.20 of Reference 1_ so as to be
 the range of anticipated operating conditions.
 
 For depletion assessments, target burnups are defined in effective full-power days (EFPD), based on a
-full-core power of 1 MW distributed across 110 fuel elements. Since this is a 2D single-element model,
+full-core power of 1 MW distributed across 109 fuel elements. Since this is a 2D single-element model,
 the applied model power should preserve the appropriate average power per element per unit height,
-(ex: :math:`1\,\mathrm{MW}\left(\frac{\text{model height}}{\text{fuel-meat height}}\right)\left(\frac{0.5\ \text{element in model}}{110\ \text{elements in core}}\right)`).
+(ex: :math:`1\,\mathrm{MW}\left(\frac{\text{model height}}{\text{fuel-meat height}}\right)\left(\frac{0.5\ \text{element in model}}{109\ \text{elements in core}}\right)`).
 The 2.0 EFPD and 20.0 EFPD targets were selected to represent the characteristic buildup periods of Xe-135
 and Sm-149, respectively. The 265.0 EFPD and 530.0 EFPD targets correspond approximately to
 middle-of-life (MOL) and end-of-life (EOL) element burnups, based on an estimated maximum fuel-element burnup
@@ -226,11 +226,11 @@ models to multi-pin configurations. :numref:`table-problem-2-definitions` summar
 considered in this progression-problem set.
 
 For depletion cases, the target burnup is again specified in EFPD, assuming a full-core power of 1 MW
-distributed over 110 fuel elements. Since this is a 2D model representing only a portion of the core,
+distributed over 109 fuel elements. Since this is a 2D model representing only a portion of the core,
 the applied model power must be scaled to maintain the correct average power per fuel element per unit height.
 
-The PNT and Cd-PNT cases use the unlined and cadmium-lined configurations defined in
-:numref:`table-pnt-unlined` and :numref:`table-pnt-cd-lined`, respectively. The Conv-3EL
+The PNT and Cd-PNT cases use the unlined and lined configurations (with Cd) defined in
+:numref:`table-pnt-unlined` and :numref:`table-pnt-lined`, respectively. The Conv-3EL
 cases use the conventional 3-EL geometry in :numref:`table-three-element-geometry` with the indicated
 liner material Cd / Pb. The modified-3EL cases use radial sections through the B4C region and annular B-10
 region.
@@ -390,13 +390,14 @@ for testing control-rod motion within the multi-pin geometry, as well as axial d
 The corresponding geometry is shown in :numref:`figure-triga-netl-problem_4`, and the case specifications are summarized in
 :numref:`table-problem-4-definitions`. Axially, the models include the upper and lower grid plates together with
 pool-water regions extending to 80 cm above and below the fuel axial centerline.
+Any portions of geometry extending above or below this axial region may be treated as truncated.
 
-For depletion cases, the target burnup is again specified in EFPD, based on a full-core power of 1 MW distributed across 110
+For depletion cases, the target burnup is again specified in EFPD, based on a full-core power of 1 MW distributed across 109
 fuel elements. Because this model represents the full fuel height but not the full core, the applied model power should be
 scaled only as needed to preserve the appropriate average power per fuel element.
 
-The PNT and PNT-CD cases use the unlined and cadmium-lined configurations defined in
-:numref:`table-pnt-unlined` and :numref:`table-pnt-cd-lined`, respectively. The Conv-3EL Cd and
+The PNT and PNT-CD cases use the unlined and lined configurations (with Cd) defined in
+:numref:`table-pnt-unlined` and :numref:`table-pnt-lined`, respectively. The Conv-3EL Cd and
 Conv-3EL Pb cases use the conventional 3-EL geometry in :numref:`table-three-element-geometry`
 with the indicated liner material. The Mod-3EL case uses the simplified modified 3-EL geometry in
 :numref:`table-modified-three-element-simplified-geometry`.
@@ -471,6 +472,7 @@ cylindrical beam ports, axial core-element structures, and the rotary specimen r
 radial vacuum boundary conditions. The geometry for this set is shown in :numref:`figure-reactor-radial-picture`,
 and :numref:`figure-reactor-axial-picture`, and the corresponding case specifications are summarized in :numref:`table-problem-5-definitions`.
 Axially, the models include upper and lower pool-water regions extending to 80 cm above and below the fuel axial centerline.
+Any portions of geometry extending above or below this axial region may be treated as truncated.
 
 .. table:: Problem 5 Definitions
    :name: table-problem-5-definitions

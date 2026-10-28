@@ -180,7 +180,7 @@ def build_core_lattice(reactor: Reactor,
                        control_rod_specs: ControlRodSpecs,
                        coolant_pincell_radii: Sequence[float],
                        pitch: float = NETL_DefaultGeometries.core().pitch,
-                       three_element_pincell_section: Optional[str] = None) -> HexLattice:
+                       three_element_pincell_section: Optional[str] = "lower_b10_region") -> HexLattice:
     """Build the 2D hex lattice for the TRIGA NETL core.
 
     Parameters
@@ -196,8 +196,8 @@ def build_core_lattice(reactor: Reactor,
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
     three_element_pincell_section : Optional[str]
-        Key in the three-element irradiator's ``pincell`` mapping, required
-        when the facility is present.
+        Key in the three-element irradiator's ``pincell`` mapping. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator.
 
     Returns
     -------
@@ -416,7 +416,7 @@ def build_openmc_model(reactor:                  Reactor,
                        coolant_pincell_radii:    Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                        spectrum_group_structure: str = "MPACT-51",
                        pitch:                    float = NETL_DefaultGeometries.core().pitch,
-                       three_element_pincell_section: Optional[str] = None) -> openmc.model.Model:
+                       three_element_pincell_section: Optional[str] = "lower_b10_region") -> openmc.model.Model:
     """Build a multicell OpenMC Model.
 
     Parameters
@@ -435,8 +435,8 @@ def build_openmc_model(reactor:                  Reactor,
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
     three_element_pincell_section : Optional[str]
-        Key in the three-element irradiator's ``pincell`` mapping, required
-        when the facility is present.
+        Key in the three-element irradiator's ``pincell`` mapping. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator.
 
     Returns
     -------
@@ -487,7 +487,7 @@ def write_mpact_input(reactor:             Reactor,
                       states:              Optional[List[Dict[str, str]]] = None,
                       xsec_settings:       Optional[Dict[str, str]] = None,
                       options:             Optional[Dict[str, str]] = None,
-                      three_element_pincell_section: Optional[str] = None) -> None:
+                      three_element_pincell_section: Optional[str] = "lower_b10_region") -> None:
     """Write an MPACT input file for the TRIGA NETL reactor.
 
     Parameters
@@ -514,8 +514,8 @@ def write_mpact_input(reactor:             Reactor,
     options : Dict[str, str]
         The options settings to use in the MPACT input.
     three_element_pincell_section : Optional[str]
-        Key in the three-element irradiator's ``pincell`` mapping, required
-        when the facility is present.
+        Key in the three-element irradiator's ``pincell`` mapping. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator.
     """
 
     specs = reactor_build_specs or mpact_builder.triga.netl.Reactor.Specs()

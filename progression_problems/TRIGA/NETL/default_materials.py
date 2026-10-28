@@ -234,7 +234,9 @@ class DefaultMaterials(TRIGADefaultMaterials):
         """Create the silver disk material used by the modified 3-EL.
 
         The density is from Ref. [2]_ page 187 and the isotopic composition is
-        from Ref. [2]_ page 277.
+        from Ref. [2]_ page 277. It should be noted that the reference
+        erroneously use wt% when the fractions correspond to the silver
+        at% natural abudances. As such, at% is used here.
 
         Parameters
         ----------
@@ -257,6 +259,6 @@ class DefaultMaterials(TRIGADefaultMaterials):
         material = openmc.Material(name='Silver')
         material.temperature = temperature
         material.set_density(density_units, density)
-        material.add_nuclide('Ag107', 0.51839, percent_type='wo')
-        material.add_nuclide('Ag109', 0.48161, percent_type='wo')
+        material.add_nuclide('Ag107', 0.51839, percent_type='ao')
+        material.add_nuclide('Ag109', 0.48161, percent_type='ao')
         return material

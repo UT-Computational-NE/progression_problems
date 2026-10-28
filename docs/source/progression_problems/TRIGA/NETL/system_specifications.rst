@@ -222,11 +222,11 @@ Incore Features
 The reactor core consists of a configurable hexagonal lattice of the core elements described above,
 with a lattice pitch of 1.714~in. A core map, including lattice position labels, is shown in :numref:`figure-reactor-core-map`.
 Most lattice positions are configurable and may be occupied by fuel elements, graphite dummy elements,
-a neutron source holder, or left vacant as water holes; however, certain positions are reserved for
-specific components, as summarized in :numref:`reserved-core-locations`. It should be noted that
-the NETL TRIGA reactor contains additional core-associated components not considered here, including insertable
-experimental irradiation facilities and the pneumatic sample-transit system. These components may be present
-in the actual reactor but are excluded from the current progression-problem definitions.
+a neutron source holder, a PNT, or left vacant as water holes; however, certain positions are reserved for
+specific components, as summarized in :numref:`reserved-core-locations`. The modeled PNT terminal and
+conventional and modified three-element irradiation facilities are specified in the following sections.
+Ex-core pneumatic transport equipment and experiment-specific rabbits, sample containers, and irradiated
+specimens are excluded from the baseline definitions.
 
 .. _figure-reactor-core-map:
 
@@ -494,11 +494,13 @@ centered in lattice position ``G-34`` and extends from the top of the model (i.e
 to the bottom of the lower grid plate, passing through both grid-plate penetrations.
 
 Two terminal configurations are defined: an unlined configuration (see: :numref:`table-pnt-unlined`)
-and a cadmium-lined (see: :numref:`table-pnt-cd-lined`) configuration. The unlined configuration
-consists of a small aluminum tube with an air-filled bore. The cadmium-lined configuration retains
-this inner tube wraps it with cadmium, and places the assembly concentrically inside a larger
-aluminum tube. The annulus between the cadmium and the larger tube is air-filled. The axial
-configurations of both terminal types are shown in :numref:`figure-pnt-axial_profile`.
+and a lined configuration (see: :numref:`table-pnt-lined`). The unlined configuration consists of a
+small aluminum tube with an air-filled bore. The lined configuration retains this inner tube, wraps
+it with cadmium or lead, and places the assembly concentrically inside a larger aluminum tube.
+The annulus between the liner and the larger tube is air-filled. The dimensions follow Redhouse's
+cadmium-lined model (Ref. 2_, pp. 53--55); the Cd/Pb material substitution follows the
+alternatives described in Ref. 4_, pp. 190--191. The axial configurations of both terminal types
+are shown in :numref:`figure-pnt-axial_profile`.
 
 These baseline specifications contain air in the empty tube section and do not explicitly represent a
 polyethylene rabbit, sample container, or irradiated specimen.
@@ -510,7 +512,7 @@ polyethylene rabbit, sample container, or irradiated specimen.
    :align: center
    :width: 60%
 
-   Diagrams of Unlined (Left) and Cadmium-Lined (Right) Pneumatic Neutron Transport System Axial Profiles.
+   Diagrams of Unlined (Left) and Lined (Right) Pneumatic Neutron Transport System Axial Profiles.
 
 
 .. table:: Unlined PNT Terminal Geometry Specifications
@@ -552,18 +554,20 @@ polyethylene rabbit, sample container, or irradiated specimen.
    +---------------+--------------------------------+------------------+--------------------+
 
 
-.. table:: Cadmium-Lined PNT Terminal Geometry Specifications
-   :name: table-pnt-cd-lined
+.. table:: Lined PNT Terminal Geometry Specifications
+   :name: table-pnt-lined
 
    +---------------+--------------------------------+------------------+--------------------+
    | Component     | Property                       | Value            | Reference          |
    +===============+================================+==================+====================+
    | Empty Tube    | see :numref:`table-pnt-unlined` Empty Tube Section                     |
    +---------------+--------------------------------+------------------+--------------------+
-   | Cd-Wrapped    | Start of Section               | Top of Upper     | Ref. 2_, pg. 53    |
+   | Wrapped       | Start of Section               | Top of Upper     | Ref. 2_, pg. 53    |
    | Section       |                                | Grid Plate       |                    |
    |               +--------------------------------+------------------+--------------------+
-   |               | Cd-Wrap Outer Diameter (in.)   | 0.955            | Ref. 2_, pg. 55    |
+   |               | Liner Outer Diameter (in.)     | 0.955            | Ref. 2_, pg. 55    |
+   |               +--------------------------------+------------------+--------------------+
+   |               | Liner Material                 | Cadmium / Lead   | See text above     |
    |               +--------------------------------+------------------+--------------------+
    |               | Air-Gap Outer Diameter (in.)   | 1.120            | Ref. 2_, pg. 55    |
    |               +--------------------------------+------------------+--------------------+
@@ -578,9 +582,15 @@ polyethylene rabbit, sample container, or irradiated specimen.
    | Section       +--------------------------------+------------------+                    |
    |               | Material                       | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
-   | Cd Disk       | Axial Thickness (cm)           | 0.0508           | Ref. 2_, pp. 53--55|
+   | Liner Disk    | Axial Thickness (cm)           | 0.0508           | Ref. 2_, pp. 53--55|
    |               +--------------------------------+------------------+                    |
-   |               | Cd Disk Material               | Cadmium          |                    |
+   |               | Liner Outer Radius (cm)        | 0.86995          |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Inner Disk Material            | Cadmium / Lead   |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Disk Outer Radius (cm)         | 1.11125          |                    |
+   |               +--------------------------------+------------------+                    |
+   |               | Outer Disk Material            | Aluminum         |                    |
    +---------------+--------------------------------+------------------+--------------------+
    | Shock         | Axial Thickness (cm)           | 2.5400           | Ref. 2_, pp. 53--55|
    | Absorber      +--------------------------------+------------------+                    |
@@ -619,8 +629,9 @@ The detailed alignment frame, its coolant-flow holes, the centered lower-grid al
 handling fixtures, valves, seals, and other mechanical details are not represented. The upper and
 lower ends of the canister are consequently represented as simple aluminum cylinders.
 Experiment-specific samples are excluded and the sample volume is filled with air. The axial regions
-are listed from top to bottom in :numref:`table-three-element-geometry`. The axial configuration
-of the conventional 3-EL facility is shown in :numref:`figure-conv_3L-axial_profile`.
+are listed from top to bottom in :numref:`table-three-element-geometry`. The liner sidewall contacts
+the inner sleeve's outer surface, and the liner bottom rests on the casing's solid lower end beneath
+the sleeve, as illustrated in :numref:`figure-conv_3L-axial_profile`.
 
 
 .. _figure-conv_3L-axial_profile:
@@ -693,7 +704,8 @@ and simplified grid-plate penetration as the conventional 3-EL. It contains conc
 enriched-boron, and natural-boron-carbide filters surrounding an air-filled pneumatic transfer
 passage. The baseline specification does not include a rabbit, sample container, or irradiated
 specimen. The detailed specification in :numref:`table-modified-three-element-detailed-geometry` follows
-the active modified-3-EL cell and surface cards in Hudson's later MCNP model (Ref. 4_).
+the active modified-3-EL cell and surface cards in Hudson's later MCNP model (Ref. 4_) rather
+than the as-built hardware described by De Luna (Ref. 5_).
 
 An axially simplified version of the modified 3-EL is specified in
 :numref:`table-modified-three-element-simplified-geometry`. The simplification reduces the
@@ -701,6 +713,9 @@ number of distinct axial regions from 20 to 10 by eliminating short axial featur
 small adjustments to selected radii to preserve the affected material volumes. The basis and
 calculations for these changes are provided in the :ref:`simplified modified 3-EL derivation
 <progression_problems_triga_netl_simplified_3l_derivation>`.
+
+In both representations, the silver disk, cadmium disk, and solid aluminum spacer have outer
+radii equal to the inner radius of casing Tube #1.
 
 The axial configurations of both detailed and simplified representations are shown in
  :numref:`figure-mod-3L-axial_profile`.
@@ -732,7 +747,8 @@ The axial configurations of both detailed and simplified representations are sho
    |                      +----------------------------------------+------------------+                        +
    |                      | Tube #2 Outer Radius (cm)              | 2.38125          |                        |
    |                      +----------------------------------------+------------------+                        +
-   |                      | Tube #2 End-Cap Thickness (cm)         | 3.39830          |                        |
+   |                      | Tube #2 Modeled Solid Upper Region     | 3.39830          |                        |
+   |                      | Axial Length (cm)                      |                  |                        |
    |                      +----------------------------------------+------------------+                        +
    |                      | Tube #2 Annulus Axial Length (cm)      | 81.27660         |                        |
    |                      +----------------------------------------+------------------+                        +
@@ -852,9 +868,9 @@ The axial configurations of both detailed and simplified representations are sho
    +                      +----------------------------------------------+-----------------------------------------------------------------+
    |                      | Casing-Tube Bottom Axial Location            | Top of Bottom Grid Plate                                        |
    +                      +----------------------------------------------+-----------------------------------------------------------------+
-   |                      | Solid Upper-Portion Axial Thickness (cm)     | 3.39830                                                         |
+   |                      | Modeled Solid Upper-Region Axial Length (cm) | 3.39830                                                         |
    +                      +----------------------------------------------+-----------------------------------------------------------------+
-   |                      | Solid Upper-Portion Location                 | Immediately Above Casing Tube                                   |
+   |                      | Modeled Solid Upper-Region Location          | Immediately Above Casing Tube                                   |
    +                      +----------------------------------------------+-----------------------------------------------------------------+
    |                      | Material                                     | Aluminum                                                        |
    +                      +----------------------------------------------+-----------------------------------------------------------------+
@@ -1054,9 +1070,13 @@ uses Hudson's later value of 1.40 g/cc, which lies within that measured range.
    | Density (g/cc)    | 10.49                 | Ref. 4_, pg. 187     |
    +-------------------+---------+-------------+----------------------+
    | Composition       | Ag-107  | 0.51839     | Ref. 4_, pg. 277     |
-   + (Iso ID, wt%)     +---------+-------------+                      +
+   + (Iso ID, at%)     +---------+-------------+                      +
    |                   | Ag-109  | 0.48161     |                      |
    +-------------------+---------+-------------+----------------------+
+
+The silver isotopic values are natural atom fractions. This intentionally deviates
+from the M27 card in Ref. 4_, pg. 277, which enters the same values as negative
+(weight) fractions and appears to be in error.
 
 
 

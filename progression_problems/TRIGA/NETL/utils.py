@@ -233,9 +233,9 @@ DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, mpactpy.Material.MPACTSpecs] = {
     "molybdenum":           DEFAULT_MPACT_MATERIAL_SPECS[materials.Mo],
     "water":                DEFAULT_MPACT_MATERIAL_SPECS[materials.Water],
     "control_rod_absorber": DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
-    "cadmium":              mpactpy.Material.MPACTSpecs({}, False, False, False, False),
+    "cadmium":              DEFAULT_MPACT_MATERIAL_SPECS[materials.Cd],
     "lead":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.Pb],
-    "enriched_boron":       DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
+    "enriched_boron":       mpactpy.Material.MPACTSpecs({}, False, False, False, False),
     "natural_b4c":          DEFAULT_MPACT_MATERIAL_SPECS[materials.B4C],
     "silver":               mpactpy.Material.MPACTSpecs({}, False, False, True, False),
     "fuel":                 DEFAULT_MPACT_MATERIAL_SPECS[materials.UZrH].using_fission_product_ids(

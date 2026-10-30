@@ -235,8 +235,8 @@ class DefaultMaterials(TRIGADefaultMaterials):
 
         The density is from Ref. [2]_ page 187 and the isotopic composition is
         from Ref. [2]_ page 277. It should be noted that the reference
-        erroneously use wt% when the fractions correspond to the silver
-        at% natural abudances. As such, at% is used here.
+        erroneously uses wt% when the fractions correspond to the silver
+        at% natural abundances. As such, at% is used here.
 
         Parameters
         ----------

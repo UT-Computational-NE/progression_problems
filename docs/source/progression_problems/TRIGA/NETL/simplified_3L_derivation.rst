@@ -35,13 +35,13 @@ outer radius of 2.38125 cm. Above Tube #1, Tube #2 forms a solid aluminum region
 thickness of 3.39830 cm. This construction introduces changes in the casing cross section at
 the bottom of Tube #2 and at the top of Tube #1.
 
- The simplified casing replaces Tube #1 and the annular portion of Tube #2 with a single
- constant-radius annular tube. This tube begins at the top of the bottom grid plate and extends
- upward 124.77400 cm. The solid upper portion is retained immediately above the annular tube
- with its original axial thickness of 3.39830 cm. The annular tube retains the original inner
- radius of 2.23393 cm. A single outer radius is used for both the annular tube and the solid
- upper portion and is selected to preserve their combined aluminum volume. The original
- aluminum volume is
+The simplified casing replaces Tube #1 and the annular portion of Tube #2 with a single
+constant-radius annular tube. This tube begins at the top of the bottom grid plate and extends
+upward 124.77400 cm. The solid upper portion is retained immediately above the annular tube
+with its original axial thickness of 3.39830 cm. The annular tube retains the original inner
+radius of 2.23393 cm. A single outer radius is used for both the annular tube and the solid
+upper portion and is selected to preserve their combined aluminum volume. The original
+aluminum volume is
 
 .. math::
 

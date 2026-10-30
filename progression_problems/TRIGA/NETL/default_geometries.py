@@ -490,10 +490,10 @@ class DefaultGeometries:
                 Ref. [2]_ pages 53--55.
             narrow_radius : float
                 Radius of the 1.250-in-OD connecting tube and upper shock
-                absorber. Defaults to the dimension in Ref. [2]_ page 55.
+                absorber. Defaults to the dimension in Ref. [2]_ pages 54--55.
             wide_radius : float
                 Radius of the 1.435-in-OD lower section and lower shock absorber.
-                Defaults to the dimension in Ref. [2]_ page 55.
+                Defaults to the dimension in Ref. [2]_ pages 54--55.
             disk_radius : float
                 Liner-region radius in cm. Defaults to 0.86995 cm,
                 per Ref. [2]_ pages 54--55.
@@ -1025,7 +1025,7 @@ class DefaultGeometries:
                 228, and 243.
             tube_2_solid_upper_region_length : float
                 Axial length of the modeled solid Tube #2 region above Tube #1
-                in cm. This is Defaults to 3.39830 cm,
+                in cm. This Defaults to 3.39830 cm,
                 per Ref. [3]_ pages 186--187, 222, 228, and 243.
             material : Optional[openmc.Material]
                 Casing-material override. Defaults to ``None``, which uses

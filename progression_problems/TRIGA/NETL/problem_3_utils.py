@@ -16,7 +16,7 @@ from coreforge.mpact_builder.builder_specs import DEFAULT_MPACT_MATERIAL_SPECS
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS, build_generic_openmc_tallies,
                                                    default_mpact_material_specs, get_pincell,
-                                                   build_coolant_pincell, default_mpact_reactor_specs)
+                                                   build_coolant_pincell)
 from progression_problems.TRIGA.NETL.problem_2_utils import DEFAULT_COOLANT_PINCELL_RADII
 
 
@@ -503,8 +503,7 @@ def write_mpact_input(reactor:             Reactor,
         NETL core pitch.
     reactor_build_specs : Optional[mpact_builder.triga.netl.Reactor.Specs]
         Specifications for building the MPACT reactor geometry. If omitted,
-        ``default_mpact_reactor_specs(reactor)`` supplies the NETL defaults,
-        including subdivision of the irradiator's outer coolant region.
+        uses ``mpact_builder.triga.netl.Reactor.Specs()``.
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
     states : List[Dict[str, str]]
@@ -519,7 +518,7 @@ def write_mpact_input(reactor:             Reactor,
     """
 
     specs = (reactor_build_specs if reactor_build_specs is not None else
-             default_mpact_reactor_specs(reactor))
+             mpact_builder.triga.netl.Reactor.Specs())
 
     default_mat_specs    = default_mpact_material_specs(reactor.get_materials())
     specs.material_specs = default_mat_specs | specs.material_specs
@@ -615,6 +614,8 @@ def _build_mpact_geometry(reactor:             Reactor,
                         region_specs = getattr(specs, three_element_pincell_section)
                         if isinstance(region_specs, list):
                             region_specs = region_specs[0]
+                        if region_specs is None:
+                            region_specs = specs.default_segment_specs
                         specs = region_specs.builder_specs if region_specs is not None else None
                     elif isinstance(specs, mpact_builder.triga.netl.TransientRod.Specs):
                         specs = getattr(specs, control_rod_specs.transient_rod_section).builder_specs

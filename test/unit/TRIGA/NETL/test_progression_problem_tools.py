@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 import pytest
 
 import progression_problems.TRIGA as TRIGA
@@ -7,8 +8,7 @@ from progression_problems.TRIGA.default_geometries import FuelSpec
 from progression_problems.TRIGA.NETL.default_geometries import cosd, sind
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, problem_3_utils, problem_4_utils, problem_5_utils
-from progression_problems.TRIGA.NETL.utils import (plot_model_2D, default_mpact_material_specs,
-                                                  default_mpact_reactor_specs)
+from progression_problems.TRIGA.NETL.utils import plot_model_2D, default_mpact_material_specs
 from progression_problems.constants import CM_PER_INCH
 from coreforge import mpact_builder, materials
 from coreforge.geometry_elements.triga.netl import (
@@ -47,6 +47,25 @@ def fuel_follower_control_rod():
 @pytest.fixture
 def coolant():
     return NETLDefaultMaterials.water()
+
+
+@pytest.fixture
+def three_element_irradiator_specs():
+    """Provide fresh meshing settings for the default modified irradiator."""
+    # Exterior subdivision provides radial interfaces in offset GCYL quadrants
+    # without refining the irradiator's physical cylindrical zones.
+    segment_specs = mpact_builder.triga.CoreElement.SegmentSpecs(
+        builder_specs=mpact_builder.CylindricalPinCell.Specs(
+            zone_specs=mpact_builder.CylindricalPinCell.meshing(ndivr_mat=1),
+            outer_zone_specs=mpact_builder.CylindricalPinCell.meshing(ndivr_mat=2),
+        ),
+    )
+    return mpact_builder.triga.netl.Reactor.CoreCellSpecs(
+        element_specs=mpact_builder.triga.netl.ModifiedThreeElementIrradiator.Specs(
+            default_segment_specs=segment_specs,
+        ),
+        outer_region_specs=deepcopy(segment_specs),
+    )
 
 
 def test_default_reactor_beam_port_placements():
@@ -296,10 +315,12 @@ def test_problem_3_openmc_tools():
                                                        excore_features   = excore)
             assert model is not None
 
-def test_problem_3_mpact_tools(num_procs):
+def test_problem_3_mpact_tools(num_procs, three_element_irradiator_specs):
     reactor = NETL.DefaultGeometries.reactor()
-    reactor_build_specs = default_mpact_reactor_specs(reactor)
-    reactor_build_specs.num_procs = num_procs
+    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(
+        num_procs=num_procs,
+        three_element_irradiator_specs=three_element_irradiator_specs,
+    )
 
     control_cases = [problem_3_utils.ControlRodSpecs(),
                      problem_3_utils.ControlRodSpecs(transient_rod_section="absorber",
@@ -376,12 +397,14 @@ def test_problem_5_openmc_tools():
     assert model is not None
 
 
-def test_problem_5_mpact_tools(num_procs):
+def test_problem_5_mpact_tools(num_procs, three_element_irradiator_specs):
     """Excluding excore build for the sake of expediency. It's already being tested in CoreForge."""
     reactor = NETL.DefaultGeometries.reactor()
-    reactor_build_specs = default_mpact_reactor_specs(reactor)
-    reactor_build_specs.num_procs = num_procs
-    reactor_build_specs.exclude_excore = True
+    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(
+        num_procs=num_procs,
+        exclude_excore=True,
+        three_element_irradiator_specs=three_element_irradiator_specs,
+    )
     problem_5_utils.write_mpact_input(reactor, reactor_build_specs=reactor_build_specs)
     assert os.path.exists("mpact.inp")
     os.remove("mpact.inp")

@@ -18,23 +18,30 @@ from progression_problems.constants import THERMAL_ENERGY_CUTOFF
 
 
 def get_pincell(element: CoreElement,
-                pincell_section: Optional[str] = None) -> CylindricalPinCell:
+                pincell_section: Optional[str | Tuple[str, int]] = None) -> CylindricalPinCell:
     """Retrieve a stored pincell section from a TRIGA core element.
 
     Parameters
     ----------
     element : CoreElement
         Element supplying the cross section.
-    pincell_section : Optional[str]
-        Key in ``element.pincell``. If omitted, use the standard section for
-        fuel, graphite, central thimble, source holder, or PNT. Rods and
-        irradiators require an explicit key. List-valued sections use their
-        first entry, ordered from bottom to top.
+    pincell_section : Optional[str | Tuple[str, int]]
+        Key in ``element.pincell``, or a ``(key, index)`` pair selecting a
+        subsection. Lists are ordered from bottom to top and use Python
+        indexing; a string selects index 0. Single-valued sections are treated
+        as one-entry lists. If omitted, use the standard section for fuel,
+        graphite, central thimble, source holder, or PNT. Rods and irradiators
+        require an explicit key.
 
     Returns
     -------
     CylindricalPinCell
         Selected stored cross section.
+
+    Raises
+    ------
+    ValueError
+        The section is missing or unavailable, or the index is out of range.
     """
     if pincell_section is None:
         if isinstance(element, FuelElement):
@@ -48,15 +55,24 @@ def get_pincell(element: CoreElement,
         elif isinstance(element, PNT):
             pincell_section = "wrapped_tube" if element.wrapper is not None else "tube"
 
+    section_name, index = (pincell_section if isinstance(pincell_section, tuple)
+                           else (pincell_section, 0))
     pincells = element.pincell
-    if pincell_section is None or pincell_section not in pincells:
+    if section_name is None or section_name not in pincells:
         raise ValueError(
             f"Select a pincell_section for {type(element).__name__} "
             f"from: {', '.join(pincells)}. Got {pincell_section!r}."
         )
-    pincell = pincells[pincell_section]
-    if isinstance(pincell, list):
-        pincell = pincell[0] if pincell else None
+    section_pincells = pincells[section_name]
+    if not isinstance(section_pincells, list):
+        section_pincells = [section_pincells]
+    try:
+        pincell = section_pincells[index]
+    except IndexError as exc:
+        raise ValueError(
+            f"Pincell section {section_name!r} on {element.name!r} has "
+            f"{len(section_pincells)} subsections; index {index} is out of range."
+        ) from exc
     if not isinstance(pincell, CylindricalPinCell):
         raise ValueError(f"Pincell section {pincell_section!r} is unavailable on {element.name!r}.")
     return pincell

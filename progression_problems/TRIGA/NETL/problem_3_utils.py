@@ -179,7 +179,8 @@ def build_core_lattice(reactor: Reactor,
                        control_rod_specs: ControlRodSpecs,
                        coolant_pincell_radii: Sequence[float],
                        pitch: float = NETL_DefaultGeometries.core().pitch,
-                       three_element_pincell_section: Optional[str] = "lower_b10_region") -> HexLattice:
+                       three_element_pincell_section: Optional[str | Tuple[str, int]] = "lower_b10_region",
+) -> HexLattice:
     """Build the 2D hex lattice for the TRIGA NETL core.
 
     Parameters
@@ -194,9 +195,12 @@ def build_core_lattice(reactor: Reactor,
     pitch : float
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
-    three_element_pincell_section : Optional[str]
-        Key in the three-element irradiator's ``pincell`` mapping. Defaults to
-        ``"lower_b10_region"`` for the detailed modified irradiator.
+    three_element_pincell_section : Optional[str | Tuple[str, int]]
+        Key in the three-element irradiator's ``pincell`` mapping, or a
+        ``(key, index)`` pair selecting a subsection using Python indexing in
+        bottom-to-top order. A string selects index 0. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator. Required
+        when an irradiator is present.
 
     Returns
     -------
@@ -414,7 +418,8 @@ def build_openmc_model(reactor:                  Reactor,
                        coolant_pincell_radii:    Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                        spectrum_group_structure: str = "MPACT-51",
                        pitch:                    float = NETL_DefaultGeometries.core().pitch,
-                       three_element_pincell_section: Optional[str] = "lower_b10_region") -> openmc.model.Model:
+                       three_element_pincell_section: Optional[str | Tuple[str, int]] = "lower_b10_region",
+) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
 
     Parameters
@@ -432,9 +437,12 @@ def build_openmc_model(reactor:                  Reactor,
     pitch : float
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
-    three_element_pincell_section : Optional[str]
-        Key in the three-element irradiator's ``pincell`` mapping. Defaults to
-        ``"lower_b10_region"`` for the detailed modified irradiator.
+    three_element_pincell_section : Optional[str | Tuple[str, int]]
+        Key in the three-element irradiator's ``pincell`` mapping, or a
+        ``(key, index)`` pair selecting a subsection using Python indexing in
+        bottom-to-top order. A string selects index 0. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator. Required
+        when an irradiator is present.
 
     Returns
     -------
@@ -485,7 +493,8 @@ def write_mpact_input(reactor:             Reactor,
                       states:              Optional[List[Dict[str, str]]] = None,
                       xsec_settings:       Optional[Dict[str, str]] = None,
                       options:             Optional[Dict[str, str]] = None,
-                      three_element_pincell_section: Optional[str] = "lower_b10_region") -> None:
+                      three_element_pincell_section: Optional[str | Tuple[str, int]] = "lower_b10_region",
+) -> None:
     """Write an MPACT input file for the TRIGA NETL reactor.
 
     Parameters
@@ -512,9 +521,12 @@ def write_mpact_input(reactor:             Reactor,
         The cross section settings to use in the MPACT input.
     options : Dict[str, str]
         The options settings to use in the MPACT input.
-    three_element_pincell_section : Optional[str]
-        Key in the three-element irradiator's ``pincell`` mapping. Defaults to
-        ``"lower_b10_region"`` for the detailed modified irradiator.
+    three_element_pincell_section : Optional[str | Tuple[str, int]]
+        Key in the three-element irradiator's ``pincell`` mapping, or a
+        ``(key, index)`` pair selecting a subsection using Python indexing in
+        bottom-to-top order. A string selects index 0. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator. Required
+        when an irradiator is present.
     """
 
     specs = (reactor_build_specs if reactor_build_specs is not None else
@@ -556,7 +568,7 @@ def _build_mpact_geometry(reactor:             Reactor,
                           coolant_pincell_radii: Sequence[float],
                           pitch:               float,
                           reactor_build_specs: mpact_builder.triga.netl.Reactor.Specs,
-                          three_element_pincell_section: Optional[str]) -> mpactpy.Core:
+                          three_element_pincell_section: Optional[str | Tuple[str, int]]) -> mpactpy.Core:
 
     openmc_model = build_openmc_model(reactor,
                                       control_rod_specs,
@@ -611,9 +623,13 @@ def _build_mpact_geometry(reactor:             Reactor,
                     elif (three_element_pincell_section is not None and
                           isinstance(specs, (mpact_builder.triga.netl.ThreeElementIrradiator.Specs,
                                              mpact_builder.triga.netl.ModifiedThreeElementIrradiator.Specs))):
-                        region_specs = getattr(specs, three_element_pincell_section)
+                        section_name, section_index = (
+                            three_element_pincell_section if isinstance(three_element_pincell_section, tuple)
+                            else (three_element_pincell_section, 0)
+                        )
+                        region_specs = getattr(specs, section_name)
                         if isinstance(region_specs, list):
-                            region_specs = region_specs[0]
+                            region_specs = region_specs[section_index]
                         if region_specs is None:
                             region_specs = specs.default_segment_specs
                         specs = region_specs.builder_specs if region_specs is not None else None

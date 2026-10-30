@@ -25,7 +25,7 @@ DEFAULT_COOLANT_PINCELL_RADII: Tuple[float, ...] = tuple(sorted({
 
 def build_openmc_model(fuel: FuelElement,
                        central_element: Optional[CoreElement],
-                       central_pincell_section: Optional[str] = None,
+                       central_pincell_section: Optional[str | Tuple[str, int]] = None,
                        coolant_pincell_radii: Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                        spectrum_group_structure: str = "MPACT-51",
                        pitch: float = NETL_DefaultGeometries.core().pitch,
@@ -39,14 +39,15 @@ def build_openmc_model(fuel: FuelElement,
     central_element : Optional[CoreElement]
         Element supplying the central cross section. Its stored pincells must
         contain the desired coolant. ``None`` represents a coolant-only location.
-    central_pincell_section : Optional[str]
+    central_pincell_section : Optional[str | Tuple[str, int]]
         Key in ``central_element.pincell``. Rods and irradiators require an
         explicit key, such as ``"absorber"``, ``"air_follower"``,
         ``"fuel_follower"``, ``"lined"``, ``"b4c_region"``, or
         ``"lower_b10_region"``. Simple elements use their standard section
-        when omitted. List-valued sections use the first entry, ordered from
-        bottom to top. Detailed or simplified sections follow the element's
-        configuration.
+        when omitted. A ``(key, index)`` pair selects a subsection using Python
+        indexing in bottom-to-top order; a string selects index 0. Single-valued
+        sections are treated as one-entry lists. Detailed or simplified
+        sections follow the element's configuration.
     coolant_pincell_radii : Sequence[float]
         Cylindrical mesh radii to use when ``central_element`` is ``None`` and
         a coolant-only pincell should be built.
@@ -92,7 +93,7 @@ def build_openmc_model(fuel: FuelElement,
 
 def write_mpact_input(fuel: FuelElement,
                       central_element: Optional[CoreElement],
-                      central_pincell_section: Optional[str] = None,
+                      central_pincell_section: Optional[str | Tuple[str, int]] = None,
                       coolant_pincell_radii: Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                       pitch: float = NETL_DefaultGeometries.core().pitch,
                       fuel_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
@@ -110,14 +111,15 @@ def write_mpact_input(fuel: FuelElement,
     central_element : Optional[CoreElement]
         Element supplying the central cross section. Its stored pincells must
         contain the desired coolant. ``None`` represents a coolant-only location.
-    central_pincell_section : Optional[str]
+    central_pincell_section : Optional[str | Tuple[str, int]]
         Key in ``central_element.pincell``. Rods and irradiators require an
         explicit key, such as ``"absorber"``, ``"air_follower"``,
         ``"fuel_follower"``, ``"lined"``, ``"b4c_region"``, or
         ``"lower_b10_region"``. Simple elements use their standard section
-        when omitted. List-valued sections use the first entry, ordered from
-        bottom to top. Detailed or simplified sections follow the element's
-        configuration.
+        when omitted. A ``(key, index)`` pair selects a subsection using Python
+        indexing in bottom-to-top order; a string selects index 0. Single-valued
+        sections are treated as one-entry lists. Detailed or simplified
+        sections follow the element's configuration.
     coolant_pincell_radii : Sequence[float]
         Cylindrical mesh radii to use when ``central_element`` is ``None`` and
         a coolant-only pincell should be built.

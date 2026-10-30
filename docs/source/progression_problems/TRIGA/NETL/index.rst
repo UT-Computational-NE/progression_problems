@@ -13,4 +13,5 @@ Research Laboratory (NETL).
    :maxdepth: 2
 
    system_specifications.rst
+   simplified_3L_derivation.rst
    problem_definitions/index

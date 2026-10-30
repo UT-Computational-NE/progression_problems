@@ -1,12 +1,12 @@
 from typing import List, Optional, Tuple, Dict, Sequence
+from copy import copy
 from dataclasses import dataclass
-from math import ceil, cos, radians, sin
+from math import ceil, cos, hypot, radians, sin, sqrt
 
 import openmc
 import mpactpy
-from coreforge.materials import Material
 from coreforge.shapes import Circle, Hexagon, Rectangle
-from coreforge.geometry_elements import HexLattice, InfiniteMedium
+from coreforge.geometry_elements import CylindricalPinCells, HexLattice, InfiniteMedium
 from coreforge.geometry_elements.triga.netl import Reactor, Core, RSRCavity
 from coreforge import openmc_builder
 from coreforge import mpact_builder
@@ -15,29 +15,34 @@ from coreforge.mpact_builder.builder_specs import DEFAULT_MPACT_MATERIAL_SPECS
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS, build_generic_openmc_tallies,
-                                                   default_mpact_material_specs)
-from progression_problems.TRIGA.NETL.problem_2_utils import DEFAULT_COOLANT_PINCELL_RADII, build_element_pincell_geometry
+                                                   default_mpact_material_specs, get_pincell,
+                                                   build_coolant_pincell)
+from progression_problems.TRIGA.NETL.problem_2_utils import DEFAULT_COOLANT_PINCELL_RADII
 
 
 @dataclass
 class ControlRodSpecs:
-    """ Specifications for the control rod positions for Problem 3
+    """Select control-rod pincell sections for Problem 3.
 
     Attributes
     ----------
-    transient_rod_inserted:  bool
-        Whether the transient control rod is inserted.
-    shim_1_rod_inserted:     bool
-        Whether the shim 1 control rod is inserted.
-    shim_2_rod_inserted:     bool
-        Whether the shim 2 control rod is inserted.
-    regulating_rod_inserted: bool
-        Whether the regulating control rod is inserted.
+    transient_rod_section : str
+        Key in the transient rod's ``pincell`` mapping. Defaults to
+        ``"air_follower"``; use ``"absorber"`` for the inserted rod.
+    shim_1_rod_section : str
+        Key in the shim 1 rod's ``pincell`` mapping. Defaults to
+        ``"fuel_follower"``; use ``"absorber"`` for the inserted rod.
+    shim_2_rod_section : str
+        Key in the shim 2 rod's ``pincell`` mapping. Defaults to
+        ``"fuel_follower"``; use ``"absorber"`` for the inserted rod.
+    regulating_rod_section : str
+        Key in the regulating rod's ``pincell`` mapping. Defaults to
+        ``"fuel_follower"``; use ``"absorber"`` for the inserted rod.
     """
-    transient_rod_inserted:  bool = False
-    shim_1_rod_inserted:     bool = False
-    shim_2_rod_inserted:     bool = False
-    regulating_rod_inserted: bool = False
+    transient_rod_section:  str = "air_follower"
+    shim_1_rod_section:     str = "fuel_follower"
+    shim_2_rod_section:     str = "fuel_follower"
+    regulating_rod_section: str = "fuel_follower"
 
 
 def build_no_excore(core_lattice: openmc.Universe,
@@ -171,26 +176,31 @@ def build_rsr_excore(reactor:      Reactor,
 
 
 def build_core_lattice(reactor: Reactor,
-                       coolant: openmc.Material,
                        control_rod_specs: ControlRodSpecs,
                        coolant_pincell_radii: Sequence[float],
-                       pitch: float = NETL_DefaultGeometries.core().pitch) -> HexLattice:
-    """Build the OpenMC hex lattice for the TRIGA NETL core.
+                       pitch: float = NETL_DefaultGeometries.core().pitch,
+                       three_element_pincell_section: Optional[str | Tuple[str, int]] = "lower_b10_region",
+) -> HexLattice:
+    """Build the 2D hex lattice for the TRIGA NETL core.
 
     Parameters
     ----------
     reactor : Reactor
         The TRIGA NETL reactor geometry element.
-    coolant : openmc.Material
-        The coolant material to use in the core lattice.
     control_rod_specs : ControlRodSpecs
-        The specifications for the control rod positions.
+        Named pincell sections to select for the control rods.
     coolant_pincell_radii : Sequence[float]
         Cylindrical mesh radii to use for coolant-only core locations with
         grid plate penetrations.
     pitch : float
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
+    three_element_pincell_section : Optional[str | Tuple[str, int]]
+        Key in the three-element irradiator's ``pincell`` mapping, or a
+        ``(key, index)`` pair selecting a subsection using Python indexing in
+        bottom-to-top order. A string selects index 0. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator. Required
+        when an irradiator is present.
 
     Returns
     -------
@@ -198,41 +208,60 @@ def build_core_lattice(reactor: Reactor,
         The Core Forge hex lattice representing the core.
     """
 
+    if reactor.core.three_element_irradiator is not None and three_element_pincell_section is None:
+        raise ValueError("three_element_pincell_section is required when a three-element irradiator is present.")
+
+    coolant = reactor.core.fill_material
     elements = []
     for location_ring, element_ring in zip(Core.RING_MAP, reactor.core.lattice.elements):
         entries = []
         for location, element in zip(location_ring, element_ring):
-            control_rod_inserted = False
+            is_three_element_location = (reactor.core.three_element_irradiator is not None
+                                         and location in Core.THREE_ELEMENT_LOCATIONS)
+            if is_three_element_location:
+                # Leave coolant beneath the facility; overlay its section once below.
+                entries.append(InfiniteMedium(coolant))
+                continue
+
+            pincell_section = None
             if element is reactor.core.transient_rod:
-                control_rod_inserted = control_rod_specs.transient_rod_inserted
+                pincell_section = control_rod_specs.transient_rod_section
             elif element is reactor.core.shim_1_rod:
-                control_rod_inserted = control_rod_specs.shim_1_rod_inserted
+                pincell_section = control_rod_specs.shim_1_rod_section
             elif element is reactor.core.shim_2_rod:
-                control_rod_inserted = control_rod_specs.shim_2_rod_inserted
+                pincell_section = control_rod_specs.shim_2_rod_section
             elif element is reactor.core.regulating_rod:
-                control_rod_inserted = control_rod_specs.regulating_rod_inserted
+                pincell_section = control_rod_specs.regulating_rod_section
 
             upper_penetration = reactor.upper_grid_plate.geometry.penetration_map[location]
             lower_penetration = reactor.lower_grid_plate.geometry.penetration_map[location]
-            assert (upper_penetration is None) == (lower_penetration is None)
 
-            if element is None and upper_penetration is None:
-                entry = InfiniteMedium(Material(coolant), name=f"{location}_core_periphery")
+            if element is None and not (upper_penetration or lower_penetration):
+                entry = InfiniteMedium(coolant, name=f"{location}_core_periphery")
+            elif element is None:
+                entry = build_coolant_pincell(coolant.openmc_material, coolant_pincell_radii)
             else:
-                entry = build_element_pincell_geometry(
-                    element,
-                    coolant,
-                    control_rod_inserted,
-                    coolant_pincell_radii,
-                )
+                entry = get_pincell(element, pincell_section)
             entries.append(entry)
         elements.append(entries)
 
-    return HexLattice(pitch          = pitch,
-                      outer_material = Material(coolant),
-                      elements       = elements,
-                      orientation    = 'y',
-                      map_type       = 'ring')
+    lattice = HexLattice(pitch          = pitch,
+                         outer_material = coolant,
+                         elements       = elements,
+                         orientation    = 'y',
+                         map_type       = 'ring')
+    if reactor.core.three_element_irradiator is not None:
+        # Use this lattice's centers so the centroid also follows a custom pitch.
+        centers = [center
+                   for locations, ring_centers in zip(Core.RING_MAP, lattice.cell_centers)
+                   for location, center in zip(locations, ring_centers)
+                   if location in Core.THREE_ELEMENT_LOCATIONS]
+        x0, y0 = (sum(coordinates) / len(centers) for coordinates in zip(*centers))
+        pincell = get_pincell(reactor.core.three_element_irradiator,
+                              three_element_pincell_section)
+        lattice = lattice.overlay(pincell.translate(dx=x0, dy=y0))
+
+    return lattice
 
 
 def build_pool_universe(reactor:      Reactor,
@@ -384,22 +413,21 @@ def build_rsr_universe(rsr: RSRCavity,
 
 
 def build_openmc_model(reactor:                  Reactor,
-                       coolant:                  openmc.Material,
                        control_rod_specs:        Optional[ControlRodSpecs] = None,
                        excore_features:          str = "none",
                        coolant_pincell_radii:    Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                        spectrum_group_structure: str = "MPACT-51",
-                       pitch:                    float = NETL_DefaultGeometries.core().pitch) -> openmc.model.Model:
+                       pitch:                    float = NETL_DefaultGeometries.core().pitch,
+                       three_element_pincell_section: Optional[str | Tuple[str, int]] = "lower_b10_region",
+) -> openmc.model.Model:
     """Build a multicell OpenMC Model.
 
     Parameters
     ----------
     reactor: Reactor
         The TRIGA NETL reactor geometry element.
-    coolant : openmc.Material
-        The coolant material to use in the core lattice.
     control_rod_specs : ControlRodSpecs
-        The specifications for the control rod positions. Defaults to all rods withdrawn.
+        Named pincell sections to select for the control rods.
     excore_features : str, optional
         The excore features to include in the model. Options are "none", "beamports", and "rsr"
     coolant_pincell_radii : Sequence[float]
@@ -409,6 +437,12 @@ def build_openmc_model(reactor:                  Reactor,
     pitch : float
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
+    three_element_pincell_section : Optional[str | Tuple[str, int]]
+        Key in the three-element irradiator's ``pincell`` mapping, or a
+        ``(key, index)`` pair selecting a subsection using Python indexing in
+        bottom-to-top order. A string selects index 0. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator. Required
+        when an irradiator is present.
 
     Returns
     -------
@@ -421,7 +455,10 @@ def build_openmc_model(reactor:                  Reactor,
     assert excore_features in ["none", "beamports", "rsr"], \
         f"Invalid excore_features option: {excore_features}. Must be one of 'none', 'beamports', or 'rsr'."
 
-    core_lattice   = build_core_lattice(reactor, coolant, control_rod_specs, coolant_pincell_radii, pitch)
+    core_lattice   = build_core_lattice(
+        reactor, control_rod_specs, coolant_pincell_radii, pitch,
+        three_element_pincell_section=three_element_pincell_section,
+    )
     core_lattice   = openmc_builder.build(core_lattice)
 
     if excore_features == "none":
@@ -447,7 +484,6 @@ def build_openmc_model(reactor:                  Reactor,
 
 
 def write_mpact_input(reactor:             Reactor,
-                      coolant:             openmc.Material,
                       control_rod_specs:   Optional[ControlRodSpecs] = None,
                       excore_features:     str = "none",
                       coolant_pincell_radii: Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
@@ -456,17 +492,17 @@ def write_mpact_input(reactor:             Reactor,
                       filename:            str = "mpact.inp",
                       states:              Optional[List[Dict[str, str]]] = None,
                       xsec_settings:       Optional[Dict[str, str]] = None,
-                      options:             Optional[Dict[str, str]] = None) -> None:
+                      options:             Optional[Dict[str, str]] = None,
+                      three_element_pincell_section: Optional[str | Tuple[str, int]] = "lower_b10_region",
+) -> None:
     """Write an MPACT input file for the TRIGA NETL reactor.
 
     Parameters
     ----------
     reactor: Reactor
         The TRIGA NETL reactor geometry element.
-    coolant : openmc.Material
-        The coolant material to use in the core lattice.
     control_rod_specs : ControlRodSpecs
-        The specifications for the control rod positions. Defaults to all rods withdrawn.
+        Named pincell sections to select for the control rods.
     excore_features : str, optional
         The excore features to include in the model. Options are "none", "beamports", and "rsr"
     coolant_pincell_radii : Sequence[float]
@@ -475,7 +511,8 @@ def write_mpact_input(reactor:             Reactor,
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
     reactor_build_specs : Optional[mpact_builder.triga.netl.Reactor.Specs]
-        The specifications for building the MPACT reactor geometry. If None, default specs are used.
+        Specifications for building the MPACT reactor geometry. If omitted,
+        uses ``mpact_builder.triga.netl.Reactor.Specs()``.
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
     states : List[Dict[str, str]]
@@ -484,9 +521,16 @@ def write_mpact_input(reactor:             Reactor,
         The cross section settings to use in the MPACT input.
     options : Dict[str, str]
         The options settings to use in the MPACT input.
+    three_element_pincell_section : Optional[str | Tuple[str, int]]
+        Key in the three-element irradiator's ``pincell`` mapping, or a
+        ``(key, index)`` pair selecting a subsection using Python indexing in
+        bottom-to-top order. A string selects index 0. Defaults to
+        ``"lower_b10_region"`` for the detailed modified irradiator. Required
+        when an irradiator is present.
     """
 
-    specs = reactor_build_specs or mpact_builder.triga.netl.Reactor.Specs()
+    specs = (reactor_build_specs if reactor_build_specs is not None else
+             mpact_builder.triga.netl.Reactor.Specs())
 
     default_mat_specs    = default_mpact_material_specs(reactor.get_materials())
     specs.material_specs = default_mat_specs | specs.material_specs
@@ -498,12 +542,12 @@ def write_mpact_input(reactor:             Reactor,
 
     geometry = _build_mpact_geometry(
         reactor,
-        coolant,
         control_rod_specs,
         excore_features,
         coolant_pincell_radii,
         pitch,
         specs,
+        three_element_pincell_section,
     )
     states = [dict(state) for state in (states or [DEFAULT_MPACT_SETTINGS["state"]])]
     xsec_settings = dict(xsec_settings or DEFAULT_MPACT_SETTINGS["xsec"])
@@ -519,32 +563,52 @@ def write_mpact_input(reactor:             Reactor,
 
 
 def _build_mpact_geometry(reactor:             Reactor,
-                          coolant:             openmc.Material,
                           control_rod_specs:   ControlRodSpecs,
                           excore_features:     str,
                           coolant_pincell_radii: Sequence[float],
                           pitch:               float,
-                          reactor_build_specs: mpact_builder.triga.netl.Reactor.Specs) -> mpactpy.Core:
+                          reactor_build_specs: mpact_builder.triga.netl.Reactor.Specs,
+                          three_element_pincell_section: Optional[str | Tuple[str, int]]) -> mpactpy.Core:
 
     openmc_model = build_openmc_model(reactor,
-                                      coolant,
                                       control_rod_specs,
                                       excore_features,
                                       coolant_pincell_radii,
-                                      pitch=pitch)
+                                      pitch=pitch,
+                                      three_element_pincell_section=three_element_pincell_section)
     openmc_universe = openmc_model.geometry.root_universe
 
-    lattice = build_core_lattice(reactor, coolant, control_rod_specs, coolant_pincell_radii, pitch)
+    lattice = build_core_lattice(
+        reactor, control_rod_specs, coolant_pincell_radii, pitch,
+        three_element_pincell_section=three_element_pincell_section,
+    )
+
+    irradiator_specs = None
+    if reactor.core.three_element_irradiator is not None:
+        cell_specs = reactor_build_specs.three_element_irradiator_specs
+        if cell_specs is not None and cell_specs.element_specs[0] is not None:
+            irradiator = reactor.core.three_element_irradiator
+            pincell = get_pincell(irradiator, three_element_pincell_section)
+            builder = mpact_builder.get_builder(irradiator)(cell_specs.element_specs[0])
+            _, stack_specs = builder.build_stack_and_specs(irradiator)
+            irradiator_specs = next(specs.builder_specs for segment, specs in stack_specs.segment_specs.items()
+                                    if segment.element is pincell)
+        irradiator_specs = copy(irradiator_specs or mpact_builder.CylindricalPinCell.Specs())
+        irradiator_specs.material_specs = reactor_build_specs.material_specs | irradiator_specs.material_specs
 
     element_specs = {}
     for i, ring in enumerate(Core.RING_MAP):
         for j, loc in enumerate(ring):
             element = reactor.core.full_map.get(loc, None)
-            specs   = reactor_build_specs.core_specs.get(loc, None)
+            is_three_element_location = (reactor.core.three_element_irradiator is not None
+                                         and loc in Core.THREE_ELEMENT_LOCATIONS)
+            specs = reactor_build_specs.core_specs.get(loc, None)
 
-            if specs:
+            if is_three_element_location:
+                specs = irradiator_specs
+            elif specs:
                 if element:
-                    specs = specs.element_specs
+                    specs = specs.element_specs[0]
                     if isinstance(specs, mpact_builder.triga.FuelElement.Specs):
                         specs = specs.fuel.builder_specs
                     elif isinstance(specs, mpact_builder.triga.GraphiteElement.Specs):
@@ -553,19 +617,31 @@ def _build_mpact_geometry(reactor:             Reactor,
                         specs = specs.pincell_specs
                     elif isinstance(specs, mpact_builder.triga.netl.SourceHolder.Specs):
                         specs = specs.cavity.builder_specs
+                    elif isinstance(specs, mpact_builder.triga.netl.PNT.Specs):
+                        section = "wrapped_tube" if element.wrapper is not None else "tube"
+                        specs = getattr(specs, section).builder_specs
+                    elif (three_element_pincell_section is not None and
+                          isinstance(specs, (mpact_builder.triga.netl.ThreeElementIrradiator.Specs,
+                                             mpact_builder.triga.netl.ModifiedThreeElementIrradiator.Specs))):
+                        section_name, section_index = (
+                            three_element_pincell_section if isinstance(three_element_pincell_section, tuple)
+                            else (three_element_pincell_section, 0)
+                        )
+                        region_specs = getattr(specs, section_name)
+                        if isinstance(region_specs, list):
+                            region_specs = region_specs[section_index]
+                        if region_specs is None:
+                            region_specs = specs.default_segment_specs
+                        specs = region_specs.builder_specs if region_specs is not None else None
                     elif isinstance(specs, mpact_builder.triga.netl.TransientRod.Specs):
-                        specs = specs.absorber.builder_specs if control_rod_specs.transient_rod_inserted else \
-                                specs.air_follower.builder_specs
+                        specs = getattr(specs, control_rod_specs.transient_rod_section).builder_specs
                     elif isinstance(specs, mpact_builder.triga.netl.FuelFollowerControlRod.Specs):
                         if element is reactor.core.shim_1_rod:
-                            specs = specs.absorber.builder_specs if control_rod_specs.shim_1_rod_inserted else \
-                                    specs.fuel_follower.builder_specs
+                            specs = getattr(specs, control_rod_specs.shim_1_rod_section).builder_specs
                         elif element is reactor.core.shim_2_rod:
-                            specs = specs.absorber.builder_specs if control_rod_specs.shim_2_rod_inserted else \
-                                    specs.fuel_follower.builder_specs
+                            specs = getattr(specs, control_rod_specs.shim_2_rod_section).builder_specs
                         elif element is reactor.core.regulating_rod:
-                            specs = specs.absorber.builder_specs if control_rod_specs.regulating_rod_inserted else \
-                                    specs.fuel_follower.builder_specs
+                            specs = getattr(specs, control_rod_specs.regulating_rod_section).builder_specs
                 else:
                     outer_region_specs = specs.outer_region_specs
                     if isinstance(outer_region_specs, mpact_builder.triga.CoreElement.SegmentSpecs):
@@ -584,7 +660,18 @@ def _build_mpact_geometry(reactor:             Reactor,
                 specs = (mpact_builder.InfiniteMedium.Specs()
                          if isinstance(lattice_element, InfiniteMedium)
                          else mpact_builder.CylindricalPinCell.Specs())
+            specs = copy(specs)
             specs.material_specs = reactor_build_specs.material_specs | specs.material_specs
+            if is_three_element_location or isinstance(lattice_element, CylindricalPinCells):
+                pincell = (lattice_element.pincells[-1]
+                           if isinstance(lattice_element, CylindricalPinCells) else lattice_element)
+                corner_radius = 0.5 * hypot(pitch, 0.5 * sqrt(3.0) * pitch)
+                pincell_specs = copy(irradiator_specs)
+                pincell_specs.outer_bounding_radius = corner_radius + hypot(pincell.x0, pincell.y0)
+                specs = (mpact_builder.CylindricalPinCells.Specs(
+                             pincell_specs={lattice_element.pincells[0]: specs,
+                                            pincell: pincell_specs})
+                         if isinstance(lattice_element, CylindricalPinCells) else pincell_specs)
             element_specs[lattice_element] = specs
 
     lattice_specs = mpact_builder.HexLattice.Specs(element_specs = element_specs,

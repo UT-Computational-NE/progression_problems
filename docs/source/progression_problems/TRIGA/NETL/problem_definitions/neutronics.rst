@@ -104,9 +104,9 @@ temperatures and densities are taken from Table 4.20 of Reference 1_ so as to be
 the range of anticipated operating conditions.
 
 For depletion assessments, target burnups are defined in effective full-power days (EFPD), based on a
-full-core power of 1 MW distributed across 110 fuel elements. Since this is a 2D single-element model,
+full-core power of 1 MW distributed across 109 fuel elements. Since this is a 2D single-element model,
 the applied model power should preserve the appropriate average power per element per unit height,
-(ex: :math:`1\,\mathrm{MW}\left(\frac{\text{model height}}{\text{fuel-meat height}}\right)\left(\frac{0.5\ \text{element in model}}{110\ \text{elements in core}}\right)`).
+(ex: :math:`1\,\mathrm{MW}\left(\frac{\text{model height}}{\text{fuel-meat height}}\right)\left(\frac{0.5\ \text{element in model}}{109\ \text{elements in core}}\right)`).
 The 2.0 EFPD and 20.0 EFPD targets were selected to represent the characteristic buildup periods of Xe-135
 and Sm-149, respectively. The 265.0 EFPD and 530.0 EFPD targets correspond approximately to
 middle-of-life (MOL) and end-of-life (EOL) element burnups, based on an estimated maximum fuel-element burnup
@@ -226,8 +226,14 @@ models to multi-pin configurations. :numref:`table-problem-2-definitions` summar
 considered in this progression-problem set.
 
 For depletion cases, the target burnup is again specified in EFPD, assuming a full-core power of 1 MW
-distributed over 110 fuel elements. Since this is a 2D model representing only a portion of the core,
+distributed over 109 fuel elements. Since this is a 2D model representing only a portion of the core,
 the applied model power must be scaled to maintain the correct average power per fuel element per unit height.
+
+The PNT and Cd-PNT cases use the unlined and lined configurations (with Cd) defined in
+:numref:`table-pnt-unlined` and :numref:`table-pnt-lined`, respectively. The Conv-3EL
+cases use the conventional 3-EL geometry in :numref:`table-three-element-geometry` with the indicated
+liner material Cd / Pb. The modified-3EL cases use radial sections through the B4C region and annular B-10
+region.
 
 .. _figure-triga-netl-problem_2:
 
@@ -241,33 +247,57 @@ the applied model power must be scaled to maintain the correct average power per
    :name: table-problem-2-definitions
 
 
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | Problem | Central Element       | Fuel / Zr Filler Temp. (K) | Non-Fuel Temp. (K) | Coolant Dens. (g/cc) | Burnup (EFPD) |
-   +=========+=======================+============================+====================+======================+===============+
-   | 2A      |   Water Hole          |  293.15                    |  293.15            |  0.9970              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2B      |   Water Hole          |  600.0                     |  322.15            |  0.9885              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2C      |   Water Hole          |  600.0                     |  293.15            |  0.9970              | 530.0         |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2D      |   Central Thimble     |  293.15                    |  293.15            |  0.9970              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2E      |   Central Thimble     |  600.0                     |  322.15            |  0.9885              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2F      |   Graphite Element    |  293.15                    |  293.15            |  0.9970              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2G      |   Graphite Element    |  600.0                     |  322.15            |  0.9885              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2H      |   TCR Air Follower    |  293.15                    |  293.15            |  0.9970              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2I      |   TCR Air Follower    |  600.0                     |  322.15            |  0.9885              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2J      |   TCR Absorber        |  293.15                    |  293.15            |  0.9970              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2K      |   TCR Absorber        |  600.0                     |  322.15            |  0.9885              | 0.0           |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
-   | 2L      |   TCR Absorber        |  600.0                     |  293.15            |  0.9970              | 530.0         |
-   +---------+-----------------------+----------------------------+--------------------+----------------------+---------------+
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | Problem | Central Element             | Fuel / Zr Filler Temp. (K) | Non-Fuel Temp. (K) | Coolant Dens. (g/cc) | Burnup (EFPD) |
+   +=========+=============================+============================+====================+======================+===============+
+   | 2A      |   Water Hole                |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2B      |   Water Hole                |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2C      |   Water Hole                |  600.0                     |  293.15            |  0.9970              | 530.0         |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2D      |   Central Thimble           |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2E      |   Central Thimble           |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2F      |   Graphite Element          |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2G      |   Graphite Element          |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2H      |   PNT                       |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2I      |   PNT                       |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2J      |   Cd-PNT                    |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2K      |   Cd-PNT                    |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2L      |   Conv-3EL Cd               |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2M      |   Conv-3EL Cd               |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2N      |   Conv-3EL Pb               |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2O      |   Conv-3EL Pb               |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2P      | Mod-3EL B4C Section         |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2Q      | Mod-3EL B4C Section         |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2R      | Mod-3EL Lower B-10 Section  |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2S      | Mod-3EL Lower B-10 Section  |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2T      |   TCR Air Follower          |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2U      |   TCR Air Follower          |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2V      |   TCR Absorber              |  293.15                    |  293.15            |  0.9970              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2W      |   TCR Absorber              |  600.0                     |  322.15            |  0.9885              | 0.0           |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
+   | 2X      |   TCR Absorber              |  600.0                     |  293.15            |  0.9970              | 530.0         |
+   +---------+-----------------------------+----------------------------+--------------------+----------------------+---------------+
 
 
 .. table:: Problem 2 Recommended Outputs
@@ -306,9 +336,13 @@ reflective boundary conditions are applied axially. For the beam-port variant, t
 at their full widths, corresponding to the beam-port radius at the beam-port centerline plane. For this
 progression-problem set, all core locations are loaded with fresh fuel elements except for the reserved positions
 identified in :numref:`reserved-core-locations`, which are occupied by the specified components. In
-addition, location G-32 is filled with a source holder, locations E-11, F-13, F-14, and G-34 are modeled as vacant
-water holes, and location D-03 contains a graphite element. :numref:`figure-reactor-radial-picture` illustrates the
-radial geometry of the two excore cases, while :numref:`table-problem-3-definitions` summarizes the remaining case specifications.
+addition, location G-32 is filled with a source holder, location G-34 contains the PNT, and locations
+E-11, F-13, and F-14 contain the modified 3-EL. The modified 3-EL is represented by the radial cross section
+through its lower annular B-10 region at the fuel centerline (:math:`z = 0`), using the detailed geometry
+in :numref:`table-modified-three-element-detailed-geometry`. Location G-24 is modeled as a vacant water hole, while
+location D-03 retains a graphite element. :numref:`figure-reactor-radial-picture` illustrates the radial
+geometry of the two excore cases, while :numref:`table-problem-3-definitions` summarizes the remaining
+case specifications.
 
 
 .. table:: Problem 3 Definitions
@@ -356,10 +390,17 @@ for testing control-rod motion within the multi-pin geometry, as well as axial d
 The corresponding geometry is shown in :numref:`figure-triga-netl-problem_4`, and the case specifications are summarized in
 :numref:`table-problem-4-definitions`. Axially, the models include the upper and lower grid plates together with
 pool-water regions extending to 80 cm above and below the fuel axial centerline.
+Any portions of geometry extending above or below this axial region may be treated as truncated.
 
-For depletion cases, the target burnup is again specified in EFPD, based on a full-core power of 1 MW distributed across 110
+For depletion cases, the target burnup is again specified in EFPD, based on a full-core power of 1 MW distributed across 109
 fuel elements. Because this model represents the full fuel height but not the full core, the applied model power should be
 scaled only as needed to preserve the appropriate average power per fuel element.
+
+The PNT and PNT-CD cases use the unlined and lined configurations (with Cd) defined in
+:numref:`table-pnt-unlined` and :numref:`table-pnt-lined`, respectively. The Conv-3EL Cd and
+Conv-3EL Pb cases use the conventional 3-EL geometry in :numref:`table-three-element-geometry`
+with the indicated liner material. The Mod-3EL case uses the simplified modified 3-EL geometry in
+:numref:`table-modified-three-element-simplified-geometry`.
 
 .. _figure-triga-netl-problem_4:
 
@@ -384,15 +425,25 @@ scaled only as needed to preserve the appropriate average power per fuel element
    +---------+----------------------+------------------+-----------------+----------------+---------+
    | 4C      |  Graphite Element    |  600.0           |  293.15         |  0.9970        |   0.0   |
    +---------+----------------------+------------------+-----------------+----------------+---------+
-   | 4D      |  Source Holder       |  600.0           |  293.15         |  0.9970        |   0.0   |
+   | 4D      |  PNT                 |  600.0           |  293.15         |  0.9970        |   0.0   |
    +---------+----------------------+------------------+-----------------+----------------+---------+
-   | 4E      |  TCR                 |  600.0           |  293.15         |  0.9970        |   0.0   |
+   | 4E      |  PNT-CD              |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4F      |  Conv-3EL Cd         |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4G      |  Conv-3EL Pb         |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4H      |  Mod-3EL             |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4I      |  Source Holder       |  600.0           |  293.15         |  0.9970        |   0.0   |
+   +---------+----------------------+------------------+-----------------+----------------+---------+
+   | 4J      |  TCR                 |  600.0           |  293.15         |  0.9970        |   0.0   |
    |         |  (0%-100% Withdrawn) |                  |                 |                |         |
    +---------+----------------------+------------------+-----------------+----------------+---------+
-   | 4F      |  FCCR                |  600.0           |  293.15         |  0.9970        |   0.0   |
+   | 4K      |  FCCR                |  600.0           |  293.15         |  0.9970        |   0.0   |
    |         |  (0%-100% Withdrawn) |                  |                 |                |         |
    +---------+----------------------+------------------+-----------------+----------------+---------+
-   | 4G      |  FCCR                |  600.0           |  293.15         |  0.9970        |  530.0  |
+   | 4L      |  FCCR                |  600.0           |  293.15         |  0.9970        |  530.0  |
    |         |  (80% Withdrawn)     |                  |                 |                |         |
    +---------+----------------------+------------------+-----------------+----------------+---------+
 
@@ -421,6 +472,7 @@ cylindrical beam ports, axial core-element structures, and the rotary specimen r
 radial vacuum boundary conditions. The geometry for this set is shown in :numref:`figure-reactor-radial-picture`,
 and :numref:`figure-reactor-axial-picture`, and the corresponding case specifications are summarized in :numref:`table-problem-5-definitions`.
 Axially, the models include upper and lower pool-water regions extending to 80 cm above and below the fuel axial centerline.
+Any portions of geometry extending above or below this axial region may be treated as truncated.
 
 .. table:: Problem 5 Definitions
    :name: table-problem-5-definitions
@@ -486,4 +538,3 @@ See Also
 * :ref:`TRIGA General Specifications <progression_problems_triga_system_specifications>`
 * :ref:`NETL TRIGA System Specifications <progression_problems_triga_netl_system_specifications>`
 * :ref:`Python Tools for NETL TRIGA <python_tools_triga_netl>`
-

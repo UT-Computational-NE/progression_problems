@@ -83,7 +83,8 @@ def write_mpact_input(reactor:             Reactor,
     reactor : Reactor
         The TRIGA NETL reactor geometry element.
     reactor_build_specs : Optional[mpact_builder.triga.netl.Reactor.Specs]
-        The specifications for building the MPACT reactor geometry. If None, default specs are used.
+        Specifications for building the MPACT reactor geometry. If omitted,
+        uses ``mpact_builder.triga.netl.Reactor.Specs()``.
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
     states : List[Dict[str, str]]
@@ -94,7 +95,8 @@ def write_mpact_input(reactor:             Reactor,
         The options settings to use in the MPACT input.
     """
 
-    specs = reactor_build_specs or mpact_builder.triga.netl.Reactor.Specs()
+    specs = (reactor_build_specs if reactor_build_specs is not None else
+             mpact_builder.triga.netl.Reactor.Specs())
 
     default_mat_specs    = default_mpact_material_specs(reactor.get_materials())
     specs.material_specs = default_mat_specs | specs.material_specs

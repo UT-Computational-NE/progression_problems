@@ -2,12 +2,8 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import openmc
 import mpactpy
-from coreforge.geometry_elements import HexLattice
-from coreforge.geometry_elements import CylindricalPinCell
-from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder, TransientRod,
-                                                    FuelFollowerControlRod, Core)
-from coreforge.materials import Material
+from coreforge.geometry_elements import CylindricalPinCells
+from coreforge.geometry_elements.triga import CoreElement, FuelElement
 from coreforge import openmc_builder
 from coreforge import mpact_builder
 
@@ -15,195 +11,21 @@ from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries
 from progression_problems.TRIGA.NETL.problem_1_utils import (apply_default_mpact_material_specs,
                                                              lattice_dims)
 from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS,
+                                                   get_pincell,
+                                                   build_coolant_pincell,
+                                                   build_multicell_geometry,
                                                    build_generic_openmc_tallies)
 
 
 DEFAULT_COOLANT_PINCELL_RADII: Tuple[float, ...] = tuple(sorted({
-    NETL_DefaultGeometries.upper_grid_plate().penetration_map["B-01"],
-    NETL_DefaultGeometries.lower_grid_plate().penetration_map["B-01"],
+    NETL_DefaultGeometries.upper_grid_plate().penetration_map["B-01"][0][0],
+    NETL_DefaultGeometries.lower_grid_plate().penetration_map["B-01"][0][0],
 }))
 
 
-def build_coolant_pincell(coolant: openmc.Material,
-                          radii: Sequence[float]) -> CylindricalPinCell:
-    """Build a coolant-only cylindrical pincell.
-
-    Parameters
-    ----------
-    coolant : openmc.Material
-        Coolant material to fill all regions.
-    radii : Sequence[float]
-        Cylindrical mesh radii for the coolant-only pincell.
-
-    Returns
-    -------
-    CylindricalPinCell
-        Coolant-only cylindrical pincell.
-    """
-    filtered_radii = sorted(set(radii))
-    assert filtered_radii, "radii must contain at least one value."
-    assert all(radius > 0.0 for radius in filtered_radii), "All coolant pincell radii must be positive."
-    coolant_material = Material(coolant)
-    return CylindricalPinCell(
-        radii=filtered_radii,
-        materials=[coolant_material for _ in range(len(filtered_radii) + 1)],
-        name="coolant_pincell",
-    )
-
-
-def build_element_pincell_geometry(element: Optional[Core.Element],
-                                   coolant: openmc.Material,
-                                   control_rod_inserted: bool,
-                                   coolant_pincell_radii: Sequence[float]) -> CylindricalPinCell:
-    """Build a pincell CoreForge geometry for a given TRIGA core element.
-
-    Parameters
-    ----------
-    element : Optional[Core.Element]
-        The TRIGA core element to build the pincell geometry for.
-        If None, this will return a pincell with only coolant.
-    coolant : openmc.Material
-        The coolant material to use in the pincell geometry.
-    control_rod_inserted : bool
-        Whether the control rod is inserted or not (only applies to control rod models).
-    coolant_pincell_radii : Sequence[float]
-        Cylindrical mesh radii to use when ``element`` is ``None`` and a
-        coolant-only pincell should be built.
-
-    Returns
-    -------
-    CylindricalPinCell
-        The constructed pincell geometry.
-    """
-
-    if element is None:
-        pincell = build_coolant_pincell(coolant, coolant_pincell_radii)
-
-    elif isinstance(element, FuelElement):
-        pincell = FuelElement.build_fuel_meat_pincell(cladding       = element.cladding,
-                                                      fuel_meat      = element.fuel_meat,
-                                                      zr_fill_rod    = element.zr_fill_rod,
-                                                      fill_gas       = element.fill_gas,
-                                                      outer_material = Material(coolant),
-                                                      gap_tolerance  = element.gap_tolerance,
-                                                      name           = element.name + "_fuel_meat_pincell")
-
-    elif isinstance(element, GraphiteElement):
-        pincell = GraphiteElement.build_graphite_meat_pincell(cladding       = element.cladding,
-                                                              graphite_meat  = element.graphite_meat,
-                                                              outer_material = Material(coolant))
-
-    elif isinstance(element, CentralThimble):
-        pincell = CentralThimble.build_thimble_pincell(cladding       = element.cladding,
-                                                       fill_material  = Material(coolant),
-                                                       outer_material = Material(coolant))
-
-    elif isinstance(element, SourceHolder):
-        pincell = SourceHolder.build_cavity_pincell(cavity         = element.cavity,
-                                                    cladding       = element.cladding,
-                                                    outer_material = Material(coolant),
-                                                    gap_tolerance  = None)
-
-    elif isinstance(element, TransientRod):
-        air_follower = TransientRod.build_air_follower_pincell(cladding       = element.cladding,
-                                                               fill_gas       = element.fill_gas,
-                                                               outer_material = Material(coolant))
-
-        absorber     = TransientRod.build_absorber_pincell(cladding       = element.cladding,
-                                                           absorber       = element.absorber,
-                                                           fill_gas       = element.fill_gas,
-                                                           outer_material = Material(coolant),
-                                                           gap_tolerance  = None)
-
-        pincell = absorber if control_rod_inserted else air_follower
-
-    elif isinstance(element, FuelFollowerControlRod):
-        fuel_follower = FuelFollowerControlRod.build_fuel_follower_pincell(cladding       = element.cladding,
-                                                                           fuel_follower  = element.fuel_follower,
-                                                                           zr_fill_rod    = element.zr_fill_rod,
-                                                                           fill_gas       = element.fill_gas,
-                                                                           outer_material = Material(coolant),
-                                                                           gap_tolerance  = None)
-
-        absorber = FuelFollowerControlRod.build_absorber_pincell(cladding       = element.cladding,
-                                                                 absorber       = element.absorber,
-                                                                 fill_gas       = element.fill_gas,
-                                                                 outer_material = Material(coolant),
-                                                                 gap_tolerance  = None)
-
-        pincell = absorber if control_rod_inserted else fuel_follower
-
-    else:
-        raise ValueError(f"Unsupported element type: {type(element)}")
-
-    return pincell
-
-
-def build_multicell_geometry(fuel:                 FuelElement,
-                             coolant:              openmc.Material,
-                             central_element:      Optional[Core.Element],
-                             control_rod_inserted: bool = False,
-                             coolant_pincell_radii: Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
-                             pitch:                float = NETL_DefaultGeometries.core().pitch,
-                             build_2D_pincells: bool = True,
-    ) -> HexLattice:
-    """ Build a multicell CoreForge geometry for a fuel design,
-        central element, and coolant material.
-
-    Parameters
-    ----------
-    fuel : FuelElement
-        The TRIGA fuel element to build the fuel cells with.
-    coolant : openmc.Material
-        The coolant material to use in the multicell geometry.
-    central_element : Optional[Core.Element]
-        The central element to include in the multicell geometry.
-    control_rod_inserted : bool
-        Whether the control rod is inserted or not (only applies to control rod models).
-        Default is False.
-    coolant_pincell_radii : Sequence[float]
-        Cylindrical mesh radii to use when ``central_element`` is ``None`` and
-        a coolant-only pincell should be built.
-    pitch : float
-        Hexagonal lattice pitch to use for the multicell geometry. Defaults to
-        the NETL core pitch.
-    build_2D_pincells : bool
-        Whether to build 2-D pincell representations for the lattice elements.
-        Set to False to return the raw element lattice.
-
-    Returns
-    -------
-    HexLattice
-        The constructed multicell geometry.
-    """
-
-    f = fuel
-    c = central_element
-    lattice = [[         f,         ],
-               [     f,      f,     ],
-               [ f,      f,      f, ],
-               [     f,      f,     ],
-               [ f,      c,      f, ],
-               [     f,      f,     ],
-               [ f,      f,      f, ],
-               [     f,      f,     ],
-               [         f,         ]]
-
-    elements = lattice
-    if build_2D_pincells:
-        elements = [[build_element_pincell_geometry(e, coolant, control_rod_inserted, coolant_pincell_radii)
-                     for e in row] for row in lattice]
-
-    return HexLattice(pitch          = pitch,
-                      outer_material = Material(coolant),
-                      elements       = elements,
-                      orientation    = 'y')
-
-
 def build_openmc_model(fuel: FuelElement,
-                       coolant: openmc.Material,
-                       central_element: Optional[Core.Element],
-                       control_rod_inserted: bool = False,
+                       central_element: Optional[CoreElement],
+                       central_pincell_section: Optional[str | Tuple[str, int]] = None,
                        coolant_pincell_radii: Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                        spectrum_group_structure: str = "MPACT-51",
                        pitch: float = NETL_DefaultGeometries.core().pitch,
@@ -213,14 +35,19 @@ def build_openmc_model(fuel: FuelElement,
     Parameters
     ----------
     fuel : FuelElement
-        The TRIGA fuel element to build the fuel cells with.
-    coolant : openmc.Material
-        The coolant material to use in the multicell geometry.
-    central_element : Optional[Core.Element]
-        The central element to include in the multicell geometry.
-    control_rod_inserted : bool
-        Whether the control rod is inserted or not (only applies to control rod models).
-        Default is False.
+        Fuel element supplying the first fuel section and the lattice coolant.
+    central_element : Optional[CoreElement]
+        Element supplying the central cross section. Its stored pincells must
+        contain the desired coolant. ``None`` represents a coolant-only location.
+    central_pincell_section : Optional[str | Tuple[str, int]]
+        Key in ``central_element.pincell``. Rods and irradiators require an
+        explicit key, such as ``"absorber"``, ``"air_follower"``,
+        ``"fuel_follower"``, ``"lined"``, ``"b4c_region"``, or
+        ``"lower_b10_region"``. Simple elements use their standard section
+        when omitted. A ``(key, index)`` pair selects a subsection using Python
+        indexing in bottom-to-top order; a string selects index 0. Single-valued
+        sections are treated as one-entry lists. Detailed or simplified
+        sections follow the element's configuration.
     coolant_pincell_radii : Sequence[float]
         Cylindrical mesh radii to use when ``central_element`` is ``None`` and
         a coolant-only pincell should be built.
@@ -237,14 +64,11 @@ def build_openmc_model(fuel: FuelElement,
     """
 
     dims           = lattice_dims(pitch)
-    lattice        = build_multicell_geometry(
-        fuel,
-        coolant,
-        central_element,
-        control_rod_inserted,
-        coolant_pincell_radii,
-        pitch,
-    )
+    fuel_pincell = get_pincell(fuel)
+    central_pincell = (get_pincell(central_element, central_pincell_section)
+                      if central_element is not None else
+                      build_coolant_pincell(fuel.outer_material.openmc_material, coolant_pincell_radii))
+    lattice        = build_multicell_geometry(fuel_pincell, central_pincell, pitch)
     lattice        = openmc_builder.build(lattice)
     outer_surface = openmc.model.RectangularPrism(width         = dims["width"] * 8,
                                                   height        = dims["height"] * 6,
@@ -268,9 +92,8 @@ def build_openmc_model(fuel: FuelElement,
 
 
 def write_mpact_input(fuel: FuelElement,
-                      coolant: openmc.Material,
-                      central_element: Optional[Core.Element],
-                      control_rod_inserted: bool = False,
+                      central_element: Optional[CoreElement],
+                      central_pincell_section: Optional[str | Tuple[str, int]] = None,
                       coolant_pincell_radii: Sequence[float] = DEFAULT_COOLANT_PINCELL_RADII,
                       pitch: float = NETL_DefaultGeometries.core().pitch,
                       fuel_build_specs: Optional[mpact_builder.CylindricalPinCell.Specs] = None,
@@ -279,19 +102,24 @@ def write_mpact_input(fuel: FuelElement,
                       states: Optional[List[Dict[str, str]]] = None,
                       xsec_settings: Optional[Dict[str, str]] = None,
                       options: Optional[Dict[str, str]] = None) -> None:
-    """Write the MPACT input for a given TRIGA fuel element, coolant, and central element.
+    """Write the MPACT input for a TRIGA fuel element and central element.
 
     Parameters
     ----------
     fuel : FuelElement
-        The TRIGA fuel element to use for building the multicell geometry.
-    coolant : openmc.Material
-        The coolant material to use in the multicell geometry.
-    central_element : Optional[Core.Element]
-        The central element to use for building the multicell geometry.
-    control_rod_inserted : bool
-        Whether the control rod is inserted or not (only applies to control rod models).
-        Default is False.
+        Fuel element supplying the first fuel section and the lattice coolant.
+    central_element : Optional[CoreElement]
+        Element supplying the central cross section. Its stored pincells must
+        contain the desired coolant. ``None`` represents a coolant-only location.
+    central_pincell_section : Optional[str | Tuple[str, int]]
+        Key in ``central_element.pincell``. Rods and irradiators require an
+        explicit key, such as ``"absorber"``, ``"air_follower"``,
+        ``"fuel_follower"``, ``"lined"``, ``"b4c_region"``, or
+        ``"lower_b10_region"``. Simple elements use their standard section
+        when omitted. A ``(key, index)`` pair selects a subsection using Python
+        indexing in bottom-to-top order; a string selects index 0. Single-valued
+        sections are treated as one-entry lists. Detailed or simplified
+        sections follow the element's configuration.
     coolant_pincell_radii : Sequence[float]
         Cylindrical mesh radii to use when ``central_element`` is ``None`` and
         a coolant-only pincell should be built.
@@ -314,22 +142,24 @@ def write_mpact_input(fuel: FuelElement,
         The options settings to use in the MPACT input.
     """
 
-    lattice         = build_multicell_geometry(
-        fuel,
-        coolant,
-        central_element,
-        control_rod_inserted,
-        coolant_pincell_radii,
-        pitch,
-    )
-    fuel            = lattice.elements[0][0]
-    central_element = lattice.elements[-1][0]
+    fuel_pincell = get_pincell(fuel)
+    central_pincell = (get_pincell(central_element, central_pincell_section)
+                      if central_element is not None else
+                      build_coolant_pincell(fuel.outer_material.openmc_material, coolant_pincell_radii))
+    lattice = build_multicell_geometry(fuel_pincell, central_pincell, pitch)
 
-    fuel_build_specs    = apply_default_mpact_material_specs(fuel_build_specs, fuel.get_materials())
-    element_build_specs = apply_default_mpact_material_specs(element_build_specs, central_element.get_materials())
+    fuel_build_specs    = apply_default_mpact_material_specs(fuel_build_specs, fuel_pincell.get_materials())
+    element_build_specs = apply_default_mpact_material_specs(element_build_specs, central_pincell.get_materials())
 
-    specs    = mpact_builder.HexLattice.Specs(element_specs = {fuel:            fuel_build_specs,
-                                                               central_element: element_build_specs})
+    specs    = mpact_builder.HexLattice.Specs(element_specs = {fuel_pincell:    fuel_build_specs,
+                                                               central_pincell: element_build_specs})
+    for ring in lattice.elements:
+        for element in ring:
+            if isinstance(element, CylindricalPinCells):
+                specs.element_specs[element] = mpact_builder.CylindricalPinCells.Specs(
+                    pincell_specs={element.pincells[0]: fuel_build_specs,
+                                   element.pincells[1]: element_build_specs},
+                )
 
     # Build the full hex lattice and then trim to the progression problem domain
     # (i.e. remove top and bottom 3 rows and leftmost and rightmost 2 columns)
@@ -342,7 +172,7 @@ def write_mpact_input(fuel: FuelElement,
     options = dict(options or DEFAULT_MPACT_SETTINGS["options"])
 
     for state in states:
-        state["tinlet"] = state.get("tinlet", f"{coolant.temperature} K")
+        state["tinlet"] = state.get("tinlet", f"{fuel.outer_material.temperature} K")
 
     options["bound_cond"] = "1 1 1 1 1 1"
 

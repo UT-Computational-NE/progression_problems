@@ -18,8 +18,8 @@ from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS,
 
 
 DEFAULT_COOLANT_PINCELL_RADII: Tuple[float, ...] = tuple(sorted({
-    NETL_DefaultGeometries.upper_grid_plate().penetration_map["B-01"],
-    NETL_DefaultGeometries.lower_grid_plate().penetration_map["B-01"],
+    NETL_DefaultGeometries.upper_grid_plate().penetration_map["B-01"][0][0],
+    NETL_DefaultGeometries.lower_grid_plate().penetration_map["B-01"][0][0],
 }))
 
 

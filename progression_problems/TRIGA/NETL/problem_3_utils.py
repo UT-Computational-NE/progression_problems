@@ -5,7 +5,6 @@ from math import ceil, cos, hypot, radians, sin, sqrt
 
 import openmc
 import mpactpy
-from coreforge.materials import Material
 from coreforge.shapes import Circle, Hexagon, Rectangle
 from coreforge.geometry_elements import CylindricalPinCells, HexLattice, InfiniteMedium
 from coreforge.geometry_elements.triga.netl import Reactor, Core, RSRCavity
@@ -17,7 +16,7 @@ from coreforge.mpact_builder.builder_specs import DEFAULT_MPACT_MATERIAL_SPECS
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
 from progression_problems.TRIGA.NETL.utils import (DEFAULT_MPACT_SETTINGS, build_generic_openmc_tallies,
                                                    default_mpact_material_specs, get_pincell,
-                                                   build_coolant_pincell)
+                                                   build_coolant_pincell, default_mpact_reactor_specs)
 from progression_problems.TRIGA.NETL.problem_2_utils import DEFAULT_COOLANT_PINCELL_RADII
 
 
@@ -232,9 +231,8 @@ def build_core_lattice(reactor: Reactor,
 
             upper_penetration = reactor.upper_grid_plate.geometry.penetration_map[location]
             lower_penetration = reactor.lower_grid_plate.geometry.penetration_map[location]
-            assert (upper_penetration is None) == (lower_penetration is None)
 
-            if element is None and upper_penetration is None:
+            if element is None and not (upper_penetration or lower_penetration):
                 entry = InfiniteMedium(coolant, name=f"{location}_core_periphery")
             elif element is None:
                 entry = build_coolant_pincell(coolant.openmc_material, coolant_pincell_radii)
@@ -504,7 +502,9 @@ def write_mpact_input(reactor:             Reactor,
         Hexagonal lattice pitch to use for the core lattice. Defaults to the
         NETL core pitch.
     reactor_build_specs : Optional[mpact_builder.triga.netl.Reactor.Specs]
-        The specifications for building the MPACT reactor geometry. If None, default specs are used.
+        Specifications for building the MPACT reactor geometry. If omitted,
+        ``default_mpact_reactor_specs(reactor)`` supplies the NETL defaults,
+        including subdivision of the irradiator's outer coolant region.
     filename : str
         The filename to write the MPACT input to. (Default: "mpact.inp")
     states : List[Dict[str, str]]
@@ -518,7 +518,8 @@ def write_mpact_input(reactor:             Reactor,
         ``"lower_b10_region"`` for the detailed modified irradiator.
     """
 
-    specs = reactor_build_specs or mpact_builder.triga.netl.Reactor.Specs()
+    specs = (reactor_build_specs if reactor_build_specs is not None else
+             default_mpact_reactor_specs(reactor))
 
     default_mat_specs    = default_mpact_material_specs(reactor.get_materials())
     specs.material_specs = default_mat_specs | specs.material_specs
@@ -575,8 +576,12 @@ def _build_mpact_geometry(reactor:             Reactor,
     if reactor.core.three_element_irradiator is not None:
         cell_specs = reactor_build_specs.three_element_irradiator_specs
         if cell_specs is not None and cell_specs.element_specs[0] is not None:
-            irradiator_specs = getattr(cell_specs.element_specs[0],
-                                       three_element_pincell_section).builder_specs
+            irradiator = reactor.core.three_element_irradiator
+            pincell = get_pincell(irradiator, three_element_pincell_section)
+            builder = mpact_builder.get_builder(irradiator)(cell_specs.element_specs[0])
+            _, stack_specs = builder.build_stack_and_specs(irradiator)
+            irradiator_specs = next(specs.builder_specs for segment, specs in stack_specs.segment_specs.items()
+                                    if segment.element is pincell)
         irradiator_specs = copy(irradiator_specs or mpact_builder.CylindricalPinCell.Specs())
         irradiator_specs.material_specs = reactor_build_specs.material_specs | irradiator_specs.material_specs
 
@@ -607,7 +612,10 @@ def _build_mpact_geometry(reactor:             Reactor,
                     elif (three_element_pincell_section is not None and
                           isinstance(specs, (mpact_builder.triga.netl.ThreeElementIrradiator.Specs,
                                              mpact_builder.triga.netl.ModifiedThreeElementIrradiator.Specs))):
-                        specs = getattr(specs, three_element_pincell_section).builder_specs
+                        region_specs = getattr(specs, three_element_pincell_section)
+                        if isinstance(region_specs, list):
+                            region_specs = region_specs[0]
+                        specs = region_specs.builder_specs if region_specs is not None else None
                     elif isinstance(specs, mpact_builder.triga.netl.TransientRod.Specs):
                         specs = getattr(specs, control_rod_specs.transient_rod_section).builder_specs
                     elif isinstance(specs, mpact_builder.triga.netl.FuelFollowerControlRod.Specs):

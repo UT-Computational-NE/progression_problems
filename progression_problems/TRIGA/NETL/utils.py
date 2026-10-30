@@ -7,10 +7,10 @@ from matplotlib.patches import Patch
 import mpactpy
 import openmc
 
-from coreforge import materials
+from coreforge import materials, mpact_builder
 from coreforge.geometry_elements import CylindricalPinCell, PinCellStack, HexLattice
 from coreforge.geometry_elements.triga import CoreElement, FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import CentralThimble, SourceHolder, PNT
+from coreforge.geometry_elements.triga.netl import CentralThimble, SourceHolder, PNT, Reactor
 from coreforge.materials.material import Material
 from coreforge.mpact_builder.builder_specs import MaterialSpecs, DEFAULT_MPACT_MATERIAL_SPECS
 
@@ -242,6 +242,79 @@ DEFAULT_MPACT_MATERIAL_SPECS_MAPPING: Dict[str, mpactpy.Material.MPACTSpecs] = {
         exclude=["Zr91","Zr93","Zr95","Zr96"]
     ),
 }
+
+def default_mpact_reactor_specs(reactor: Reactor) -> mpact_builder.triga.netl.Reactor.Specs:
+    """Create default MPACT build specifications for a NETL reactor.
+
+    Parameters
+    ----------
+    reactor : Reactor
+        Reactor supplying the optional three-element irradiator geometry.
+
+    Returns
+    -------
+    mpact_builder.triga.netl.Reactor.Specs
+        Fresh reactor specifications with two material divisions in each
+        irradiator pin cell's outer region. Physical cylindrical zones retain
+        one division. Modified-irradiator feature lists contain one segment spec
+        per pin cell, in the geometry's bottom-to-top order. Other settings
+        retain the CoreForge defaults.
+
+    Notes
+    -----
+    The offset three-element irradiator can leave rectangular MPACT quadrants
+    entirely enclosed within its physical cylinders. A GCYL mesh requires a radial
+    interface intersecting each quadrant. Subdividing the outer coolant adds
+    an interface for the default NETL layout without refining physical zones.
+    This is a NETL meshing choice, not a guarantee for arbitrary lattice pitches
+    or offsets. Callers may modify the returned specifications before building.
+    """
+    specs = mpact_builder.triga.netl.Reactor.Specs()
+    irradiator = reactor.core.three_element_irradiator
+    if irradiator is None:
+        return specs
+
+    element_specs = mpact_builder.get_builder(irradiator).Specs()
+    if isinstance(irradiator, PinCellStack):
+        element_specs.segment_specs = {
+            segment: _default_irradiator_segment_specs(len(segment.element.zones))
+            for segment in irradiator.segments
+        }
+    else:
+        for name, pincells in irradiator.pincell.items():
+            if isinstance(pincells, list):
+                region_specs = [_default_irradiator_segment_specs(len(pincell.zones))
+                                for pincell in pincells]
+            else:
+                region_specs = _default_irradiator_segment_specs(len(pincells.zones))
+            setattr(element_specs, name, region_specs)
+    specs.three_element_irradiator_specs = mpact_builder.triga.netl.Reactor.CoreCellSpecs(
+        element_specs=element_specs,
+        outer_region_specs=_default_irradiator_segment_specs(1),
+    )
+    return specs
+
+
+def _default_irradiator_segment_specs(num_zones: int) -> mpact_builder.triga.CoreElement.SegmentSpecs:
+    """Create segment specifications that divide only the outer radial region.
+
+    Parameters
+    ----------
+    num_zones : int
+        Number of physical cylindrical zones in the pin cell.
+
+    Returns
+    -------
+    mpact_builder.triga.CoreElement.SegmentSpecs
+        One material division per physical zone and two in the outer region.
+    """
+    return mpact_builder.triga.CoreElement.SegmentSpecs(
+        builder_specs=mpact_builder.CylindricalPinCell.Specs(
+            zone_specs=mpact_builder.CylindricalPinCell.meshing(
+                ndivr_mat=[1] * num_zones + [2],
+            ),
+        ),
+    )
 
 
 def default_mpact_material_specs(materials_list: List[Material]) -> MaterialSpecs:

@@ -2,13 +2,15 @@ from typing import Dict, List, Optional
 
 import openmc
 import mpactpy
-from coreforge.geometry_elements import PinCellStack, HexLattice
-from coreforge.geometry_elements.triga import FuelElement, GraphiteElement
-from coreforge.geometry_elements.triga.netl import (Core, CentralThimble, SourceHolder, Reactor,
+from coreforge.geometry_elements import HexLattice
+from coreforge.geometry_elements.triga import FuelElement
+from coreforge.geometry_elements.triga.netl import (Core, CentralThimble, Reactor,
                                                     PNT, ThreeElementIrradiator,
                                                     ModifiedThreeElementIrradiator)
 from coreforge import openmc_builder
 from coreforge import mpact_builder
+from coreforge.geometry_elements.triga.netl.reactor import (element_bottom_axial_position,
+                                                          grid_plate_specs)
 from coreforge.shapes import Circle
 
 from progression_problems.TRIGA.NETL.default_geometries import DefaultGeometries as NETL_DefaultGeometries
@@ -19,7 +21,7 @@ from progression_problems.TRIGA.NETL.utils import (build_generic_openmc_tallies,
                                                    default_mpact_material_specs)
 
 
-reactor          = NETL_DefaultGeometries.reactor()
+reactor = NETL_DefaultGeometries.reactor()
 
 
 def core_location(element: Optional[Core.Element]) -> str:
@@ -34,95 +36,19 @@ def core_location(element: Optional[Core.Element]) -> str:
     Returns
     -------
     str
-        Reference location used to look up the grid-plate penetrations.
+        Reference location used to look up the grid-plate penetrations. Three-element
+        irradiators use a reserved irradiation location; callers recenter its openings.
     """
 
     if isinstance(element, CentralThimble):
-        return "A-01"
+        return Core.CENTRAL_THIMBLE_LOCATION
     if isinstance(element, Core.ControlRod):
-        return "C-01"
+        return Core.CONTROL_ROD_LOCATIONS[0]
     if isinstance(element, PNT):
-        return "G-34"
-    return "B-01"
-
-
-def grid_plate_specs(
-    grid_plate: Reactor.GridPlate,
-    location: str,
-    element: Optional[Core.Element],
-) -> Reactor.CoreCellSpecs.GridPlateSpecs:
-    """Select grid-plate geometry specifications for a core element.
-
-    Parameters
-    ----------
-    grid_plate : Reactor.GridPlate
-        Plate supplying the material, axial bounds, and penetration radii.
-    location : str
-        Reference location for the ordinary penetration-map entry.
-    element : Optional[Core.Element]
-        Element occupying the cell, or ``None`` for a vacant location.
-
-    Returns
-    -------
-    Reactor.CoreCellSpecs.GridPlateSpecs
-        Plate specifications with the selected penetration.
-    """
-    radius = grid_plate.geometry.penetration_map[location]
-
+        return Core.PNT_LOCATION
     if isinstance(element, (ThreeElementIrradiator, ModifiedThreeElementIrradiator)):
-        three_element_radius = grid_plate.geometry.three_element_penetration_radius
-        if three_element_radius is not None:
-            radius = three_element_radius
-
-    return Reactor.CoreCellSpecs.GridPlateSpecs(
-        axial_bounds=grid_plate.axial_bounds,
-        material=grid_plate.geometry.material,
-        penetrations=[] if radius is None else [Reactor.CoreCellSpecs.PenetrationSpecs(radius=radius)],
-    )
-
-
-def element_bottom_axial_position(element: Core.Element,
-                                  control_rod_bottom_position: float,
-                                  upper_grid_plate: Reactor.GridPlate,
-                                  lower_grid_plate: Reactor.GridPlate) -> float:
-    """Get the bottom axial position for a core element.
-
-    Parameters
-    ----------
-    element : Core.Element
-        The core element to get the bottom axial position for.
-    control_rod_bottom_position : float
-        The bottom axial position of control rods [cm].
-    upper_grid_plate : Reactor.GridPlate
-        Upper grid plate used to position the source holder.
-    lower_grid_plate : Reactor.GridPlate
-        Lower grid plate whose top surface supports the three-element irradiator.
-
-    Returns
-    -------
-    float
-        Bottom axial position relative to the fuel centerline [cm].
-    """
-
-    bottom_axial_position = control_rod_bottom_position
-    if isinstance(element, (PNT, PinCellStack)):
-        bottom_axial_position = element.bottom_pos
-    elif isinstance(element, (ThreeElementIrradiator, ModifiedThreeElementIrradiator)):
-        bottom_axial_position = lower_grid_plate.axial_bounds.upper
-    elif isinstance(element, CentralThimble):
-        bottom_axial_position = -0.5 * element.length
-    elif isinstance(element, FuelElement):
-        bottom_axial_position = (-0.5 * element.fuel_meat.length -
-                element.moly_disc.thickness -
-                element.lower_end_fitting.length -
-                element.lower_graphite_reflector.thickness)
-    elif isinstance(element, GraphiteElement):
-        bottom_axial_position = (-0.5 * element.graphite_meat.length -
-                element.lower_end_fitting.length)
-    elif isinstance(element, SourceHolder):
-        bottom_axial_position = (upper_grid_plate.top_to_core_centerline_distance -
-                element.length)
-    return bottom_axial_position
+        return Core.THREE_ELEMENT_LOCATIONS[0]
+    return "B-01"
 
 
 def _build_core_cell_specs(
@@ -136,73 +62,74 @@ def _build_core_cell_specs(
     Parameters
     ----------
     lattice : HexLattice
-        Native core-element layout and its surrounding material.
+        Multicell layout from ``build_multicell_geometry`` and its surrounding
+        material. Any three-element irradiator occupies the central cell.
     control_rod_bottom_position : float
         Axial position for the bottom of a control rod [cm].
     upper_grid_plate : Reactor.GridPlate
-        Upper-grid geometry and axial placement.
+        Upper-grid geometry and axial placement. Reference openings at the
+        three-element location are recentered on the multicell irradiator.
     lower_grid_plate : Reactor.GridPlate
-        Lower-grid geometry and axial placement.
+        Lower-grid geometry and axial placement, normally with centered
+        fuel-location openings.
 
     Returns
     -------
     List[List[Reactor.CoreCellSpecs]]
         Geometry specifications in the same ring order as ``lattice.elements``.
     """
-    irradiator_cells = {}
-    for ring, centers in zip(lattice.elements, lattice.cell_centers):
-        for element, center in zip(ring, centers):
-            if not isinstance(element, (ThreeElementIrradiator, ModifiedThreeElementIrradiator)):
-                continue
-            radius = upper_grid_plate.geometry.three_element_penetration_radius
-            assert radius is not None, \
-                "An upper-grid-plate three-element penetration radius is required when an irradiator is present."
-            bottom_position = element_bottom_axial_position(
-                element, control_rod_bottom_position, upper_grid_plate, lower_grid_plate,
-            )
-            for i, j in lattice.cells_intersecting(Circle(radius), center):
-                cell_center = lattice.cell_centers[i][j]
-                x0, y0 = center[0] - cell_center[0], center[1] - cell_center[1]
-                irradiator_cells[i, j] = (
-                    Reactor.CoreCellSpecs.ElementSpecs(
-                        geometry=element, bottom_axial_position=bottom_position, x0=x0, y0=y0,
-                    ),
-                    Reactor.CoreCellSpecs.PenetrationSpecs(radius=radius, x0=x0, y0=y0),
-                )
-
     core_cell_specs = []
-    for i, ring in enumerate(lattice.elements):
+    for ring in lattice.elements:
         ring_specs = []
-        for j, element in enumerate(ring):
+        for element in ring:
             location = core_location(element)
             elements = []
             if element is not None:
+                if isinstance(element, Core.ControlRod):
+                    bottom_position = control_rod_bottom_position
+                else:
+                    bottom_position = element_bottom_axial_position(element, upper_grid_plate, lower_grid_plate)
+                assert bottom_position is not None
                 elements.append(Reactor.CoreCellSpecs.ElementSpecs(
-                    geometry=element,
-                    bottom_axial_position=element_bottom_axial_position(
-                        element,
-                        control_rod_bottom_position,
-                        upper_grid_plate,
-                        lower_grid_plate,
-                    ),
+                    geometry=element, bottom_axial_position=bottom_position,
                 ))
-
-            upper_specs = grid_plate_specs(upper_grid_plate, location, element)
-            irradiator_specs = irradiator_cells.get((i, j))
-            if irradiator_specs is not None:
-                placement, penetration = irradiator_specs
-                if placement.geometry is not element:
-                    elements.append(placement)
-                    upper_specs.penetrations.append(penetration)
-
+            plate_specs = {}
+            for name, plate in (("upper_grid_plate", upper_grid_plate),
+                                ("lower_grid_plate", lower_grid_plate)):
+                penetrations = plate.geometry.penetration_map[location]
+                if location in Core.THREE_ELEMENT_LOCATIONS:
+                    penetrations = [(radius, 0.0, 0.0) for radius, _, _ in penetrations]
+                plate_specs[name] = grid_plate_specs(plate, penetrations)
             ring_specs.append(Reactor.CoreCellSpecs(
                 location=location,
                 outer_material=lattice.outer_material,
                 elements=elements,
-                upper_grid_plate=upper_specs,
-                lower_grid_plate=grid_plate_specs(lower_grid_plate, location, element),
+                **plate_specs,
             ))
         core_cell_specs.append(ring_specs)
+
+    central_specs = core_cell_specs[-1][0]
+    if central_specs.location not in Core.THREE_ELEMENT_LOCATIONS:
+        return core_cell_specs
+
+    irradiator = lattice.elements[-1][0]
+    center = lattice.cell_centers[-1][0]
+    footprint = irradiator.as_stack().footprint
+    opening, = central_specs.upper_grid_plate.penetrations
+    assert footprint.outer_radius < opening.radius, \
+        "The three-element irradiator must fit within the upper-grid-plate penetration."
+
+    # Extend the central irradiator and its upper-plate opening into neighboring cells.
+    for (i, j), (x0, y0) in lattice.cells_intersecting(Circle(opening.radius), center).items():
+        neighbor = core_cell_specs[i][j]
+        if neighbor is not central_specs:
+            neighbor.upper_grid_plate.penetrations.append(Reactor.CoreCellSpecs.PenetrationSpecs(
+                radius=opening.radius, x0=x0, y0=y0,
+            ))
+            neighbor.elements.append(Reactor.CoreCellSpecs.ElementSpecs(
+                geometry=irradiator, bottom_axial_position=central_specs.elements[0].bottom_axial_position,
+                x0=x0, y0=y0,
+            ))
 
     return core_cell_specs
 

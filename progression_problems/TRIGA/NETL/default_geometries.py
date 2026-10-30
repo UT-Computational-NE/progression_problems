@@ -13,7 +13,7 @@ from coreforge.geometry_elements.triga.netl import (CentralThimble, SourceHolder
                                                     ThreeElementIrradiator as NETLThreeElementIrradiator,
                                                     ModifiedThreeElementIrradiator as NETLModifiedThreeElementIrradiator,
                                                     Reflector, Shroud, Core, Reactor as NETLReactor)
-from coreforge.geometry_elements.triga.netl.grid_plate import grid_plate_penetration_map
+from coreforge.geometry_elements.triga.netl.grid_plate import PenetrationMap, grid_plate_penetration_map
 from coreforge.materials import Material
 from progression_problems.TRIGA.default_geometries import DefaultGeometries as TRIGADefaultGeometries
 from progression_problems.TRIGA.default_geometries import FuelSpec
@@ -44,6 +44,7 @@ class DefaultGeometries:
            Austin, December 2025.
     """
 
+    THREE_ELEMENT_PENETRATION_RADIUS = 2.40000  # Ref. [3]_ pp. 152, 217
     UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE = 12.75  * CM_PER_INCH  # Ref. [2]_ pg. 55
     LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE = 13.06 * CM_PER_INCH   # Ref. [2]_ pg. 55
     TRANSIENT_ROD_FULLY_INSERTED_POSITION            = -73.0250              # Ref. [2]_ pg. 58
@@ -2294,10 +2295,11 @@ class DefaultGeometries:
         control_rod_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         pnt_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         central_thimble_radius: float | None = None,
-        penetration_map: dict[str, float | None] | None = None,
+        penetration_map: PenetrationMap | None = None,
         thickness: float = 0.62 * CM_PER_INCH,
         material: openmc.Material | None = None,
-        three_element_penetration_radius: float | None = 2.40000,
+        three_element_location_radius: float | None = THREE_ELEMENT_PENETRATION_RADIUS,
+        core: Core | None = None,
     ) -> GridPlate:
         """Creates and returns the default upper grid plate geometry.
 
@@ -2318,45 +2320,52 @@ class DefaultGeometries:
         central_thimble_radius : Optional[float]
             Central-thimble penetration radius in cm. If omitted, the default central
             thimble outer radius is used. Ignored when ``penetration_map`` is supplied.
-        penetration_map : Optional[dict[str, float | None]]
-            Complete map of core locations to penetration radii. If omitted, the
-            standard map is generated from the four radius parameters.
+        penetration_map : Optional[PenetrationMap]
+            Complete map of core locations to lists of ``(radius, x_offset,
+            y_offset)`` openings [cm]. An empty list describes solid plate.
+            If omitted, the standard map is generated from the radius parameters.
         thickness : float
             Grid-plate thickness in cm. Defaults to 0.62 in, per Ref. [2]_ pg. 55.
         material : Optional[openmc.Material]
             Grid-plate material. If omitted, ``NETLDefaultMaterials.aluminum`` is used at ``temperature``, per
             Ref. [2]_ pg. 50. The temperature is ignored when a material is supplied.
-        three_element_penetration_radius : Optional[float]
-            Radius in cm of the single upper-grid-plate penetration used when a
-            three-element irradiator is present. Defaults to 2.40000 cm, per
-            Ref. [3]_ pages 152 and 217. ``None`` disables the special
-            penetration.
+        three_element_location_radius : Optional[float]
+            Radius of the shared three-element opening [cm]. Defaults to
+            2.40000 cm, per Ref. [3]_ pages 152 and 217. ``None`` disables it.
+            No shared opening is added when the core has no irradiator.
+            Ignored when ``penetration_map`` is supplied.
+        core : Optional[Core]
+            Core whose lattice and facility center determine the shared opening's
+            offsets. If omitted and a three-element radius is supplied, the
+            default core is used. Ignored when ``penetration_map`` is supplied.
 
         Returns
         -------
         GridPlate
             Default NETL TRIGA upper grid plate.
         """
+        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
         if penetration_map is None:
+            if three_element_location_radius is not None and core is None:
+                core = DefaultGeometries.core(non_fuel_temp=temperature)
             central_thimble_radius = (
                 central_thimble_radius if central_thimble_radius is not None else
                 DefaultGeometries.central_thimble().cladding.outer_radius
             )
             penetration_map = grid_plate_penetration_map(
-                fuel_location_radius,
-                control_rod_location_radius,
-                pnt_location_radius,
-                central_thimble_radius,
+                fuel_location_radius=fuel_location_radius,
+                control_rod_location_radius=control_rod_location_radius,
+                central_thimble_radius=central_thimble_radius,
+                pnt_location_radius=pnt_location_radius,
+                three_element_location_radius=three_element_location_radius,
+                core=core,
             )
-
-        material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
 
         return GridPlate(
             penetration_map=penetration_map,
             thickness=thickness,
             material=Material(material),
             name="upper_grid_plate",
-            three_element_penetration_radius=three_element_penetration_radius,
         )
 
     @staticmethod
@@ -2366,7 +2375,7 @@ class DefaultGeometries:
         control_rod_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         pnt_location_radius: float = 1.505 * 0.5 * CM_PER_INCH,
         central_thimble_radius: float | None = None,
-        penetration_map: dict[str, float | None] | None = None,
+        penetration_map: PenetrationMap | None = None,
         thickness: float = 1.25 * CM_PER_INCH,
         material: openmc.Material | None = None,
     ) -> GridPlate:
@@ -2389,9 +2398,10 @@ class DefaultGeometries:
         central_thimble_radius : Optional[float]
             Central-thimble penetration radius in cm. If omitted, the default central
             thimble outer radius is used. Ignored when ``penetration_map`` is supplied.
-        penetration_map : Optional[dict[str, float | None]]
-            Complete map of core locations to penetration radii. If omitted, the
-            standard map is generated from the four radius parameters.
+        penetration_map : Optional[PenetrationMap]
+            Complete map of core locations to lists of ``(radius, x_offset,
+            y_offset)`` openings [cm]. An empty list describes solid plate.
+            If omitted, the standard map is generated from the radius parameters.
         thickness : float
             Grid-plate thickness in cm. Defaults to 1.25 in, per Ref. [2]_ pg. 55.
         material : Optional[openmc.Material]
@@ -2410,10 +2420,10 @@ class DefaultGeometries:
                 DefaultGeometries.central_thimble().cladding.outer_radius
             )
             penetration_map = grid_plate_penetration_map(
-                fuel_location_radius,
-                control_rod_location_radius,
-                pnt_location_radius,
-                central_thimble_radius,
+                fuel_location_radius=fuel_location_radius,
+                control_rod_location_radius=control_rod_location_radius,
+                central_thimble_radius=central_thimble_radius,
+                pnt_location_radius=pnt_location_radius,
             )
 
         material = material if material is not None else NETLDefaultMaterials.aluminum(temperature)
@@ -2999,8 +3009,14 @@ class DefaultGeometries:
 
         reflector = (reflector if reflector is not None else
                      DefaultGeometries.Reactor.reflector(non_fuel_temp))
-        upper_grid_plate = (upper_grid_plate if upper_grid_plate is not None else
-                            DefaultGeometries.Reactor.upper_grid_plate(non_fuel_temp))
+        if upper_grid_plate is None:
+            upper_geometry = DefaultGeometries.upper_grid_plate(
+                non_fuel_temp,
+                core=core,
+            )
+            upper_grid_plate = DefaultGeometries.Reactor.upper_grid_plate(
+                non_fuel_temp, geometry=upper_geometry,
+            )
 
         return NETLReactor(
             name="reactor",

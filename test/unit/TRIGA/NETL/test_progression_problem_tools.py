@@ -7,7 +7,8 @@ from progression_problems.TRIGA.default_geometries import FuelSpec
 from progression_problems.TRIGA.NETL.default_geometries import cosd, sind
 from progression_problems.TRIGA.NETL.default_materials import DefaultMaterials as NETLDefaultMaterials
 from progression_problems.TRIGA.NETL import problem_1_utils, problem_2_utils, problem_3_utils, problem_4_utils, problem_5_utils
-from progression_problems.TRIGA.NETL.utils import plot_model_2D, default_mpact_material_specs
+from progression_problems.TRIGA.NETL.utils import (plot_model_2D, default_mpact_material_specs,
+                                                  default_mpact_reactor_specs)
 from progression_problems.constants import CM_PER_INCH
 from coreforge import mpact_builder, materials
 from coreforge.geometry_elements.triga.netl import (
@@ -92,13 +93,16 @@ def test_default_reactor_reflector_and_grid_plate_placements():
     assert reflector.core_centerline_offset == pytest.approx(0.565 * CM_PER_INCH)
     assert isinstance(upper_grid, NETLReactor.GridPlate)
     assert upper_grid.geometry is upper_grid_geometry
-    assert upper_grid.geometry.three_element_penetration_radius == pytest.approx(2.40000)
+    upper_openings = upper_grid.geometry.penetration_map["E-11"]
+    assert len(upper_openings) == 1
+    assert upper_openings[0][0] == pytest.approx(2.40000)
+    assert upper_openings[0][1:] != (0.0, 0.0)
     assert upper_grid.top_to_core_centerline_distance == pytest.approx(
         NETL.DefaultGeometries.UPPER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
     )
     assert isinstance(lower_grid, NETLReactor.GridPlate)
     assert lower_grid.geometry is lower_grid_geometry
-    assert lower_grid.geometry.three_element_penetration_radius is None
+    assert lower_grid.geometry.penetration_map["E-11"][0][1:] == (0.0, 0.0)
     assert lower_grid.top_to_core_centerline_distance == pytest.approx(
         NETL.DefaultGeometries.LOWER_GRID_PLATE_TOP_TO_CORE_CENTERLINE_DISTANCE
     )
@@ -294,7 +298,8 @@ def test_problem_3_openmc_tools():
 
 def test_problem_3_mpact_tools(num_procs):
     reactor = NETL.DefaultGeometries.reactor()
-    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(num_procs=num_procs)
+    reactor_build_specs = default_mpact_reactor_specs(reactor)
+    reactor_build_specs.num_procs = num_procs
 
     control_cases = [problem_3_utils.ControlRodSpecs(),
                      problem_3_utils.ControlRodSpecs(transient_rod_section="absorber",
@@ -374,7 +379,9 @@ def test_problem_5_openmc_tools():
 def test_problem_5_mpact_tools(num_procs):
     """Excluding excore build for the sake of expediency. It's already being tested in CoreForge."""
     reactor = NETL.DefaultGeometries.reactor()
-    reactor_build_specs = mpact_builder.triga.netl.Reactor.Specs(exclude_excore=True, num_procs=num_procs)
+    reactor_build_specs = default_mpact_reactor_specs(reactor)
+    reactor_build_specs.num_procs = num_procs
+    reactor_build_specs.exclude_excore = True
     problem_5_utils.write_mpact_input(reactor, reactor_build_specs=reactor_build_specs)
     assert os.path.exists("mpact.inp")
     os.remove("mpact.inp")
